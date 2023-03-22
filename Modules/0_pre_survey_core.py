@@ -392,19 +392,23 @@ if __name__ == "__main__":
 
     # files
     uploaded_refseq_file_names = [
-        "my_plasmid_1.dna", 
-        "my_plasmid_2.dna", 
-        "my_plasmid_3.dna", 
+        "M32_pmNeonGreen-N1.dna", 
+        "M38_mCherry-Spo20.dna", 
+        "M42_GFP-PASS_vecCMV.dna", 
+        "M43_iRFP713-PASS_vecCMV.dna", 
+        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.fa", 
+        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.fa", 
     ]
-    tmp_names = ["P1", "P2", "P3"]
-    refseq_dir = Path("path_to_plasmid_map_folder")
+    tmp_names = ["P1", "P2", "P3", "P4", "P5", "P6"]
+    assert len(uploaded_refseq_file_names) == len(tmp_names)
+    refseq_dir = Path("./demo_data/my_plasmid_maps")
     uploaded_refseq_file_paths = []
     for refseq_file_name in uploaded_refseq_file_names:
         plasmid_map_path = list(refseq_dir.rglob(refseq_file_name))
         assert len(plasmid_map_path) == 1
         uploaded_refseq_file_paths.append(plasmid_map_path[0])
-
-    save_dir = Path("save_dir")
+    save_dir = Path("./demo_data/results_pre_survey")
+    assert save_dir.exists()
     recommended_groupings_path = save_dir / "recommended_groupings.txt"
 
     # load if any previous score_matrix
