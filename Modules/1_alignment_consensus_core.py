@@ -1890,7 +1890,7 @@ if __name__ == "__main__":
     )}
 
     """
-    Example of calculation of consensu sequence
+    Example for calculating consensu sequence
     """
     true_refseq = "T"   # prior info
     event_list = [("T", 15), ("A", 10), ("A", 3), ("A", 20)]   # obtained data
@@ -1917,19 +1917,24 @@ if __name__ == "__main__":
     Example of execution
     """
     # files
-    plasmid_map_dir = Path("plasmid_map_dir")
+    plasmid_map_dir = Path("./demo_data/my_plasmid_maps")
     refseq_file_namd_list = [
-        "my_plasmid_1.dna", 
-        "my_plasmid_2.dna", 
-        "my_plasmid_3.dna", 
+        "M32_pmNeonGreen-N1.dna", 
+        "M38_mCherry-Spo20.dna", 
+        "M42_GFP-PASS_vecCMV.dna", 
+        "M43_iRFP713-PASS_vecCMV.dna", 
+        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.fa", 
+        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.fa", 
     ]
     refseq_file_path_list = []
     for refseq_file_name in refseq_file_namd_list:
         plasmid_map_path = list(plasmid_map_dir.rglob(refseq_file_name))
         assert len(plasmid_map_path) == 1
         refseq_file_path_list.append(plasmid_map_path[0])
-    fastq_file_path = Path("fastq_dir/my_fastq.path")
-    save_dir = Path("save_dir")
+    fastq_file_path = Path("./demo_data/my_fastq_files/Uematsu_n7x_1_MU-test1.fastq")
+    assert fastq_file_path.exists()
+    save_dir = Path("./demo_data/results_pre_survey")   # 2:17:10.726045
+    assert save_dir.exists()
 
     group_idx = 0
 
