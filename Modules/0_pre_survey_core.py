@@ -20,7 +20,7 @@ import cairo
 from . import my_classes as mc
 from pathlib import Path
 from snapgene_reader import snapgene_file_to_dict, snapgene_file_to_seqrecord
-from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.cluster.hierarchy import linkage
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 
@@ -396,12 +396,12 @@ if __name__ == "__main__":
         "M38_mCherry-Spo20.dna", 
         "M42_GFP-PASS_vecCMV.dna", 
         "M43_iRFP713-PASS_vecCMV.dna", 
-        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.fa", 
-        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.fa", 
+        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna", 
+        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna", 
     ]
-    tmp_names = ["P1", "P2", "P3", "P4", "P5", "P6"]
-    assert len(uploaded_refseq_file_names) == len(tmp_names)
-    refseq_dir = Path("./demo_data/my_plasmid_maps")
+    tmp_names = [f"P{i}" for i in range(len(uploaded_refseq_file_names))]
+
+    refseq_dir = Path("./demo_data/my_plasmid_maps_dna")
     uploaded_refseq_file_paths = []
     for refseq_file_name in uploaded_refseq_file_names:
         plasmid_map_path = list(refseq_dir.rglob(refseq_file_name))

@@ -1873,7 +1873,7 @@ if __name__ == "__main__":
     gap_extend_penalty = 1 #@param {type:"integer"}
     match_score = 1        #@param {type:"integer"}
     mismatch_score = -2    #@param {type:"integer"}
-    score_threshold = 0.8  #@param {type:"number"}
+    score_threshold = 0.5  #@param {type:"number"}
     error_rate = 0.0001   #@param {type:"number"}
     del_mut_rate = error_rate / 4     # e.g. "A -> T, C, G, del"
     ins_rate   = 0.0001 #@param {type:"number"}   # 挿入は独立に考える？
