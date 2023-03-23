@@ -19,6 +19,8 @@ import datetime
 import textwrap
 import contextlib
 import matplotlib.pyplot as plt
+import hashlib
+import shutil
 from pathlib import Path
 from matplotlib.patches import Patch
 from itertools import product
@@ -83,6 +85,19 @@ class MyFastQ(OrderedDict):
         for fastq in fastq_list[1:]:
             combined_fastq.append(fastq)
         return combined_fastq
+    @property
+    def my_hash(self):
+        with open(self.path.as_posix(), "r") as f:
+            fastq_txt = f.read()
+        return hashlib.sha256(fastq_txt.encode("utf-8")).hexdigest()
+    @property
+    def my_hash_for_combined(self):
+        return hashlib.sha256(self.to_string().encode("utf-8")).hexdigest()
+    def to_string(self):
+        txt = ""
+        for seq_id, (seq, q_scores) in self.items():
+            txt += f"{seq_id}\n{seq}\n+\n{''.join(map(lambda x: chr(x + 33), q_scores))}\n"
+        return txt.strip()
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
@@ -126,20 +141,36 @@ class MyRefSeq():
             raise Exception(f"Unsupported type of sequence file: {self.path}")
     def reverse_complement(self):
         return str(Seq(self.seq).reverse_complement())
+    @property
+    def my_hash(self):
+        return hashlib.sha256(self.seq.encode("utf-8")).hexdigest()
 
 # Definition of main classes
 class MyResult():
-    def __init__(self, parasail_result) -> None:
-        self.cigar = parasail_result.cigar.decode.decode("ascii")
-        self.score = parasail_result.score
-        self.beg_ref = parasail_result.cigar.beg_ref
-        self.beg_query = parasail_result.cigar.beg_query
-        self.end_ref = parasail_result.end_ref
-        self.end_query = parasail_result.end_query
+    def __init__(self, parasail_result=None) -> None:
+        if parasail_result is not None:
+            self.cigar = parasail_result.cigar.decode.decode("ascii")
+            self.score = parasail_result.score
+            self.beg_ref = parasail_result.cigar.beg_ref
+            self.beg_query = parasail_result.cigar.beg_query
+            self.end_ref = parasail_result.end_ref
+            self.end_query = parasail_result.end_query
+    def to_dict(self):
+        keys = ["cigar", "score", "beg_ref", "beg_query", "end_ref", "end_query"]
+        d = {}
+        for key in keys:
+            d[key] = getattr(self, key)
+        return d
+    def apply_dict_params(self, d):
+        for type_convert_key in ['score', 'beg_ref', 'beg_query', 'end_ref', 'end_query']:
+            setattr(self, type_convert_key, int(d[type_convert_key]))
+        else:
+            setattr(self, "cigar", d["cigar"])
 
 class MyAligner():
     def __init__(self, refseq_list, combined_fastq, param_dict):
         # params
+        self.param_dict = param_dict
         self.gap_open_penalty = param_dict["gap_open_penalty"]
         self.gap_extend_penalty = param_dict["gap_extend_penalty"]
         self.match_score = param_dict["match_score"]
@@ -147,17 +178,21 @@ class MyAligner():
         # others
         self.refseq_list = refseq_list
         self.combined_fastq = combined_fastq
+        self.duplicated_refseq_seq_list = None
+        self.is_refseq_seq_all_ATGC_list = None
+        self.set_refseq_related_info()
+    @property
+    def my_custom_matrix(self):
+        return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
+    def set_refseq_related_info(self):
         self.duplicated_refseq_seq_list = []
         self.is_refseq_seq_all_ATGC_list = []
-        for refseq in refseq_list:
+        for refseq in self.refseq_list:
             self.duplicated_refseq_seq_list.append(refseq.seq + refseq.seq)
             is_all_ATCG = all([b.upper() in "ATCG" for b in refseq.seq])
             if not is_all_ATCG:
                 print(f"\033[38;2;255;0;0mWARNING: Non-ATCG letter(s) were found in '{refseq.path.name}'.\nWhen calculating the alignment score, they are treated as 'mismatched', no matter what characters they are.\033[0m")
             self.is_refseq_seq_all_ATGC_list.append(is_all_ATCG)
-    @property
-    def my_custom_matrix(self):
-        return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
     # refが環状プラスミドであるために、それを元に戻すのに使う（プラスミド上のどこがシーケンスの始まりと終わりなのか）を決めるのに使うカスタムのスコア
     def get_custom_cigar_score_dict(self):
         return {
@@ -246,6 +281,182 @@ class MyCigarStr(str):
     def clipped_len(self):
         return len(self.clip())
 
+class MyTextFormat():
+    def to_text(self):
+        text = ""
+        for k, data_type in self.keys:
+            text += f"# {k}({data_type})\n"
+            v = getattr(self, k)
+            if data_type in ("str", "int"):
+                string = str(v)
+            elif data_type == "ndarray":
+                with io.StringIO() as s:
+                    np.savetxt(s, v)
+                    string = s.getvalue().strip()
+            elif data_type == "list":
+                string = "\n".join(v)
+            elif data_type in ("dict", "OrderedDict"):
+                string = "\n".join(f"{k}\t{v}" for k, v in v.items())
+            # elif data_type == "eval":
+            #     string = v.__str__()
+            elif data_type == "df":
+                string_io = io.StringIO()
+                v.to_csv(string_io, sep="\t")
+                string = string_io.getvalue().strip("\n")
+            else:
+                raise Exception(f"unsupported data type: {type(v)}")
+            text += f"{string}\n\n"
+        return text
+    def save(self, save_path):
+        text = self.to_text()
+        with open(save_path, "w") as f:
+            f.write(text)
+    def load(self, load_path):
+        added_keys = []
+        with fopen(load_path, "r") as f:
+            lines = f.readlines()
+        cur_k = None
+        cur_v = None
+        cur_data_type = None
+        for l in lines:
+            if l.startswith("# "):
+                if cur_k is None:   pass
+                else:   self.set_attribute(cur_k, cur_v[:-2], cur_data_type)    # 改行コードが２つ入るので除く
+                m = re.match(r"^(.+)\((.+)\)$", l[2:].strip("\n"))
+                cur_k = m.group(1)
+                cur_data_type = m.group(2)
+                cur_v = ""
+                added_keys.append((cur_k, cur_data_type))
+            else:
+                cur_v += l
+        else:
+            self.set_attribute(cur_k, cur_v[:-2], cur_data_type)
+        return added_keys
+    def set_attribute(self, cur_k: str, cur_v: str, cur_data_type: str):
+        if isinstance(getattr(type(self), cur_k, None), property):
+            if getattr(type(self), cur_k).fset is None:
+                return
+        if cur_data_type == "str":
+            v = cur_v
+        elif cur_data_type == "ndarray":
+            v = np.array([list(map(float, line.split())) for line in cur_v.split("\n")])
+        elif cur_data_type == "list":
+            v = self.convert_to_number_if_possible(cur_v.split("\n"), method="all")
+        elif cur_data_type == "dict":
+            v = {l.split("\t")[0]:l.split("\t")[1] for l in cur_v.split("\n")}
+        elif cur_data_type == "OrderedDict":
+            v = OrderedDict([l.split("\t") for l in cur_v.split("\n")])
+        # elif cur_data_type == "eval":
+        #     v = eval(cur_v)
+        elif cur_data_type == "df":
+            from ast import literal_eval
+            string_io = io.StringIO(cur_v)
+            v = pd.read_csv(string_io, sep="\t", index_col=0, dtype=str)
+        else:
+            raise Exception(f"unsupported data type\n{cur_data_type}")
+        setattr(self, cur_k, v)
+    def convert_to_number_if_possible(self, values, method):
+        new_values = []
+        for v in values:
+            try:
+                new_values.append(float(v))
+            except:
+                new_values.append(v)
+        if (method == "all") and any(map(lambda x: not isinstance(x, float), new_values)):
+            return values
+        else:
+            return new_values
+
+class IntermediateResults(MyTextFormat):
+    def __init__(self, result_dict=None, my_aligner=None) -> None:
+        self.keys = [
+            ("refseq_names", "list"), 
+            ("refseq_hash_list", "list"), 
+            ("combined_fastq_names", "list"), 
+            ("combined_fastq_hash", "str"), 
+            ("param_dict", "dict"), 
+            ("combined_fastq_id_list", "list")
+        ]
+        self.non_default_keys_start_idx = 6
+        self.param_dict_keys_matter = ['gap_open_penalty', 'gap_extend_penalty', 'match_score', 'mismatch_score']
+        self.combined_fastq_id_list = []
+        if (my_aligner is not None) and (result_dict is not None):
+            # my aligner related info
+            self.refseq_names = [refseq.path.name for refseq in my_aligner.refseq_list]
+            self.refseq_hash_list = [refseq.my_hash for refseq in my_aligner.refseq_list]
+            self.combined_fastq_names = [fastq_path.name for fastq_path in my_aligner.combined_fastq.path]
+            self.combined_fastq_hash = my_aligner.combined_fastq.my_hash_for_combined
+            self.param_dict = my_aligner.param_dict
+            # result_dict related info
+            assert len(result_dict) == len(my_aligner.combined_fastq)
+            assert result_dict.keys() == my_aligner.combined_fastq.keys()
+            idx = 0
+            for combined_fastq_id, result_list in result_dict.items():
+                self.combined_fastq_id_list.append(combined_fastq_id)
+                for result in result_list:
+                    result_key = f"result{idx}"
+                    setattr(self, result_key, result.to_dict())
+                    self.keys.append((result_key, "dict"))
+                    idx += 1
+            assert len(self.combined_fastq_id_list) == len(my_aligner.combined_fastq)
+            assert len(my_aligner.combined_fastq) * len(my_aligner.refseq_list) * 2 == idx # リバコン(rc) もあるので二倍で assertion
+    def assert_identity(self, my_aligner):
+        refseq_names = [refseq.path.name for refseq in my_aligner.refseq_list]
+        refseq_hash_list = [refseq.my_hash for refseq in my_aligner.refseq_list]
+        combined_fastq_names = [fastq_path.name for fastq_path in my_aligner.combined_fastq.path]
+        combined_fastq_hash = my_aligner.combined_fastq.my_hash_for_combined
+        param_dict = my_aligner.param_dict
+        is_param_dict_same = all(param_dict[k] == self.param_dict[k] for k in self.param_dict_keys_matter)
+        if (self.refseq_names == refseq_names) and\
+            (self.refseq_hash_list == refseq_hash_list) and\
+            (self.combined_fastq_names == combined_fastq_names) and\
+            (self.combined_fastq_hash == combined_fastq_hash) and is_param_dict_same:
+            return True
+        elif (set(self.refseq_names) == set(refseq_names)) and\
+            (set(self.refseq_hash_list) == set(refseq_hash_list)) and\
+            (self.combined_fastq_names == combined_fastq_names) and\
+            (self.combined_fastq_hash == combined_fastq_hash) and is_param_dict_same:
+            # intermediat_resultsに応じて順番を並べ直す
+            my_aligner.refseq_list = [my_aligner.refseq_list[refseq_hash_list.index(refseq_hash)] for refseq_hash in self.refseq_hash_list]
+            my_aligner.set_refseq_related_info()
+            return True
+        else:
+            return False
+    def load(self, load_path):
+        self.keys = super().load(load_path)
+        for k, v in self.param_dict.items():
+            try:
+                self.param_dict[k] = int(v)
+            except:
+                self.param_dict[k] = float(v)
+    @property
+    def result_dict(self):
+        result_dict = OrderedDict()
+        result_list = []
+        refseq_idx = 0
+        refseq_idx_max = len(self.refseq_names) * 2
+        fastq_idx = 0
+        for key, data_type in self.keys[self.non_default_keys_start_idx:]:
+            assert data_type == "dict"
+            my_result = MyResult()
+            my_result.apply_dict_params(getattr(self, key))
+            result_list.append(my_result)
+            refseq_idx += 1
+            if refseq_idx == refseq_idx_max:
+                fastq_id = self.combined_fastq_id_list[fastq_idx]
+                result_dict[fastq_id] = result_list
+                refseq_idx = 0
+                fastq_idx += 1
+                result_list = []
+        assert refseq_idx == 0
+        assert fastq_idx == len(self.combined_fastq_id_list)
+        return result_dict
+
+def save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path):
+    ir = IntermediateResults(result_dict=result_dict, my_aligner=my_aligner)
+    ir.save(intermediate_results_save_path)
+    quit()
+
 #@title # 1. Upload and select files
 
 def organize_files(fastq_file_path_list, refseq_file_path_list):
@@ -274,13 +485,26 @@ def organize_files(fastq_file_path_list, refseq_file_path_list):
 
 #@title # 2. Execute alignment
 
-def execute_alignment(refseq_list, combined_fastq, param_dict):
-
-    # Execute
+def execute_alignment(refseq_list, combined_fastq, param_dict, intermediate_results_save_path):
     my_aligner = MyAligner(refseq_list, combined_fastq, param_dict)
-    result_dict = my_aligner.align_all()
-    print()
-    print("alignment: DONE")
+
+    # load if there is intermediate data
+    skip = False
+    if intermediate_results_save_path.exists():
+        intermediate_results = IntermediateResults()
+        intermediate_results.load(intermediate_results_save_path)
+        if intermediate_results.assert_identity(my_aligner):
+            result_dict = intermediate_results.result_dict
+            print()
+            print("alignment: SKIPPED (exported intermediate was used)")
+            skip = True
+    if not skip:
+        # Execute
+        result_dict = my_aligner.align_all()
+        print()
+        print("alignment: DONE")
+        save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path)
+
     return result_dict, my_aligner
 
 #@title # 3. Set threshold for assignment
@@ -1180,8 +1404,8 @@ class MyTextFormat():
                 string = "\n".join(v)
             elif data_type in ("dict", "OrderedDict"):
                 string = "\n".join(f"{k}\t{v}" for k, v in v.items())
-            elif data_type == "eval":
-                string = v.__str__()
+            # elif data_type == "eval":
+            #     string = v.__str__()
             elif data_type == "df":
                 string_io = io.StringIO()
                 v.to_csv(string_io, sep="\t")
@@ -1229,8 +1453,8 @@ class MyTextFormat():
             v = {l.split("\t")[0]:l.split("\t")[1] for l in cur_v.split("\n")}
         elif cur_data_type == "OrderedDict":
             v = OrderedDict([l.split("\t") for l in cur_v.split("\n")])
-        elif cur_data_type == "eval":
-            v = eval(cur_v)
+        # elif cur_data_type == "eval":
+        #     v = eval(cur_v)
         elif cur_data_type == "df":
             from ast import literal_eval
             string_io = io.StringIO(cur_v)
@@ -1545,207 +1769,8 @@ def calculate_consensus(alignment_result, param_dict):
     return alignment_result_2
 
 #@title # 5. Export results
-export_alignment_image = False # @ param {type:"boolean"}
-compress_as_zip = False
-Size = namedtuple('Size', ("ax0", "ax1"))
-class ATCG_5x5_img():
-    dtype = uint8
-    # bases
-    A = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [1,1,1,1], 
-        [1,0,0,1], 
-        [1,0,0,1]
-    ], dtype=dtype)
-    C = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [1,0,0,0], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    G = np.array([
-        [0,1,1,1], 
-        [1,0,0,0], 
-        [1,0,1,1], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    T = np.array([
-        [1,1,1,0], 
-        [0,1,0,0], 
-        [0,1,0,0], 
-        [0,1,0,0], 
-        [0,1,0,0]
-    ], dtype=dtype)
-    # special letters
-    R = np.array([
-        [1,1,1,0], 
-        [1,0,0,1], 
-        [1,1,1,0], 
-        [1,0,1,0], 
-        [1,0,0,1]
-    ], dtype=dtype)
-    E = np.array([
-        [1,1,1,1], 
-        [1,0,0,0], 
-        [1,1,1,0], 
-        [1,0,0,0], 
-        [1,1,1,1]
-    ], dtype=dtype)
-    F = np.array([
-        [1,1,1,1], 
-        [1,0,0,0], 
-        [1,1,1,0], 
-        [1,0,0,0], 
-        [1,0,0,0]
-    ], dtype=dtype)
-    # numbers
-    zero = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [1,0,0,1], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    one = np.array([
-        [0,1,0,0], 
-        [1,1,0,0], 
-        [0,1,0,0], 
-        [0,1,0,0], 
-        [1,1,1,0]
-    ], dtype=dtype)
-    two = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [0,0,1,0], 
-        [0,1,0,0], 
-        [1,1,1,1]
-    ], dtype=dtype)
-    three = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [0,0,1,0], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    four = np.array([
-        [0,0,1,0], 
-        [0,1,1,0], 
-        [1,0,1,0], 
-        [1,1,1,1], 
-        [0,0,1,0]
-    ], dtype=dtype)
-    five = np.array([
-        [1,1,1,0], 
-        [1,0,0,0], 
-        [1,1,1,0], 
-        [0,0,0,1], 
-        [1,1,1,0]
-    ], dtype=dtype)
-    six = np.array([
-        [0,1,1,0], 
-        [1,0,0,0], 
-        [1,1,1,0], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    seven = np.array([
-        [1,1,1,1], 
-        [0,0,0,1], 
-        [0,0,1,0], 
-        [0,1,0,0], 
-        [0,1,0,0]
-    ], dtype=dtype)
-    eight = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    nine = np.array([
-        [0,1,1,0], 
-        [1,0,0,1], 
-        [0,1,1,1], 
-        [0,0,0,1], 
-        [0,1,1,0]
-    ], dtype=dtype)
-    hyphen = np.array([
-        [0,0,0,0], 
-        [0,0,0,0], 
-        [1,1,1,1], 
-        [0,0,0,0], 
-        [0,0,0,0]
-    ])
-    blank = np.array([
-        [0,0,0,0], 
-        [0,0,0,0], 
-        [0,0,0,0], 
-        [0,0,0,0], 
-        [0,0,0,0]
-    ])
-    w2n = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-    s2n = {"-":"hyphen", " ":"blank"}
-    def __init__(self, ax0, ax1, ax0_space=2, ax1_space=1):
-        # prefixed
-        self.letter_size = Size(ax0=5, ax1=4)
-        self.bit = int(re.match(fr"^uint([0-9]+)$", self.dtype.__name__).group(1))
-        self.max_intensity = 2 ** self.bit - 1
-        # not prefixed
-        self.size = Size(ax0=ax0, ax1=ax1)
-        self.space = Size(ax0=ax0_space, ax1=ax1_space)
-        self.actual_size = Size(
-            ax0=self.size.ax0 * (self.letter_size.ax0 + self.space.ax0) + self.space.ax0, 
-            ax1=self.size.ax1 * (self.letter_size.ax1 + self.space.ax1) + self.space.ax1
-        )
-        self.img_R = np.ones(self.actual_size, dtype=self.dtype) * self.max_intensity
-        self.img_G = np.ones(self.actual_size, dtype=self.dtype) * self.max_intensity
-        self.img_B = np.ones(self.actual_size, dtype=self.dtype) * self.max_intensity
-        self.letter_matrix = np.empty(self.size, dtype=str)
-    def write_letters(self, ax0, ax1, letters):
-        for letter in letters:
-            self.write_letter(ax0, ax1, letter)
-            ax1 += 1
-    def write_letter(self, ax0, ax1, letter):
-        self.letter_matrix[ax0, ax1] = letter
-        if letter in "0123456789":
-            letter = self.w2n[int(letter)]
-        elif letter in "- ":
-            letter = self.s2n[letter]
-        letter_array = getattr(self, letter)
-        actual_ax0 = ax0 * (self.letter_size.ax0 + self.space.ax0) + self.space.ax0
-        actual_ax1 = ax1 * (self.letter_size.ax1 + self.space.ax1) + self.space.ax1
-        self.img_R[actual_ax0:actual_ax0 + self.letter_size.ax0, actual_ax1:actual_ax1 + self.letter_size.ax1] = (1 - letter_array) * self.max_intensity
-        self.img_G[actual_ax0:actual_ax0 + self.letter_size.ax0, actual_ax1:actual_ax1 + self.letter_size.ax1] = (1 - letter_array) * self.max_intensity
-        self.img_B[actual_ax0:actual_ax0 + self.letter_size.ax0, actual_ax1:actual_ax1 + self.letter_size.ax1] = (1 - letter_array) * self.max_intensity
-    def highlight_letters(self, ax0, ax1, color, length):
-        for i in range(length):
-            self.highlight_letter(ax0, ax1 + i, color)
-    def highlight_letter(self, ax0, ax1, color):
-        letter = self.letter_matrix[ax0, ax1]
-        if letter == "-":
-            letter = self.s2n[letter]
-        letter_array = getattr(self, letter)
-        actual_ax0 = ax0 * (self.letter_size.ax0 + self.space.ax0) + self.space.ax0
-        actual_ax1 = ax1 * (self.letter_size.ax1 + self.space.ax1) + self.space.ax1
-        for img, color_value in zip([self.img_R, self.img_G, self.img_B], color):
-            highlighted_letter = (1 - letter_array) * color_value
-            img[actual_ax0:actual_ax0 + self.letter_size.ax0, actual_ax1:actual_ax1 + self.letter_size.ax1] = highlighted_letter
-    def export_as_img(self, save_path, max_row_per_img):
-        rgb_stack = np.stack((self.img_R, self.img_G, self.img_B), axis=2)
-        N = np.ceil(self.size[0] / max_row_per_img).astype(int)
-        save_paths = []
-        for i in range(N):
-            save_path_tmp = save_path.parent / f"{save_path.stem}_{i}{save_path.suffix}"
-            save_paths.append(save_path_tmp)
-            s = i * max_row_per_img       * (self.letter_size.ax0 + self.space.ax0) + self.space.ax0
-            e = (i + 1) * max_row_per_img * (self.letter_size.ax0 + self.space.ax0) + self.space.ax0
-            Image.fromarray(rgb_stack[s:e,:,:]).save(save_path_tmp)
-        return save_paths
 
-def export_results(alignment_result, alignment_result_2, save_dir, group_idx):
+def export_results(alignment_result, alignment_result_2, save_dir, group_idx, compress_as_zip=False):
 
     all_file_paths = []
     # export settings
@@ -1778,28 +1803,6 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx):
     # for text in text_list:
     #     print(text)
 
-    # export gif
-    if export_alignment_image:
-        print("Exporting alignment gifs...")
-        refseq_name_list, text_list, highlight_pos_list = alignment_result.alignment_reuslt_list_2_text_list(linewidth=250)
-        save_path_list_gif = []
-        for refseq_name, text, highlight_pos in zip(refseq_name_list, text_list, highlight_pos_list):
-            # テキスト記入
-            splitted_text = text.split("\n")
-            ax0 = len(splitted_text)
-            ax1 = max([len(i) for i in splitted_text])
-            atcg_img = ATCG_5x5_img(ax0=ax0, ax1=ax1)
-            for ax0, t in enumerate(splitted_text):
-                atcg_img.write_letters(ax0, 0, t)
-            # ハイライト
-            for r, c in highlight_pos:
-                atcg_img.highlight_letter(r, c, (255, 100, 100))
-            # 保存(サイズでかいので分割)
-            save_path = (save_dir / refseq_name).with_suffix(".gif")
-            save_paths = atcg_img.export_as_img(save_path=save_path, max_row_per_img=1000)
-            save_path_list_gif.extend(save_paths)
-        all_file_paths += save_path_list_gif
-
     # export score_summary
     print("Exporting summary...")
     save_path_summary_score = save_dir / "summary_scores.txt"
@@ -1811,7 +1814,7 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx):
 
     # export summary image
     print("Exporting summary svg images...")
-    save_path_summary_dictribution = save_dir /"summary_distribution.svg"
+    save_path_summary_dictribution = save_dir / "summary_distribution.svg"
     save_path_summary_scatter = save_dir / "summary_scatter.svg"
     score_summary_df = pd.read_csv(save_path_summary_score, sep="\t")
     draw_distributions(score_summary_df, alignment_result.my_aligner.combined_fastq)
@@ -1835,8 +1838,14 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx):
         path = file_path.parent / (file_path.stem + ".consensus_without_prior.fastq")
         os.replace(src=file_path, dst=(path).as_posix())
         consensus_path_list.append(path)
-
     all_file_paths += consensus_path_list
+
+    # export intermediate results (allow saving even if someone deleted during the run)
+    intermediate_results = IntermediateResults(result_dict=alignment_result.result_dict, my_aligner=alignment_result.my_aligner)
+    intermediate_results_filename = "intermediate_results.txt"
+    intermediate_results_save_path = save_dir / intermediate_results_filename
+    intermediate_results.save(intermediate_results_save_path)
+    all_file_paths.append(intermediate_results_save_path)
 
     # make new folder
     idx = 0
@@ -1853,6 +1862,8 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx):
     # move files
     for file_path in all_file_paths:
         os.replace(src=file_path, dst=(results_dir / file_path.name).as_posix())
+    # intermediate fileはコピーして残す
+    shutil.copy(save_dir, results_dir / intermediate_results_filename)
 
     # compress as zip
     if compress_as_zip:
@@ -1873,7 +1884,7 @@ if __name__ == "__main__":
     gap_extend_penalty = 1 #@param {type:"integer"}
     match_score = 1        #@param {type:"integer"}
     mismatch_score = -2    #@param {type:"integer"}
-    score_threshold = 0.5  #@param {type:"number"}
+    score_threshold = 0.3  #@param {type:"number"}
     error_rate = 0.0001   #@param {type:"number"}
     del_mut_rate = error_rate / 4     # e.g. "A -> T, C, G, del"
     ins_rate   = 0.0001 #@param {type:"number"}   # 挿入は独立に考える？
@@ -1917,14 +1928,14 @@ if __name__ == "__main__":
     Example of execution
     """
     # files
-    plasmid_map_dir = Path("./demo_data/my_plasmid_maps")
+    plasmid_map_dir = Path("./demo_data/my_plasmid_maps_dna")
     refseq_file_namd_list = [
         "M32_pmNeonGreen-N1.dna", 
         "M38_mCherry-Spo20.dna", 
         "M42_GFP-PASS_vecCMV.dna", 
         "M43_iRFP713-PASS_vecCMV.dna", 
-        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.fa", 
-        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.fa", 
+        "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna", 
+        "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna", 
     ]
     refseq_file_path_list = []
     for refseq_file_name in refseq_file_namd_list:
@@ -1933,7 +1944,7 @@ if __name__ == "__main__":
         refseq_file_path_list.append(plasmid_map_path[0])
     fastq_file_path = Path("./demo_data/my_fastq_files/Uematsu_n7x_1_MU-test1.fastq")
     assert fastq_file_path.exists()
-    save_dir = Path("./demo_data/results_pre_survey")   # 2:17:10.726045
+    save_dir = Path("./demo_data/results_analysis")   # 2:17:10.726045
     assert save_dir.exists()
 
     group_idx = 0
@@ -1941,8 +1952,9 @@ if __name__ == "__main__":
     t0 = datetime.datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
-    # 2. Execute alignment
-    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict)
+    # 2. Execute alignment: load if any previous score_matrix if possible
+    intermediate_results_save_path = save_dir / "intermediate_results.txt"
+    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, intermediate_results_save_path)
     # 3. Set threshold for assignment
     alignment_result = set_threshold_for_assignment(result_dict, my_aligner, param_dict)
     # 4. Calculate consensus
