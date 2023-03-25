@@ -28,7 +28,7 @@ from collections import OrderedDict, namedtuple, defaultdict
 from snapgene_reader import snapgene_file_to_dict, snapgene_file_to_seqrecord
 from Bio.Seq import Seq
 from numpy.core.memmap import uint8
-from PIL import Image
+from PIL import Image as PilImage
 
 class MyFastQ(OrderedDict):
     def __init__(self, path=None):
@@ -455,7 +455,6 @@ class IntermediateResults(MyTextFormat):
 def save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path):
     ir = IntermediateResults(result_dict=result_dict, my_aligner=my_aligner)
     ir.save(intermediate_results_save_path)
-    quit()
 
 #@title # 1. Upload and select files
 
@@ -1066,6 +1065,348 @@ class AlignmentResult():
                 f.write(consensus_fastq_txt)
             save_path_list.append(save_path1)
         return save_path_list
+    def alignment_summary_bar_graphs(self):
+        N_array_list = []
+        bar_graph_img_list = []
+        filename_for_saving_list = []
+        for refseq_idx, aligned_result in enumerate(self.aligned_result_list):
+            filename_for_saving_list.append(f"{self.my_aligner.refseq_list[refseq_idx].path.stem}.gif")
+            # prepare
+            refseq_with_insertion = aligned_result["refseq_with_insertion"]
+            N_array = np.empty((5, len(refseq_with_insertion)), int)
+            tick_pos_list = []
+            tick_label_list = []
+            cur_ref_base_pos = 0
+            for refbase_idx, refbase in enumerate(refseq_with_insertion):
+
+                if refbase != "-":
+                    cur_ref_base_pos += 1
+                    if cur_ref_base_pos%100 == 0:
+                        tick_pos_list.append(refbase_idx)
+                        tick_label_list.append(cur_ref_base_pos)
+
+                N_match = 0     # =
+                N_mismatch = 0  # X
+                N_insertion = 0 # I
+                N_deletion = 0  # D
+                N_omitted = 0   # N, H, S
+                for my_cigar_str in aligned_result["my_cigar_str_list_with_insertion"]:
+                    L = my_cigar_str[refbase_idx]
+                    if L == "=":    N_match += 1
+                    elif L == "X":  N_mismatch += 1
+                    elif L == "I":  N_insertion += 1
+                    elif L == "D":  N_deletion += 1
+                    elif L in "NHS":    N_omitted += 1
+                    else:   raise Exception(f"unknown cigar string {L}")
+                N_array[:, refbase_idx] = [N_match, N_omitted, N_mismatch, N_insertion, N_deletion]
+            N_array_list.append(N_array)
+            # 描画していく！
+            bar_graph_img = BarGraphImg(N_array, tick_pos_list, tick_label_list)
+            bar_graph_img.generate_bar_graph_ndarray()
+            bar_graph_img.set_legend(legend_list=["match", "omitted", "mismatch", "insertion", "deletion"])
+            bar_graph_img_list.append(bar_graph_img)
+        return bar_graph_img_list, filename_for_saving_list
+
+class BarGraphImg():
+    # color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color'] # list of hex color "#ffffff" or tuple
+    color_cycle = [(255, 252, 245), (255, 243, 220), (110, 110, 255), (110, 255, 110), (255, 110, 110)]
+    tick_color = (200, 200, 200)
+    # numbers
+    dtype = uint8
+    number_w = 4    # pixel
+    letter_h = 5    # pixel
+    zero = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [1,0,0,1], 
+        [1,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    one = np.array([
+        [0,1,0,0], 
+        [1,1,0,0], 
+        [0,1,0,0], 
+        [0,1,0,0], 
+        [1,1,1,0]
+    ], dtype=dtype)
+    two = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [0,0,1,0], 
+        [0,1,0,0], 
+        [1,1,1,1]
+    ], dtype=dtype)
+    three = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [0,0,1,0], 
+        [1,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    four = np.array([
+        [0,0,1,0], 
+        [0,1,1,0], 
+        [1,0,1,0], 
+        [1,1,1,1], 
+        [0,0,1,0]
+    ], dtype=dtype)
+    five = np.array([
+        [1,1,1,0], 
+        [1,0,0,0], 
+        [1,1,1,0], 
+        [0,0,0,1], 
+        [1,1,1,0]
+    ], dtype=dtype)
+    six = np.array([
+        [0,1,1,0], 
+        [1,0,0,0], 
+        [1,1,1,0], 
+        [1,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    seven = np.array([
+        [1,1,1,1], 
+        [0,0,0,1], 
+        [0,0,1,0], 
+        [0,1,0,0], 
+        [0,1,0,0]
+    ], dtype=dtype)
+    eight = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    nine = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [0,1,1,1], 
+        [0,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    hyphen = np.array([
+        [0,0,0,0], 
+        [0,0,0,0], 
+        [1,1,1,1], 
+        [0,0,0,0], 
+        [0,0,0,0]
+    ])
+    blank = np.array([
+        [0,0,0,0], 
+        [0,0,0,0], 
+        [0,0,0,0], 
+        [0,0,0,0], 
+        [0,0,0,0]
+    ])
+    w2n = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    # words
+    M = np.array([
+        [1,0,0,0,1], 
+        [1,1,0,1,1], 
+        [1,0,1,0,1], 
+        [1,0,0,0,1], 
+        [1,0,0,0,1]
+    ])
+    A = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [1,1,1,1], 
+        [1,0,0,1], 
+        [1,0,0,1]
+    ], dtype=dtype)
+    T = np.array([
+        [1,1,1,1,1], 
+        [0,0,1,0,0], 
+        [0,0,1,0,0], 
+        [0,0,1,0,0], 
+        [0,0,1,0,0]
+    ], dtype=dtype)
+    C = np.array([
+        [0,1,1,0], 
+        [1,0,0,1], 
+        [1,0,0,0], 
+        [1,0,0,1], 
+        [0,1,1,0]
+    ], dtype=dtype)
+    H = np.array([
+        [1,0,0,1], 
+        [1,0,0,1], 
+        [1,1,1,1], 
+        [1,0,0,1], 
+        [1,0,0,1]
+    ], dtype=dtype)
+    D = np.array([
+        [1,1,1,0], 
+        [1,0,0,1], 
+        [1,0,0,1], 
+        [1,0,0,1], 
+        [1,1,1,0]
+    ])
+    E = np.array([
+        [1,1,1,1], 
+        [1,0,0,0], 
+        [1,1,1,0], 
+        [1,0,0,0], 
+        [1,1,1,1]
+    ])
+    L = np.array([
+        [1,0,0,0], 
+        [1,0,0,0], 
+        [1,0,0,0], 
+        [1,0,0,0], 
+        [1,1,1,1]
+    ])
+    I = np.array([
+        [1,1,1], 
+        [0,1,0], 
+        [0,1,0], 
+        [0,1,0], 
+        [1,1,1]
+    ])
+    O = np.array([
+        [0,1,1,1,0], 
+        [1,0,0,0,1], 
+        [1,0,0,0,1], 
+        [1,0,0,0,1], 
+        [0,1,1,1,0]
+    ])
+    N = np.array([
+        [1,0,0,0,1], 
+        [1,1,0,0,1], 
+        [1,0,1,0,1], 
+        [1,0,0,1,1], 
+        [1,0,0,0,1]
+    ])
+    S = np.array([
+        [0,1,1,1], 
+        [1,0,0,0], 
+        [0,1,1,0], 
+        [0,0,0,1], 
+        [1,1,1,0]
+    ])
+    R = np.array([
+        [1,1,1,0], 
+        [1,0,0,1], 
+        [1,1,1,0], 
+        [1,0,1,0], 
+        [1,0,0,1]
+    ])
+    vs = np.array([ # vertical space
+        [0], 
+        [0], 
+        [0], 
+        [0], 
+        [0], 
+    ])
+    insertion = np.hstack((I,vs,N,vs,S,vs,E,vs,R,vs,T,vs,I,vs,O,vs,N))
+    deletion = np.hstack((D,vs,E,vs,L,vs,E,vs,T,vs,I,vs,O,vs,N))
+    mismatch = np.hstack((M,vs,I,vs,S,vs,M,vs,A,vs,T,vs,C,vs,H))
+    omitted = np.hstack((O,vs,M,vs,I,vs,T,vs,T,vs,E,vs,D))
+    match = np.hstack((M,vs,A,vs,T,vs,C,vs,H))
+    # sizes
+    bar_w = 1           # pixel
+    bar_w_space = 0     # pixel
+    bar_sum_h = 100     # pixel
+    wrap = 1000         # bars
+    tick_h = 5          # pixel
+    h_space = 30        # pixel
+    w_space = 30        # pixel
+    l_margin = 40       # pixel
+    r_margin = 40       # pixel
+    t_margin = 100      # pixel
+    b_margin = 40       # pixel
+    minimum_margin = 20 # pixel
+    def __init__(self, N_array, tick_pos_list, tick_label_list) -> None:
+        self.N_array = N_array
+        assert (self.N_array.sum(axis=0) == self.N_array[:, 0].sum()).all()
+        self.tick_pos_list = tick_pos_list
+        self.tick_label_list = tick_label_list
+        self.N_rows = np.ceil(self.N_array.shape[1] / self.wrap).astype(int)
+        self.N_cols = 1
+        # 画像パラメータ（画像左上の座標が [0, 0]、ただし ax の内部では左下が原点）
+        self.img_pixel_w = self.l_margin + (self.bar_w + self.bar_w_space) * self.wrap  - self.bar_w_space + self.r_margin
+        self.img_pixel_h = self.t_margin + (self.bar_sum_h + self.h_space) * self.N_rows - self.h_space + self.b_margin
+        self.ax_origin_w_list = [self.l_margin + (self.bar_w + self.w_space) * i for i in range(self.N_cols)]
+        self.ax_origin_h_list = [self.t_margin + self.bar_sum_h + (self.bar_sum_h + self.h_space) * i - 1 for i in range(self.N_rows)]
+        # 画像
+        assert self.dtype == np.uint8
+        self.img_array_rgb = np.ones((self.img_pixel_h, self.img_pixel_w, 3), dtype=self.dtype) * 255
+        self.color_cycle_rgb = self._color_cycle_rgb()
+    def _color_cycle_rgb(self):
+        try:
+            return [tuple(int(hex_color[i:i + 2], 16) for i in (1, 3, 5)) for hex_color in self.color_cycle]
+        except:
+            return self.color_cycle # already rgb
+    def generate_bar_graph_ndarray(self):
+        N_array_compositional = (self.N_array / self.N_array.sum(axis=0) * self.bar_sum_h).astype(int)
+        rounding_error = np.ones(N_array_compositional.shape[1], dtype=int) * self.bar_sum_h - N_array_compositional.sum(axis=0)
+        # omitted に追加する
+        N_array_compositional[-1, :] += rounding_error
+        # 画像に追加していく
+        ax_loc = [0, 0]
+        bar_pos_x = 0
+        ax_origin = self.get_ax_origin(ax_loc)
+        for idx, array in enumerate(N_array_compositional.T):
+            bar_pos_y = 0
+            for c_cycle, bar_height in enumerate(array):
+                self.draw_bar(bar_pos_x, bar_pos_y, bar_pos_y + bar_height, ax_origin, self.color_cycle_rgb[c_cycle])
+                bar_pos_y += bar_height # （画像左上の座標が [0, 0]、ただし ax の内部では左下が原点）
+            if (idx + 1) in self.tick_pos_list: # 塩基は1スタート
+                tick_idx = list(self.tick_pos_list).index(idx + 1)
+                self.draw_tick(bar_pos_x=bar_pos_x, tick_label=self.tick_label_list[tick_idx], ax_origin=ax_origin) # 下から積み上げていく
+            # 後の idx 処理
+            bar_pos_x += 1
+            if bar_pos_x == self.wrap:
+                bar_pos_x = 0
+                ax_loc[1] += 1
+                ax_origin = self.get_ax_origin(ax_loc)
+    def set_legend(self, legend_list, colors=None, pos="top left"):
+        if colors is None:
+            colors = self.color_cycle_rgb[:len(legend_list)]
+        assert len(legend_list) == len(colors)
+        assert len(legend_list) == self.N_array.shape[0]
+        # 場所
+        if pos == "top left":
+                loc_x = self.l_margin
+                loc_y = self.minimum_margin
+        else:
+            raise Exception("error")
+        # 描画していく！
+        for legend, color in zip(legend_list[::-1], colors[::-1]):    # 下から積み上げていく描画に合わせる
+            loc_y += self.letter_h + 3
+            img_box_rgb = np.expand_dims(np.ones((self.letter_h, self.letter_h), dtype=self.dtype), axis=-1) * np.array(color)
+            self.fill_img(loc_x, loc_y, img_box_rgb)
+            loc_x_new = loc_x + self.letter_h + 5
+            img_rgb = np.expand_dims(255 - getattr(self, legend) * 255, axis=-1) * np.ones(3, dtype=self.dtype)
+            self.fill_img(loc_x_new, loc_y, img_rgb)
+    def draw_bar(self, bar_pos_x, bar_pos_y, bar_pos_y_end, ax_origin, rgb_color):
+        for x in range(bar_pos_x * self.bar_w, (bar_pos_x + 1) * self.bar_w):
+            cur_x = ax_origin[1] + x
+            for y in range(bar_pos_y, bar_pos_y_end):
+                cur_y = ax_origin[0] - y
+                self.paint_img(cur_x, cur_y, rgb_color)
+    def get_ax_origin(self, ax_loc):
+        origin_w = self.ax_origin_w_list[ax_loc[0]]
+        origin_h = self.ax_origin_h_list[ax_loc[1]]
+        return origin_h, origin_w
+    def paint_img(self, x, y, color):
+        for i, c in enumerate(color):
+            self.img_array_rgb[y, x, i] = c
+    def fill_img(self, x, y, img_rgb): # top left corner of the image is positioned at (x, y)
+        self.img_array_rgb[y:y + img_rgb.shape[0], x:x + img_rgb.shape[1], :] = img_rgb
+    def draw_tick(self, bar_pos_x, tick_label, ax_origin):
+        # tick
+        self.draw_bar(bar_pos_x, self.bar_sum_h, self.bar_sum_h + self.tick_h, ax_origin, rgb_color=self.tick_color)
+        # label
+        loc_x = ax_origin[1] + bar_pos_x * self.bar_w - self.number_w // 2
+        for i, l in enumerate(str(tick_label)):
+            loc_y = ax_origin[0] - self.bar_sum_h - self.tick_h - self.letter_h - 1
+            img_rgb = np.expand_dims(255 - getattr(self, self.w2n[int(l)]) * 255, axis=-1) * np.ones(3, dtype=self.dtype)
+            self.fill_img(loc_x, loc_y, img_rgb)
+            loc_x += self.number_w + 1
+    def export_as_img(self, save_path):
+        PilImage.fromarray(self.img_array_rgb).save(save_path)
 
 def draw_distributions(score_summary_df, combined_fastq):
     refseq_idx_dict = OrderedDict()
@@ -1803,6 +2144,14 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx, co
     # for text in text_list:
     #     print(text)
 
+    # export alignment image
+    print("Exporting alignment summary...")
+    bar_graph_img_list, filename_for_saving_list = alignment_result.alignment_summary_bar_graphs()
+    for bar_graph_img, filename_for_saving in zip(bar_graph_img_list, filename_for_saving_list):
+        save_path = save_dir / filename_for_saving
+        bar_graph_img.export_as_img(save_path=save_path)
+        all_file_paths.append(save_path)
+
     # export score_summary
     print("Exporting summary...")
     save_path_summary_score = save_dir / "summary_scores.txt"
@@ -1863,7 +2212,7 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx, co
     for file_path in all_file_paths:
         os.replace(src=file_path, dst=(results_dir / file_path.name).as_posix())
     # intermediate fileはコピーして残す
-    shutil.copy(save_dir, results_dir / intermediate_results_filename)
+    shutil.copy(results_dir / intermediate_results_filename, save_dir / intermediate_results_filename)
 
     # compress as zip
     if compress_as_zip:
@@ -1953,8 +2302,7 @@ if __name__ == "__main__":
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
     # 2. Execute alignment: load if any previous score_matrix if possible
-    intermediate_results_save_path = save_dir / "intermediate_results.txt"
-    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, intermediate_results_save_path)
+    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir / "intermediate_results.txt")
     # 3. Set threshold for assignment
     alignment_result = set_threshold_for_assignment(result_dict, my_aligner, param_dict)
     # 4. Calculate consensus
