@@ -583,7 +583,8 @@ class AlignmentResult():
             # quality check
             assigned = (normalized_score_list[idx] >= self.score_threshold)\
                      & (result.score <= len(self.my_aligner.refseq_list[refseq_idx].seq) * self.my_aligner.match_score)\
-                     & (len(self.my_aligner.combined_fastq[seq_id][0]) <= len(self.my_aligner.duplicated_refseq_seq_list[refseq_idx]))    # refseq の長さの二倍以上ある query_seq は omit する
+                     & (len(self.my_aligner.combined_fastq[seq_id][0]) <= len(self.my_aligner.duplicated_refseq_seq_list[refseq_idx]))\
+                     & ((np.array(score_list) == score_list[idx]).sum() == 1)   # refseq の長さの二倍以上ある query_seq は omit する、全く同じスコアがある場合は omit する
             # register
             self.score_list_ALL.append({
                 "query_idx":query_idx, 
@@ -673,11 +674,6 @@ class AlignmentResult():
                         my_cigar_str = MyCigarStr(my_cigar_str[number_of_I_on_5prime:])
                         q_scores = q_scores[number_of_I_on_5prime:]
                         seq = seq[number_of_I_on_5prime:]
-                    # # reverse_compliment
-                    # if is_reverse_compliment:
-                    #     my_cigar_str = my_cigar_str.invert()
-                    #     q_scores = q_scores[::-1]
-                    #     seq = str(Seq(seq).reverse_complement())
                     my_cigar_str_list.append(my_cigar_str)
                     new_q_scores_list.append(q_scores)
                     new_seq_list.append(seq)
@@ -2211,8 +2207,8 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx, co
     # move files
     for file_path in all_file_paths:
         os.replace(src=file_path, dst=(results_dir / file_path.name).as_posix())
-    # intermediate fileはコピーして残す
-    shutil.copy(results_dir / intermediate_results_filename, save_dir / intermediate_results_filename)
+    # # intermediate fileはコピーして残す
+    # shutil.copy(results_dir / intermediate_results_filename, save_dir / intermediate_results_filename)
 
     # compress as zip
     if compress_as_zip:

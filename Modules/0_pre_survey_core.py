@@ -20,8 +20,9 @@ import cairo
 from . import my_classes as mc
 from pathlib import Path
 from snapgene_reader import snapgene_file_to_dict, snapgene_file_to_seqrecord
-from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage, leaves_list
 from matplotlib import rc
+from Bio.Seq import Seq
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 
 """
@@ -31,33 +32,43 @@ def pre_survery(refseq_list, param_dict):
     N = len(refseq_list)
     total_N = N ** 2
     i = 0
-    score_matrix = np.empty((N, N), dtype=float)
+    score_matrix = np.empty((N, N), dtype=int)
     for r, my_refseq in enumerate(refseq_list):
         for c, query in enumerate(refseq_list):
             print(f"\rProcessing... {i+1}/{total_N}", end="")
             i += 1
             if r != c:
                 duplicated_refseq_seq = my_refseq.seq + my_refseq.seq
-                score_matrix[r, c] = calc_corrected_alignment_score(duplicated_refseq_seq, query.seq, param_dict)
+                score_matrix[r, c] = calc_distance(duplicated_refseq_seq, query.seq, param_dict)
             else:
-                score_matrix[r, c] = 1
+                score_matrix[r, c] = 0
     print()
     return score_matrix
 
-def calc_corrected_alignment_score(duplicated_refseq_seq, query_seq, param_dict):
+def calc_distance(duplicated_refseq_seq, query_seq, param_dict):
     gap_open_penalty = param_dict["gap_open_penalty"]
     gap_extend_penalty = param_dict["gap_extend_penalty"]
     match_score = param_dict["match_score"]
     mismatch_score = param_dict["mismatch_score"]
     my_custom_matrix =parasail.matrix_create("ACGT", match_score, mismatch_score)
+    # alignment
     result = parasail.sw_trace(query_seq, duplicated_refseq_seq, gap_open_penalty, gap_extend_penalty, my_custom_matrix)
     result = MyResult_Minimum(result)
+    # alignment for reverse complement
+    result_rc = parasail.sw_trace(str(Seq(query_seq).reverse_complement()), duplicated_refseq_seq, gap_open_penalty, gap_extend_penalty, my_custom_matrix)
+    result_rc = MyResult_Minimum(result_rc)
+    # use alignment with higher match
     gc.collect()
-    return result.score / (len(duplicated_refseq_seq) / 2)
+    is_rc = np.argmax([result.score, result_rc.score])
+    if not is_rc:
+        return len(query_seq) - result.count_N_match() + result.count_N_del()
+    else:
+        return len(query_seq) - result_rc.count_N_match() + result_rc.count_N_del()
 
 def recommended_combination(score_matrix, score_threshold):
+    print(score_matrix)
 
-    distance_matrix = 1 - score_matrix
+    distance_matrix = np.copy(score_matrix)
     N = len(distance_matrix)
     for i in range(N - 1):
         for j in range(i + 1, N):
@@ -65,39 +76,31 @@ def recommended_combination(score_matrix, score_threshold):
             distance_matrix[i, j] = v
             distance_matrix[j, i] = v
 
-    # draw_heatmap_core(a, x_labels=np.arange(score_matrix.shape[1]), y_labels=np.arange(score_matrix.shape[1]))
-    # plt.show()
-
     # clustering by sequence similarity (similar sequences will be grouped)
     dArray = distance.squareform(distance_matrix)
     result = linkage(dArray, method='complete')
-    # np.set_printoptions(suppress=True)
-    # print(result)
-    # distance_matrix_sorted, dendro_levels = draw_dendrogram_core(distance_matrix, result)
-    # plt.show()
+    print(leaves_list(result))
     # quit()
 
     # organize result
-    threshold = 1 - score_threshold
     grouping = [[i] for i in range(N)]
     for idx1, idx2, d, number_of_sub_cluster in result:
-        if d > threshold:
+        if d >= score_threshold:
             break
         grouping.append(grouping[int(idx1)] + grouping[int(idx2)])
         grouping[int(idx1)] = None
         grouping[int(idx2)] = None
     grouping = [g for g in grouping if g is not None]
-
     print(grouping)
 
-    # distance_matrix_sorted, dendro_levels = draw_dendrogram_core(distance_matrix, result)
-    # plt.show()
-
-    score_matrix_tmp = np.copy(score_matrix)
     def calc_group_score(index_list):
+        if len(index_list) == 1:
+            return np.inf
+        elif len(index_list) == 0:
+            raise Exception("error!")
         combination_of_index = list(itertools.combinations(index_list, 2))
-        scores = score_matrix_tmp[tuple(zip(*combination_of_index))]
-        return scores.max() * len(scores)
+        scores = distance_matrix[tuple(zip(*combination_of_index))]
+        return scores.min() / len(scores)
 
     # 似た配列がコンビにならないように、組み合わせを選出（グループ：似た者同士の集合、コンビ：違う者同士の集合）
     N_combination = max(len(g) for g in grouping)
@@ -106,22 +109,33 @@ def recommended_combination(score_matrix, score_threshold):
     for c in range(N_combination, 0, -1):
         # 指定の長さのグループを抽出、None を追加して長さを len(combination_list) に合わせる
         selected_groups = [g + [None for i in range(N_combination - c)] for g in grouping if len(g) == c]
+        if len(selected_groups) == 0:
+            continue
         # どのような組み合わせでコンビに追加するかを全通り書き出す
         selected_group_permuation = [list(set(itertools.permutations(g, N_combination))) for g in selected_groups]
         product_of_selected_group_permutation = list(itertools.product(*selected_group_permuation))
         # スコアの平均を計算
-        average_score_list = []
+        score_var_list = []
+        score_var_non_inf_list = []
         for prod in product_of_selected_group_permutation:
-            scores = [calc_group_score(combination_list[i] + [p_sub for p_sub in p if p_sub is not None]) for i, p in enumerate(zip(*prod))]
-            if len(scores):
-                average_score_list.append(np.average(scores))
+            scores = np.array([calc_group_score(combination_list[i] + [p_sub for p_sub in p if p_sub is not None]) for i, p in enumerate(zip(*prod))])
+            if np.isinf(scores).all():
+                scores_var = 0
+            elif np.isinf(scores).any():
+                scores_var = np.inf
+                scores_var_non_inf = np.var(scores[np.isfinite(scores)])
+                score_var_non_inf_list.append(scores_var_non_inf)
             else:
-                average_score_list.append(np.nan)
-        selected_prod = product_of_selected_group_permutation[np.argmin(average_score_list)]
+                scores_var = np.var(scores)
+            score_var_list.append(scores_var)
+        if np.isinf(score_var_list).all():
+            score_var_list = score_var_non_inf_list
+            assert len(score_var_list) > 0
+        selected_prod = product_of_selected_group_permutation[np.argmin(score_var_list)]
         for i, p in enumerate(zip(*selected_prod)):
             combination_list[i].extend([p_sub for p_sub in p if p_sub is not None])
     print(combination_list)
-    return combination_list
+    return combination_list, result
 
 class MyRefSeq_Minimum():
     def __init__(self, path: Path):
@@ -149,8 +163,6 @@ class MyRefSeq_Minimum():
             self.length = len(self.seq)
         else:
             raise Exception(f"Unsupported type of sequence file: {self.path}")
-    def reverse_complement(self):
-        return str(Seq(self.seq).reverse_complement())
 
 class MyResult_Minimum():
     def __init__(self, parasail_result) -> None:
@@ -160,6 +172,18 @@ class MyResult_Minimum():
         self.beg_query = parasail_result.cigar.beg_query
         self.end_ref = parasail_result.end_ref
         self.end_query = parasail_result.end_query
+    def count_N_match(self):
+        return sum(map(int, [N for N in re.findall(r'(\d+)=', self.cigar)]))
+    def count_N_del(self):
+        m_list = re.findall(r'(\d+)(\D)', self.cigar)
+        s_idx = 0
+        e_idx = len(m_list) - 1
+        while m_list[s_idx][1] != "=":
+            s_idx += 1
+        while m_list[e_idx][1] != "=":
+            e_idx += 1
+        assert s_idx <= e_idx
+        return sum(map(int, [N for N, L in m_list[s_idx:e_idx + 1] if L == "D"]))
 
 class StringSizeWithSuffix():
     def __init__(self, size_with_suffix):
@@ -264,7 +288,7 @@ class D(str):
         # example of horizontal line: "M 6.7760638,-8.370432 H 169.80019"
         self += f"{path_command} {','.join(map(str, values))}"
 
-def draw_heatmap(score_matrix, refseq_names, comb_idx_list, threshold_used, save_path, tmp_names=None):
+def draw_heatmap(score_matrix, refseq_names, comb_idx_list, threshold_used, save_path, tmp_names=None, result=None):
     # label
     font_style = "Helvetica"
     if tmp_names is None:
@@ -311,18 +335,19 @@ def draw_heatmap(score_matrix, refseq_names, comb_idx_list, threshold_used, save
 def draw_heatmap_core(score_matrix, x_labels, y_labels, value_font_size=10, tick_font_size=14, subplot=[1,1,1]):
     assert score_matrix.shape == (len(y_labels), len(x_labels))
     figsize_unit = 0.5
+    cbar_max = score_matrix.max()#30   #
 
     fig =plt.figure(figsize=(len(x_labels) * figsize_unit, len(y_labels) * figsize_unit))
     ax = plt.subplot(*subplot)
-    im = plt.imshow(score_matrix, cmap="YlGn", vmin=0, vmax=1)
+    im = plt.imshow(score_matrix, cmap="YlGn", vmin=0, vmax=cbar_max)
     bar = plt.colorbar(im, fraction=0.046, pad=0.04)
     # Loop over data dimensions and create text annotations.
     for i in range(score_matrix.shape[0]):
         for j in range(score_matrix.shape[1]):
             if np.isnan(score_matrix[i, j]):
                 continue
-            value = f"{np.round(score_matrix[i, j], 3):0<5}"
-            if np.absolute(score_matrix[i, j]) < score_matrix.max()/2:
+            value = f"{np.round(score_matrix[i, j], 3)}"
+            if np.absolute(score_matrix[i, j]) < cbar_max / 2:
                 text = ax.text(j, i, value, ha="center", va="center", color="k", fontsize=value_font_size)
             else:
                 text = ax.text(j, i, value, ha="center", va="center", color="w", fontsize=value_font_size)
@@ -358,7 +383,7 @@ def main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tm
     # calc distance & propose optimized combination
     if score_matrix is None:
         score_matrix = pre_survery(my_refseq_list, param_dict)
-    comb = recommended_combination(score_matrix, param_dict["score_threshold"])
+    comb, result = recommended_combination(score_matrix, param_dict["score_threshold"])
     refseq_names = [refseq.path.name for refseq in my_refseq_list]
 
     # remove before make
@@ -368,7 +393,7 @@ def main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tm
     # draw histogram(s)
     for group_idx, comb_idx_list in enumerate(comb):
         save_path = save_dir / (f"recommended_group_{group_idx}.svg")
-        draw_heatmap(score_matrix, refseq_names, comb_idx_list, param_dict["score_threshold"], save_path, tmp_names=tmp_names)
+        draw_heatmap(score_matrix, refseq_names, comb_idx_list, param_dict["score_threshold"], save_path, tmp_names=tmp_names, result=result)
 
     print()
     print("#########################")
@@ -387,7 +412,7 @@ if __name__ == "__main__":
     gap_extend_penalty = 1 #@param {type:"integer"}
     match_score = 1        #@param {type:"integer"}
     mismatch_score = -2    #@param {type:"integer"}
-    score_threshold = 0.97  #@param {type:"number"}
+    score_threshold = 20  #@param {type:"number"}
     param_dict = {i:globals()[i] for i in ('gap_open_penalty', 'gap_extend_penalty', 'match_score', 'mismatch_score', 'score_threshold')}
 
     # files
@@ -417,7 +442,7 @@ if __name__ == "__main__":
         recommended_groupings = mc.RecommendedGroupings()
         recommended_groupings.load(recommended_groupings_path)
         if (recommended_groupings.uploaded_refseq_file_names == uploaded_refseq_file_names) and (recommended_groupings.tmp_names == tmp_names):
-            score_matrix = recommended_groupings.score_matrix
+            score_matrix = recommended_groupings.score_matrix.astype(int)
             comb, score_matrix = main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=score_matrix, tmp_names=tmp_names)
             skip = True
     if not skip:
