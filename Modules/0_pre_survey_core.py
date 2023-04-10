@@ -424,7 +424,7 @@ if __name__ == "__main__":
         "M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna", 
         "M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna", 
     ]
-    tmp_names = [f"P{i}" for i in range(len(uploaded_refseq_file_names))]
+    tmp_names = [f"P{i+1}" for i in range(len(uploaded_refseq_file_names))]
 
     refseq_dir = Path("./demo_data/my_plasmid_maps_dna")
     uploaded_refseq_file_paths = []
