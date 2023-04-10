@@ -426,13 +426,13 @@ if __name__ == "__main__":
     ]
     tmp_names = [f"P{i+1}" for i in range(len(uploaded_refseq_file_names))]
 
-    refseq_dir = Path("./demo_data/my_plasmid_maps_dna")
+    refseq_dir = Path("./resources/demo_data/my_plasmid_maps_dna")
     uploaded_refseq_file_paths = []
     for refseq_file_name in uploaded_refseq_file_names:
         plasmid_map_path = list(refseq_dir.rglob(refseq_file_name))
         assert len(plasmid_map_path) == 1
         uploaded_refseq_file_paths.append(plasmid_map_path[0])
-    save_dir = Path("./demo_data/results_pre_survey")
+    save_dir = Path("./resources/demo_data/results_pre_survey")
     assert save_dir.exists()
     recommended_groupings_path = save_dir / "recommended_groupings.txt"
 

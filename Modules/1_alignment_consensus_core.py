@@ -2273,7 +2273,7 @@ if __name__ == "__main__":
     Example of execution
     """
     # files
-    plasmid_map_dir = Path("./demo_data/my_plasmid_maps_dna")
+    plasmid_map_dir = Path("./resources/demo_data/my_plasmid_maps_dna")
     refseq_file_namd_list = [
         "M32_pmNeonGreen-N1.dna", 
         "M38_mCherry-Spo20.dna", 
@@ -2287,9 +2287,9 @@ if __name__ == "__main__":
         plasmid_map_path = list(plasmid_map_dir.rglob(refseq_file_name))
         assert len(plasmid_map_path) == 1
         refseq_file_path_list.append(plasmid_map_path[0])
-    fastq_file_path = Path("./demo_data/my_fastq_files/Uematsu_n7x_1_MU-test1.fastq")
+    fastq_file_path = Path("./resources/demo_data/my_fastq_files/Uematsu_n7x_1_MU-test1.fastq")
     assert fastq_file_path.exists()
-    save_dir = Path("./demo_data/results_analysis")   # 2:17:10.726045
+    save_dir = Path("./resources/demo_data/results_analysis")   # 2:17:10.726045
     assert save_dir.exists()
 
     group_idx = 0
