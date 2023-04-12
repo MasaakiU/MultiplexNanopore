@@ -446,7 +446,7 @@ def main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tm
 
     # draw histogram(s)
     for group_idx, comb_idx_list in enumerate(comb):
-        save_path = save_dir / (f"recommended_group_{group_idx}.svg")
+        save_path = save_dir / (f"recommended_group_{group_idx + 1}.svg")
         draw_heatmap(score_matrix, refseq_names, comb_idx_list, param_dict["score_threshold"], save_path, tmp_names=tmp_names, result=result)
 
     print()
