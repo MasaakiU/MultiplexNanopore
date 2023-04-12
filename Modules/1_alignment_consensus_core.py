@@ -18,7 +18,6 @@ import gc
 import textwrap
 import matplotlib.pyplot as plt
 import hashlib
-import shutil
 from datetime import datetime
 from pathlib import Path
 from matplotlib.patches import Patch
@@ -396,9 +395,7 @@ def organize_files(fastq_file_path_list, refseq_file_path_list):
     else:
         raise Exception("Please select at least 1 fastq file!")
 
-    combined_fastq = combined_fastq
     combined_fastq.path = [fastq.path for fastq in fastq_list]
-
     return refseq_list, combined_fastq
 
 #@title # 2. Execute alignment
@@ -1568,6 +1565,7 @@ def set_threshold_for_assignment(result_dict, my_aligner, param_dict):
     print("normalization: DONE")
 
     # score_summary_df = alignment_result.get_score_summary_df()
+    # print("drawing figures...")
     # # draw graphical summary
     # draw_distributions(score_summary_df, my_aligner.combined_fastq)
     # draw_alignment_score_scatter(score_summary_df, alignment_result.score_threshold)
@@ -2049,7 +2047,7 @@ def export_results(alignment_result, alignment_result_2, intermediate_results, s
                 f.write(file_path.name)
 
     print("export: DONE")
-    return results_dir
+    return results_dir, zip_path
 
 if __name__ == "__main__":
     """
@@ -2127,7 +2125,6 @@ if __name__ == "__main__":
     t0 = datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
-    combined_fastq = combined_fastq[:2]
     # 2. Execute alignment: load if any previous score_matrix if possible
     result_dict, my_aligner, intermediate_results = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir)
     # 3. Set threshold for assignment
@@ -2135,7 +2132,7 @@ if __name__ == "__main__":
     # 4. Calculate consensus
     alignment_result_2 = calculate_consensus(alignment_result, param_dict)
     # 5. Export results
-    results_dir = export_results(alignment_result, alignment_result_2, intermediate_results, save_dir, group_idx)
+    results_dir, zip_path = export_results(alignment_result, alignment_result_2, intermediate_results, save_dir, group_idx)
 
     t1 = datetime.now()
     print(t1 - t0)
