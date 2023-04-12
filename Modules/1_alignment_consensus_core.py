@@ -375,6 +375,7 @@ class MyTextFormat():
 
 class IntermediateResults(MyTextFormat):
     def __init__(self, result_dict=None, my_aligner=None) -> None:
+        self.path = None
         self.keys = [
             ("refseq_names", "list"), 
             ("refseq_hash_list", "list"), 
@@ -429,6 +430,7 @@ class IntermediateResults(MyTextFormat):
         else:
             return False
     def load(self, load_path):
+        self.path = load_path
         self.keys = super().load(load_path)
         for k, v in self.param_dict.items():
             try:
@@ -460,7 +462,9 @@ class IntermediateResults(MyTextFormat):
 
 def save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path):
     ir = IntermediateResults(result_dict=result_dict, my_aligner=my_aligner)
+    ir.path = intermediate_results_save_path
     ir.save(intermediate_results_save_path)
+    return ir
 
 #@title # 1. Upload and select files
 
@@ -490,11 +494,12 @@ def organize_files(fastq_file_path_list, refseq_file_path_list):
 
 #@title # 2. Execute alignment
 
-def execute_alignment(refseq_list, combined_fastq, param_dict, intermediate_results_save_path):
+def execute_alignment(refseq_list, combined_fastq, param_dict, save_dir):
     my_aligner = MyAligner(refseq_list, combined_fastq, param_dict)
 
     # load if there is intermediate data
     skip = False
+    intermediate_results_save_path = save_dir / f"{combined_fastq.combined_name_stem}.intermediate_results.txt"
     if intermediate_results_save_path.exists():
         intermediate_results = IntermediateResults()
         intermediate_results.load(intermediate_results_save_path)
@@ -508,9 +513,9 @@ def execute_alignment(refseq_list, combined_fastq, param_dict, intermediate_resu
         result_dict = my_aligner.align_all()
         print()
         print("alignment: DONE")
-        save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path)
+        intermediate_results = save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path)
 
-    return result_dict, my_aligner
+    return result_dict, my_aligner, intermediate_results
 
 #@title # 3. Set threshold for assignment
 
@@ -2113,7 +2118,7 @@ def calculate_consensus(alignment_result, param_dict):
 
 #@title # 5. Export results
 
-def export_results(alignment_result, alignment_result_2, save_dir, group_idx, compress_as_zip=False):
+def export_results(alignment_result, alignment_result_2, intermediate_results, save_dir, group_idx, compress_as_zip=False):
 
     all_file_paths = []
     # export settings
@@ -2192,11 +2197,9 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx, co
     all_file_paths += consensus_path_list
 
     # export intermediate results (allow saving even if someone deleted during the run)
-    intermediate_results = IntermediateResults(result_dict=alignment_result.result_dict, my_aligner=alignment_result.my_aligner)
-    intermediate_results_filename = "intermediate_results.txt"
-    intermediate_results_save_path = save_dir / intermediate_results_filename
-    intermediate_results.save(intermediate_results_save_path)
-    all_file_paths.append(intermediate_results_save_path)
+    if not intermediate_results.path.exists():  # 万一途中で消されたりしてた場合
+        intermediate_results.save(intermediate_results.path)
+    all_file_paths.append(intermediate_results.path)
 
     # make new folder
     idx = 0
@@ -2303,15 +2306,15 @@ if __name__ == "__main__":
     t0 = datetime.datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
-    combined_fastq = combined_fastq
+    combined_fastq = combined_fastq[:2]
     # 2. Execute alignment: load if any previous score_matrix if possible
-    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir / f"{combined_fastq.combined_name_stem}.intermediate_results.txt")
+    result_dict, my_aligner, intermediate_results = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir)
     # 3. Set threshold for assignment
     alignment_result = set_threshold_for_assignment(result_dict, my_aligner, param_dict)
     # 4. Calculate consensus
     alignment_result_2 = calculate_consensus(alignment_result, param_dict)
     # 5. Export results
-    results_dir = export_results(alignment_result, alignment_result_2, save_dir, group_idx)
+    results_dir = export_results(alignment_result, alignment_result_2, intermediate_results, save_dir, group_idx)
 
     t1 = datetime.datetime.now()
     print(t1 - t0)
