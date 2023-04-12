@@ -378,6 +378,7 @@ def highlight_cell(x, y, ax=None, **kwargs):
     return rect
 
 class RecommendedGroupings(mc.MyTextFormat):
+    ver = "0.1.0"
     def __init__(self, score_matrix=None, comb=None, uploaded_refseq_file_paths=None, tmp_names=None, param_dict=None):
         self.datetime = datetime.now()
         self.score_matrix = score_matrix
@@ -387,12 +388,13 @@ class RecommendedGroupings(mc.MyTextFormat):
         self.tmp_names = tmp_names
         self.param_dict = param_dict
         self.keys = [
+            ("ver", "str"), 
             ("datetime", "str"), 
             ("score_matrix", "ndarray"), 
-            ("comb", "eval"), 
-            ("comb_tmp_names", "eval"), 
+            ("comb", "listlist"), 
+            ("comb_tmp_names", "listlist"), 
             ("tmp_names_uploaded_refseq_file_names_dict", "OrderedDict"), 
-            ("uploaded_refseq_file_paths", "eval"), 
+            ("uploaded_refseq_file_paths", "listPath"), 
             ("uploaded_refseq_file_hash_list", "list"), 
             ("param_dict", "dict")
         ]
