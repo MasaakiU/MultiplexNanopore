@@ -27,6 +27,8 @@ class MyTextFormat():
             v = getattr(self, k)
             if data_type == "str":
                 string = str(v)
+            elif data_type == "float":
+                string = str(v)
             elif data_type == "ndarray":
                 with io.StringIO() as s:
                     np.savetxt(s, v)

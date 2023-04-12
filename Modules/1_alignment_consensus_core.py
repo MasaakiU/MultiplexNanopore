@@ -2,8 +2,8 @@
 
 #@title # 1. Upload and select files
 
-app_name = "MyApp"
-version = "0.1.1"
+app_name = "SAVEMONEY"
+version = "0.1.2"
 description = "written by MU"
 
 import sys, os
@@ -15,12 +15,11 @@ import copy
 import zipfile
 import parasail
 import gc
-import datetime
 import textwrap
 import matplotlib.pyplot as plt
 import hashlib
 import shutil
-from . import my_classes as mc
+from datetime import datetime
 from pathlib import Path
 from matplotlib.patches import Patch
 from itertools import product
@@ -29,6 +28,7 @@ from snapgene_reader import snapgene_file_to_dict, snapgene_file_to_seqrecord
 from Bio.Seq import Seq
 from numpy.core.memmap import uint8
 from PIL import Image as PilImage
+from . import my_classes as mc
 
 class MyFastQ(OrderedDict):
     def __init__(self, path=None):
@@ -93,17 +93,12 @@ class MyFastQ(OrderedDict):
         return combined_fastq
     @property
     def my_hash(self):
-        with open(self.path.as_posix(), "r") as f:
-            fastq_txt = f.read()
-        return hashlib.sha256(fastq_txt.encode("utf-8")).hexdigest()
-    @property
-    def my_hash_for_combined(self):
         return hashlib.sha256(self.to_string().encode("utf-8")).hexdigest()
     def to_string(self):
         txt = ""
         for seq_id, (seq, q_scores) in self.items():
             txt += f"{seq_id}\n{seq}\n+\n{''.join(map(lambda x: chr(x + 33), q_scores))}\n"
-        return txt.strip()
+        return txt#.strip()
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
@@ -306,7 +301,7 @@ class IntermediateResults(mc.MyTextFormat):
             self.refseq_names = [refseq.path.name for refseq in my_aligner.refseq_list]
             self.refseq_hash_list = [refseq.my_hash for refseq in my_aligner.refseq_list]
             self.combined_fastq_names = [fastq_path.name for fastq_path in my_aligner.combined_fastq.path]
-            self.combined_fastq_hash = my_aligner.combined_fastq.my_hash_for_combined
+            self.combined_fastq_hash = my_aligner.combined_fastq.my_hash
             self.param_dict = my_aligner.param_dict
             # result_dict related info
             assert len(result_dict) == len(my_aligner.combined_fastq)
@@ -325,7 +320,7 @@ class IntermediateResults(mc.MyTextFormat):
         refseq_names = [refseq.path.name for refseq in my_aligner.refseq_list]
         refseq_hash_list = [refseq.my_hash for refseq in my_aligner.refseq_list]
         combined_fastq_names = [fastq_path.name for fastq_path in my_aligner.combined_fastq.path]
-        combined_fastq_hash = my_aligner.combined_fastq.my_hash_for_combined
+        combined_fastq_hash = my_aligner.combined_fastq.my_hash
         param_dict = my_aligner.param_dict
         is_param_dict_same = all(param_dict[k] == self.param_dict[k] for k in self.param_dict_keys_matter)
         if (self.refseq_names == refseq_names) and\
@@ -922,42 +917,9 @@ class AlignmentResult():
                     highlight_pos_in_text.append((r, c))
             highlight_pos_list.append(highlight_pos_in_text)
         return refseq_name_list, text_list, highlight_pos_list
-    def export_log(self, save_path, header):
-        text = (
-            header
-            + f"\n{datetime.datetime.now()}"
-            + "\n\ninput reference files"
-            + "\n"
-            + "\n".join([refseq.path.as_posix() for refseq in self.my_aligner.refseq_list])
-            + "\n\ninput fastq files"
-            + "\n"
-            + "\n".join([fastq_path.as_posix() for fastq_path in self.my_aligner.combined_fastq.path])
-            + "\n\nalignment params"
-            + f"\ngap_open_penalty\t{self.my_aligner.gap_open_penalty}"
-            + f"\ngap_extend_penalty\t{self.my_aligner.gap_extend_penalty}"
-            + f"\nmatch_score\t{self.my_aligner.match_score}"
-            + f"\nmismatch_score\t{self.my_aligner.mismatch_score}"
-            + f"\nscore_threshold\t{self.score_threshold}"
-            + "\n"
-            + "\n".join(f"custom_cigar_score '{k}'\t{v}" for k, v in self.my_aligner.get_custom_cigar_score_dict().items())
-            + "\n\nscore_matrix (basically the same as match_score and mismatch_score)"
-            + "\n"
-            + self.matrix2string(self.my_aligner.my_custom_matrix.matrix, digit=3, round=True)
-            + "\n"
-            + "\nconsensus_settings"
-            + "\nsbq_pdf_version\t" + self.consensus_settings["sbq_pdf_version"]
-            + "\n"
-            + "\nerror_matrix (row:true_base, col:base_calling , val:P(true_base|base_calling))"
-            + "\n"
-            + self.matrix2string(
-                self.consensus_settings["P_N_dict_matrix"], 
-                bases=self.consensus_settings["bases"], 
-                digit=None, 
-                round=False
-            )
-        )
-        with open(save_path, "w") as f:
-            f.write(text)
+    def export_log(self, save_path):
+        log = Log(self)
+        log.save(save_path)
     @staticmethod
     def matrix2string(matrix, bases="ATCG", digit=3, round=True):
         bio = io.BytesIO()
@@ -1029,7 +991,42 @@ class AlignmentResult():
         return bar_graph_img_list, filename_for_saving_list
 
 class Log(mc.MyTextFormat):
-    pass
+    app_name = app_name
+    version = version
+    description = description
+    def __init__(self, alignment_result) -> None:
+        my_aligner = alignment_result.my_aligner
+        self.header = f"{app_name} ver{version}\n{description}"
+        self.datetime = datetime.now()
+        self.input_reference_files = [refseq.path for refseq in my_aligner.refseq_list]
+        self.input_fastq_files = [fastq_path for fastq_path in my_aligner.combined_fastq.path]
+        self.input_reference_hash_list = [refseq.my_hash for refseq in my_aligner.refseq_list]
+        self.input_combined_hash = my_aligner.combined_fastq.my_hash
+        self.alignment_params = my_aligner.param_dict
+        self.custom_cigar_score_dict = my_aligner.get_custom_cigar_score_dict()
+        self.score_threshold = alignment_result.score_threshold
+        self.score_matrix = alignment_result.matrix2string(my_aligner.my_custom_matrix.matrix, digit=3, round=True)
+        self.consensus_settings = alignment_result.consensus_settings["sbq_pdf_version"]
+        self.error_matrix = alignment_result.matrix2string(
+                alignment_result.consensus_settings["P_N_dict_matrix"], 
+                bases=alignment_result.consensus_settings["bases"], 
+                digit=None, 
+                round=False
+        )
+        self.keys = [
+            ("header", "str"), 
+            ("datetime", "str"), 
+            ("input_reference_files", "listPath"), 
+            ("input_fastq_files", "listPath"), 
+            ("input_reference_hash_list", "list"), 
+            ("input_combined_hash", "str"), 
+            ("alignment_params", "dict"), 
+            ("custom_cigar_score_dict", "dict"), 
+            ("score_threshold", "float"), 
+            ("score_matrix", "str"), 
+            ("consensus_settings", "str"), 
+            ("error_matrix", "str"), 
+        ]
 
 class BarGraphImg():
     # color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color'] # list of hex color "#ffffff" or tuple
@@ -1946,13 +1943,14 @@ def export_results(alignment_result, alignment_result_2, intermediate_results, s
     all_file_paths = []
     # export settings
     print("Exporting logs...")
-    header = f"{app_name} ver{version}\n{description}"
     save_path_log_1 = save_dir / "log_with_prior.txt"
-    alignment_result.export_log(save_path_log_1, header=header)
+    log = Log(alignment_result)
+    log.save(save_path_log_1)
     all_file_paths.append(save_path_log_1)
 
     save_path_log_2 = save_dir / "log_without_prior.txt"
-    alignment_result_2.export_log(save_path_log_2, header=header)
+    log = Log(alignment_result_2)
+    log.save(save_path_log_2)
     all_file_paths.append(save_path_log_2)
 
     # export text
@@ -2126,7 +2124,7 @@ if __name__ == "__main__":
 
     group_idx = 0
 
-    t0 = datetime.datetime.now()
+    t0 = datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
     combined_fastq = combined_fastq[:2]
@@ -2139,7 +2137,7 @@ if __name__ == "__main__":
     # 5. Export results
     results_dir = export_results(alignment_result, alignment_result_2, intermediate_results, save_dir, group_idx)
 
-    t1 = datetime.datetime.now()
+    t1 = datetime.now()
     print(t1 - t0)
 
 

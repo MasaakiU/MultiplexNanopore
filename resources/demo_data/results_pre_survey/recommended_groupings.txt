@@ -1,5 +1,8 @@
+# ver(str)
+0.1.0
+
 # datetime(str)
-2023-04-11 23:46:42.593137
+2023-04-12 02:10:11.855393
 
 # score_matrix(ndarray)
 0.000000000000000000e+00 4.970000000000000000e+02 5.010000000000000000e+02 6.330000000000000000e+02 8.547000000000000000e+03 8.596000000000000000e+03
@@ -9,11 +12,11 @@
 3.417000000000000000e+03 3.611000000000000000e+03 3.572000000000000000e+03 3.802000000000000000e+03 0.000000000000000000e+00 1.299000000000000000e+03
 3.417000000000000000e+03 3.611000000000000000e+03 3.572000000000000000e+03 3.802000000000000000e+03 1.299000000000000000e+03 0.000000000000000000e+00
 
-# comb(eval)
+# comb(listlist)
 [[0, 1, 2, 3, 4, 5]]
 
-# comb_tmp_names(eval)
-[['P1', 'P2', 'P3', 'P4', 'P5', 'P6']]
+# comb_tmp_names(listlist)
+[["P1", "P2", "P3", "P4", "P5", "P6"]]
 
 # tmp_names_uploaded_refseq_file_names_dict(OrderedDict)
 P1	M32_pmNeonGreen-N1.dna
@@ -23,8 +26,13 @@ P4	M43_iRFP713-PASS_vecCMV.dna
 P5	M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna
 P6	M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna
 
-# uploaded_refseq_file_paths(eval)
-[PosixPath('resources/demo_data/my_plasmid_maps_dna/M32_pmNeonGreen-N1.dna'), PosixPath('resources/demo_data/my_plasmid_maps_dna/M38_mCherry-Spo20.dna'), PosixPath('resources/demo_data/my_plasmid_maps_dna/M42_GFP-PASS_vecCMV.dna'), PosixPath('resources/demo_data/my_plasmid_maps_dna/M43_iRFP713-PASS_vecCMV.dna'), PosixPath('resources/demo_data/my_plasmid_maps_dna/M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna'), PosixPath('resources/demo_data/my_plasmid_maps_dna/M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna')]
+# uploaded_refseq_file_paths(listPath)
+resources/demo_data/my_plasmid_maps_dna/M32_pmNeonGreen-N1.dna
+resources/demo_data/my_plasmid_maps_dna/M38_mCherry-Spo20.dna
+resources/demo_data/my_plasmid_maps_dna/M42_GFP-PASS_vecCMV.dna
+resources/demo_data/my_plasmid_maps_dna/M43_iRFP713-PASS_vecCMV.dna
+resources/demo_data/my_plasmid_maps_dna/M160_P18-CIBN-P2A-CRY2-mCherry-PLDs17_pcDNA3.dna
+resources/demo_data/my_plasmid_maps_dna/M161_CRY2-mCherry-PLDs27-P2A-CIBN-CAAX_pcDNA3.dna
 
 # uploaded_refseq_file_hash_list(list)
 1fe627b130ddbb27b06766346777102866f681c18ab9c7ed64b1ec0f53bfbd25
