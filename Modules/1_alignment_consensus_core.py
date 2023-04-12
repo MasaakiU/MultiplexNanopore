@@ -1257,6 +1257,8 @@ class BarGraphImg():
         except:
             return self.color_cycle # already rgb
     def generate_bar_graph_ndarray(self):
+        if (self.N_array.sum(axis=0) == 0).any():
+            self.N_array[0, self.N_array.sum(axis=0) == 0] += 1
         N_array_compositional = (self.N_array / self.N_array.sum(axis=0) * self.bar_sum_h).astype(int)
         rounding_error = np.ones(N_array_compositional.shape[1], dtype=int) * self.bar_sum_h - N_array_compositional.sum(axis=0)
         # omitted に追加する
@@ -2039,9 +2041,9 @@ def export_results(alignment_result, alignment_result_2, intermediate_results, s
     # shutil.copy(results_dir / intermediate_results_filename, save_dir / intermediate_results_filename)
 
     # compress as zip
+    zip_path = results_dir.with_suffix(".zip")
     if compress_as_zip:
         os.chdir(results_dir)
-        zip_path = results_dir.with_suffix(".zip")
         with zipfile.ZipFile(zip_path.as_posix(), 'w') as f:
             for file_path in all_file_paths:
                 f.write(file_path.name)
