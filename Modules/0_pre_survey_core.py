@@ -341,7 +341,7 @@ def draw_heatmap(score_matrix, refseq_names, comb_idx_list, threshold_used, save
 def draw_heatmap_core(score_matrix, x_labels, y_labels, value_font_size=10, tick_font_size=14, subplot=[1,1,1]):
     assert score_matrix.shape == (len(y_labels), len(x_labels))
     figsize_unit = 0.5
-    cbar_max = score_matrix.max()#30   #
+    cbar_max = 30   #score_matrix.max()#
 
     fig =plt.figure(figsize=(len(x_labels) * figsize_unit, len(y_labels) * figsize_unit))
     ax = plt.subplot(*subplot)
