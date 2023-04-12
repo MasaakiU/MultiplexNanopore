@@ -84,37 +84,4 @@ class MyTextFormat():
         else:
             return new_values
 
-class RecommendedGroupings(MyTextFormat):
-    def __init__(self, score_matrix=None, comb=None, uploaded_refseq_file_paths=None, tmp_names=None, param_dict=None):
-        self.datetime = datetime.now()
-        self.score_matrix = score_matrix
-        self.comb = comb
-        self.uploaded_refseq_file_paths = uploaded_refseq_file_paths
-        self.tmp_names = tmp_names
-        self.param_dict = param_dict
-        self.keys = [
-            ("datetime", "str"), 
-            ("score_matrix", "ndarray"), 
-            ("comb", "eval"), 
-            ("comb_tmp_names", "eval"), 
-            ("tmp_names_uploaded_refseq_file_names_dict", "OrderedDict"), 
-            ("uploaded_refseq_file_paths", "eval"), 
-            ("param_dict", "dict")
-        ]
-    def refseq_path_list_groupby(self, group_N):
-        return [self.uploaded_refseq_file_paths[n] for n in self.comb[group_N]]
-    @property
-    def uploaded_refseq_file_names(self):
-        return [path.name for path in self.uploaded_refseq_file_paths]
-    @property
-    def tmp_names_uploaded_refseq_file_names_dict(self):
-        return OrderedDict(zip(self.tmp_names, self.uploaded_refseq_file_names))
-    @tmp_names_uploaded_refseq_file_names_dict.setter
-    def tmp_names_uploaded_refseq_file_names_dict(self, d: dict):
-        self.tmp_names = list(d.keys())
-        # self.uploaded_refseq_file_names = list(d.values())
-    @property
-    def comb_tmp_names(self):
-        return [[self.tmp_names[i] for i in ii] for ii in self.comb]
-
 

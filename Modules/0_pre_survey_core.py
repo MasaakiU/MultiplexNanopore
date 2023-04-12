@@ -17,6 +17,9 @@ import gc
 import parasail
 import xml.etree.ElementTree as ET
 import cairo
+import hashlib
+from collections import OrderedDict
+from datetime import datetime
 from . import my_classes as mc
 from pathlib import Path
 from snapgene_reader import snapgene_file_to_dict, snapgene_file_to_seqrecord
@@ -163,6 +166,9 @@ class MyRefSeq_Minimum():
             self.length = len(self.seq)
         else:
             raise Exception(f"Unsupported type of sequence file: {self.path}")
+    @property
+    def my_hash(self):
+        return hashlib.sha256(self.seq.encode("utf-8")).hexdigest()
 
 class MyResult_Minimum():
     def __init__(self, parasail_result) -> None:
@@ -371,9 +377,57 @@ def highlight_cell(x, y, ax=None, **kwargs):
     ax.add_patch(rect)
     return rect
 
+class RecommendedGroupings(mc.MyTextFormat):
+    def __init__(self, score_matrix=None, comb=None, uploaded_refseq_file_paths=None, tmp_names=None, param_dict=None):
+        self.datetime = datetime.now()
+        self.score_matrix = score_matrix
+        self.comb = comb
+        self.uploaded_refseq_file_paths = uploaded_refseq_file_paths
+        self.uploaded_refseq_file_hash_list = self.get_hash_list(self.uploaded_refseq_file_paths)
+        self.tmp_names = tmp_names
+        self.param_dict = param_dict
+        self.keys = [
+            ("datetime", "str"), 
+            ("score_matrix", "ndarray"), 
+            ("comb", "eval"), 
+            ("comb_tmp_names", "eval"), 
+            ("tmp_names_uploaded_refseq_file_names_dict", "OrderedDict"), 
+            ("uploaded_refseq_file_paths", "eval"), 
+            ("uploaded_refseq_file_hash_list", "list"), 
+            ("param_dict", "dict")
+        ]
+    def get_hash_list(self, refseq_file_paths):
+        if refseq_file_paths is None:
+            return None
+        else:
+            return [MyRefSeq_Minimum(refseq_file_path).my_hash for refseq_file_path in refseq_file_paths]
+    def refseq_path_list_groupby(self, group_N):
+        return [self.uploaded_refseq_file_paths[n] for n in self.comb[group_N]]
+    @property
+    def uploaded_refseq_file_names(self):
+        return [path.name for path in self.uploaded_refseq_file_paths]
+    @property
+    def tmp_names_uploaded_refseq_file_names_dict(self):
+        return OrderedDict(zip(self.tmp_names, self.uploaded_refseq_file_names))
+    @tmp_names_uploaded_refseq_file_names_dict.setter
+    def tmp_names_uploaded_refseq_file_names_dict(self, d: dict):
+        self.tmp_names = list(d.keys())
+        # self.uploaded_refseq_file_names = list(d.values())
+    @property
+    def comb_tmp_names(self):
+        return [[self.tmp_names[i] for i in ii] for ii in self.comb]
+    def assert_data(self, uploaded_refseq_file_paths, tmp_names):
+        if not len(uploaded_refseq_file_paths) == len(tmp_names) == len(self.uploaded_refseq_file_paths):
+            return False
+        else:
+            hash_list_new = self.get_hash_list(uploaded_refseq_file_paths)
+            refseq_file_names = [refseq_file_path.name for refseq_file_path in uploaded_refseq_file_paths]
+            if (hash_list_new == self.uploaded_refseq_file_hash_list) and (refseq_file_names == self.uploaded_refseq_file_names) and (tmp_names == self.tmp_names):
+                return True
+            else:
+                return False
+
 def main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tmp_names=None):
-    if not len(uploaded_refseq_file_paths) > 1:
-        raise Exception("Please upload at least 2 reference files under the 'sample_data' directory!")
 
     # open files
     my_refseq_list = [
@@ -400,7 +454,7 @@ def main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tm
     print("# Recommended groupings #")
     print("#########################")
     for group_idx, comb_idx_list in enumerate(comb):
-        print(f"Group{group_idx}")
+        print(f"Group{group_idx + 1}")
         for comb_idx in comb_idx_list:
             print(f"{tmp_names[comb_idx]: <4}: " + refseq_names[comb_idx])
         print()
@@ -426,12 +480,17 @@ if __name__ == "__main__":
     ]
     tmp_names = [f"P{i+1}" for i in range(len(uploaded_refseq_file_names))]
 
+    # get files
     refseq_dir = Path("./resources/demo_data/my_plasmid_maps_dna")
     uploaded_refseq_file_paths = []
     for refseq_file_name in uploaded_refseq_file_names:
         plasmid_map_path = list(refseq_dir.rglob(refseq_file_name))
         assert len(plasmid_map_path) == 1
         uploaded_refseq_file_paths.append(plasmid_map_path[0])
+    if not len(uploaded_refseq_file_paths) > 1:
+        raise Exception("Please upload at least 2 reference files under the 'sample_data' directory!")
+
+    # save directory
     save_dir = Path("./resources/demo_data/results_pre_survey")
     assert save_dir.exists()
     recommended_groupings_path = save_dir / "recommended_groupings.txt"
@@ -439,15 +498,15 @@ if __name__ == "__main__":
     # load if any previous score_matrix
     skip = False
     if recommended_groupings_path.exists():
-        recommended_groupings = mc.RecommendedGroupings()
+        recommended_groupings = RecommendedGroupings()
         recommended_groupings.load(recommended_groupings_path)
-        if (recommended_groupings.uploaded_refseq_file_names == uploaded_refseq_file_names) and (recommended_groupings.tmp_names == tmp_names):
+        if recommended_groupings.assert_data(uploaded_refseq_file_paths, tmp_names):
             score_matrix = recommended_groupings.score_matrix.astype(int)
             comb, score_matrix = main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=score_matrix, tmp_names=tmp_names)
             skip = True
     if not skip:
         comb, score_matrix = main(uploaded_refseq_file_paths, param_dict, save_dir, score_matrix=None, tmp_names=tmp_names)
-    recommended_groupings = mc.RecommendedGroupings(score_matrix, comb, uploaded_refseq_file_paths, tmp_names, param_dict)
+    recommended_groupings = RecommendedGroupings(score_matrix, comb, uploaded_refseq_file_paths, tmp_names, param_dict)
     # save results
     recommended_groupings.save(save_path = recommended_groupings_path)
 
