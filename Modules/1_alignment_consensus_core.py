@@ -51,6 +51,12 @@ class MyFastQ(OrderedDict):
                 self[seq_id] = [seq, q_scores]
         else:
             pass
+    @property
+    def combined_name_stem(self):
+        if isinstance(self.path, list):
+            return "_".join(p.stem for p in self.path)
+        else:
+            return self.path.stem
     def get_read_lengths(self):
         return np.array([len(v[0]) for v in self.values()])
     def get_q_scores(self):
@@ -1050,13 +1056,13 @@ class AlignmentResult():
         for b, m in zip(bases, matrix_str.split("\n")):
             output += f"\n{b} {m}"
         return output
-    def save_consensus(self, save_dir):
+    def save_consensus(self, save_dir, id_suffix=""):
         save_path_list = []
         for key, val in self.consensus_dict.items():
             save_path1 = save_dir / Path(key).with_suffix(".fastq")
             consensus_seq, consensus_q_scores, *all_results = val
             consensus_q_scores = "".join([chr(q + 33) for q in consensus_q_scores])
-            consensus_fastq_txt = f"@{key}:\n{consensus_seq.upper()}\n+\n{consensus_q_scores}"
+            consensus_fastq_txt = f"@{key}_{id_suffix}:\n{consensus_seq.upper()}\n+\n{consensus_q_scores}"
             with open(save_path1, "w") as f:
                 f.write(consensus_fastq_txt)
             save_path_list.append(save_path1)
@@ -1444,9 +1450,9 @@ def draw_distributions(score_summary_df, combined_fastq):
         ax.set_axis_off()
     color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
     legend_elements = [
-        Patch(facecolor=color_cycle[0], label='Focused'), 
-        Patch(facecolor=color_cycle[1], label='Others'), 
-        Patch(facecolor="grey", label='not assigned')
+        Patch(facecolor=color_cycle[0], label='Focused plasmid'), 
+        Patch(facecolor=color_cycle[1], label='Other plasmid(s)'), 
+        Patch(facecolor="grey", label='Not assigned')
     ]
     fig.legend(handles=legend_elements, loc="lower left", borderaxespad=0)
 
@@ -1532,15 +1538,15 @@ def draw_alignment_score_scatter(score_summary_df, score_threshold):
     focused_color2 = color_cycle[1]
     not_assigned_color = "grey"
     fig = plt.figure(figsize=(2.5 * columns, 2.5 * rows), clear=True)
-    widths = [2] + [3 for i in range(columns - 1)]
-    heights = [2] + [3 for i in range(rows - 1)]
+    widths = [3] + [3 for i in range(columns - 1)]
+    heights = [3] + [3 for i in range(rows - 1)]
     spec = fig.add_gridspec(ncols=columns, nrows=rows, width_ratios=widths, height_ratios=heights)
 
     # label
     legend_elements = [
-        Patch(facecolor=color_cycle[0], label='Focused'), 
-        Patch(facecolor=color_cycle[1], label='Others'), 
-        Patch(facecolor="grey", label='not assigned')
+        Patch(facecolor=color_cycle[0], label='Focused plasmid'), 
+        Patch(facecolor=color_cycle[1], label='Other plasmid(s)'), 
+        Patch(facecolor="grey", label='Not assigned')
     ]
     fig.legend(handles=legend_elements, loc="upper left", borderaxespad=0.2)
     # fig.suptitle("alignment score scatter")
@@ -1617,12 +1623,12 @@ def draw_alignment_score_scatter(score_summary_df, score_threshold):
     for refseq_idx, refseq_name in refseq_idx_dict.items():
         ax = fig.add_subplot(spec[0, refseq_idx + 1])
         refseq_name_wrapped = "\n".join([refseq_name[i:i+text_wrap] for i in range(0, len(refseq_name), text_wrap)])
-        ax.text(0.5, 0.0, refseq_name_wrapped, ha='center', va='bottom', wrap=True, family="monospace")
+        ax.text(0.15, 0.1, refseq_name_wrapped, ha='left', va='bottom', wrap=True, family="monospace")
         ax.set_axis_off()
 
         ax = fig.add_subplot(spec[refseq_idx + 1, 0])
         refseq_name_wrapped = "\n".join([refseq_name[i:i+text_wrap] for i in range(0, len(refseq_name), text_wrap)])
-        ax.text(0.5, 0.4, refseq_name_wrapped, ha='right', va='center', wrap=True, family="monospace")
+        ax.text(0.1, 0.75, refseq_name_wrapped, ha='left', va='center', wrap=True, family="monospace")
         ax.set_axis_off()
 
     # set aspect after setting the ylim
@@ -2173,12 +2179,12 @@ def export_results(alignment_result, alignment_result_2, save_dir, group_idx, co
     # export consensus
     print("Exporting consensus fastq files...")
     consensus_path_list = []
-    consensus_path_list_1 = alignment_result.save_consensus(save_dir=save_dir)
+    consensus_path_list_1 = alignment_result.save_consensus(save_dir=save_dir, id_suffix="with_prior")
     for file_path in consensus_path_list_1:
         path = file_path.parent / (file_path.stem + ".consensus_with_prior.fastq")
         os.replace(src=file_path, dst=(path).as_posix())
         consensus_path_list.append(path)
-    consensus_path_list_2 = alignment_result_2.save_consensus(save_dir=save_dir)
+    consensus_path_list_2 = alignment_result_2.save_consensus(save_dir=save_dir, id_suffix="without_prior")
     for file_path in consensus_path_list_2:
         path = file_path.parent / (file_path.stem + ".consensus_without_prior.fastq")
         os.replace(src=file_path, dst=(path).as_posix())
@@ -2297,8 +2303,9 @@ if __name__ == "__main__":
     t0 = datetime.datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
+    combined_fastq = combined_fastq
     # 2. Execute alignment: load if any previous score_matrix if possible
-    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir / "intermediate_results.txt")
+    result_dict, my_aligner = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir / f"{combined_fastq.combined_name_stem}.intermediate_results.txt")
     # 3. Set threshold for assignment
     alignment_result = set_threshold_for_assignment(result_dict, my_aligner, param_dict)
     # 4. Calculate consensus
