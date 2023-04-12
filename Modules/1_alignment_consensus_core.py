@@ -1258,7 +1258,7 @@ class BarGraphImg():
             return self.color_cycle # already rgb
     def generate_bar_graph_ndarray(self):
         if (self.N_array.sum(axis=0) == 0).any():
-            self.N_array[0, self.N_array.sum(axis=0) == 0] += 1
+            self.N_array[-1, self.N_array.sum(axis=0) == 0] += 1
         N_array_compositional = (self.N_array / self.N_array.sum(axis=0) * self.bar_sum_h).astype(int)
         rounding_error = np.ones(N_array_compositional.shape[1], dtype=int) * self.bar_sum_h - N_array_compositional.sum(axis=0)
         # omitted に追加する
@@ -2127,6 +2127,7 @@ if __name__ == "__main__":
     t0 = datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
+    combined_fastq = combined_fastq[:2]
     # 2. Execute alignment: load if any previous score_matrix if possible
     result_dict, my_aligner, intermediate_results = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir)
     # 3. Set threshold for assignment
