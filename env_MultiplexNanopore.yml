@@ -1,0 +1,46 @@
+name: env_MultiplexNanopore
+channels:
+  - conda-forge
+dependencies:
+  - bzip2=1.0.8=h3422bc3_4
+  - ca-certificates=2022.12.7=h4653dfc_0
+  - libffi=3.4.2=h3422bc3_5
+  - libsqlite=3.40.0=h76d750c_0
+  - libzlib=1.2.13=h03a7124_4
+  - ncurses=6.3=h07bb92c_1
+  - openssl=3.0.8=h03a7124_0
+  - pip=23.0.1=pyhd8ed1ab_0
+  - python=3.10.0=h43b31ca_3_cpython
+  - readline=8.1.2=h46ed386_0
+  - setuptools=67.3.2=pyhd8ed1ab_0
+  - sqlite=3.40.0=h2229b38_0
+  - tk=8.6.12=he1e0b03_0
+  - tzdata=2022g=h191b570_0
+  - wheel=0.38.4=pyhd8ed1ab_0
+  - xz=5.2.6=h57fd34a_0
+  - pip:
+    - biopython==1.81
+    - contourpy==1.0.7
+    - cycler==0.11.0
+    - et-xmlfile==1.1.0
+    - fonttools==4.38.0
+    - html2text==2020.1.16
+    - kiwisolver==1.4.4
+    - matplotlib==3.7.0
+    - numpy==1.24.2
+    - openpyxl==3.1.1
+    - packaging==23.0
+    - pandas==1.5.3
+    - parasail==1.1.11
+    - pillow==9.4.0
+    - pyasn1==0.4.8
+    - pycairo==1.23.0
+    - pyparsing==3.0.9
+    - python-dateutil==2.8.2
+    - pytz==2022.7.1
+    - scipy==1.10.0
+    - six==1.16.0
+    - snapgene-reader==0.1.20
+    - tqdm==4.64.1
+    - xmltodict==0.13.0
+prefix: /Users/masaaki/.pyenv/versions/miniforge3-4.10.3-10/envs/env_MultiplexNanopore
