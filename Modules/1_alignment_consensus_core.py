@@ -30,6 +30,7 @@ from PIL import Image as PilImage
 from . import my_classes as mc
 
 class MyFastQ(OrderedDict):
+    maximum_q_score_allowed = 41
     def __init__(self, path=None):
         super().__init__()
         self.path = path
@@ -45,6 +46,7 @@ class MyFastQ(OrderedDict):
                 seq = fastq_txt[4 * i + 1].strip()
                 p = fastq_txt[4 * i + 2].strip()
                 q_scores = [ord(q) - 33 for q in fastq_txt[4 * i + 3].strip()]
+                q_scores = [min(q, self.maximum_q_score_allowed) for q in q_scores]
                 assert p == "+"
                 assert len(seq) == len(q_scores)
                 self[seq_id] = [seq, q_scores]
@@ -2127,7 +2129,7 @@ if __name__ == "__main__":
     t0 = datetime.now()
 
     refseq_list, combined_fastq = organize_files([fastq_file_path], refseq_file_path_list)
-    combined_fastq = combined_fastq[:2]
+    # combined_fastq = combined_fastq[:2]
     # 2. Execute alignment: load if any previous score_matrix if possible
     result_dict, my_aligner, intermediate_results = execute_alignment(refseq_list, combined_fastq, param_dict, save_dir)
     # 3. Set threshold for assignment
