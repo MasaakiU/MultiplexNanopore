@@ -1753,7 +1753,7 @@ class SequenceBasecallQscoreLibrary(mc.MyTextFormat):
             if c.endswith("-"):
                 continue
             for i in self.sum.index:
-                if i < 2:
+                if i < 1:
                     continue
                 if self.sum.at[i, c] == 0:
                     self.sum.at[i, c] += 1
