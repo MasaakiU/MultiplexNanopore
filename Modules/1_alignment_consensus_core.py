@@ -3,7 +3,7 @@
 #@title # 1. Upload and select files
 
 app_name = "SAVEMONEY"
-version = "0.1.2"
+version = "0.1.3"
 description = "written by MU"
 
 import sys, os
@@ -1880,25 +1880,30 @@ def calc_consensus(self, sbq_pdf, P_N_dict_dict):
             print(f"\r{refbase_idx + 1} out of {N_bases}", end="")
             seq_base_list = [i[refbase_idx] for i in aligned_result["new_seq_list_with_insertion"]]
             q_score_list = [i[refbase_idx] for i in aligned_result["new_q_scores_list_with_insertion"]]
-            event_list = [(i.upper(), j) for i, j in zip(seq_base_list, q_score_list)]
-            # p = sbq_pdf.calc_consensus_error_rate(event_list, true_refseq=refbase.upper(), refseq_error_rate=error_rate, bases=bases)
+            my_cigar_str_list = [i[refbase_idx] for i in aligned_result["my_cigar_str_list_with_insertion"]]
+            event_list = [(i.upper(), j) for i, j, k in zip(seq_base_list, q_score_list, my_cigar_str_list) if k not in "HS"]
 
-            P_N_dict = P_N_dict_dict[refbase.upper()]
-            p_list = [
-                sbq_pdf.calc_consensus_error_rate(event_list, true_refseq=B, P_N_dict=P_N_dict, bases=bases)
-                for B in bases
-            ]
-            p = min(p_list)
-            # p_idx_list = [i for i, v in enumerate(p_list) if v == p]
-            consensus_base_call = mixed_bases([b for b, tmp_p in zip(bases, p_list) if tmp_p == p])
+            if len(event_list) > 0:
+                P_N_dict = P_N_dict_dict[refbase.upper()]
+                p_list = [
+                    sbq_pdf.calc_consensus_error_rate(event_list, true_refseq=B, P_N_dict=P_N_dict, bases=bases)
+                    for B in bases
+                ]
+                p = min(p_list)
+                # p_idx_list = [i for i, v in enumerate(p_list) if v == p]
+                consensus_base_call = mixed_bases([b for b, tmp_p in zip(bases, p_list) if tmp_p == p])
 
-            # register
-            if p >= 10 ** (-5):
-                q_score = np.round(-10 * np.log10(p)).astype(int)
-            elif p < 0:
-                raise Exception("unknown error")
+                # register
+                if p >= 10 ** (-5):
+                    q_score = np.round(-10 * np.log10(p)).astype(int)
+                elif p < 0:
+                    raise Exception("unknown error")
+                else:
+                    q_score = 50
             else:
-                q_score = 50
+                consensus_base_call = "-"
+                q_score = -1
+
             if  consensus_base_call != "-":
                 consensus_seq += consensus_base_call
                 consensus_q_scores.append(q_score)
