@@ -3,7 +3,7 @@
 #@title # 1. Upload and select files
 
 app_name = "SAVEMONEY"
-version = "0.1.3"
+version = "0.1.4"
 description = "written by MU"
 
 import sys, os
@@ -560,9 +560,12 @@ class AlignmentResult():
                     if (number_of_ref_bases_before_query < 0):
                         q_scores = q_scores[-number_of_ref_bases_before_query:]
                         seq      = seq[-number_of_ref_bases_before_query:]
-                        result.beg_query -= -number_of_ref_bases_before_query
-                        result.end_query -= -number_of_ref_bases_before_query                        
+                        beg_query = result.beg_query + number_of_ref_bases_before_query
+                        end_query = result.end_query + number_of_ref_bases_before_query
                         number_of_ref_bases_before_query = 0
+                    else:
+                        beg_query = result.beg_query
+                        end_query = result.end_query
                     if (number_of_ref_bases_after_query < 0):
                         q_scores = q_scores[:number_of_ref_bases_after_query]
                         seq      = seq[:number_of_ref_bases_after_query]
@@ -573,9 +576,9 @@ class AlignmentResult():
                     # organize my_cigar_str
                     my_cigar_str = MyCigarStr(
                         "H" * number_of_ref_bases_before_query      # add deletion of ref
-                        + "S" * result.beg_query                    # soft clip of query
+                        + "S" * beg_query                           # soft clip of query
                         + my_cigar_str                              # aligned region
-                        + "S" * (len(seq) - result.end_query - 1)   # soft clip of query
+                        + "S" * (len(seq) - end_query - 1)          # soft clip of query
                         + "H" * number_of_ref_bases_after_query     # add deletion of ref
                     )
                     my_cigar_str = MyCigarStr(
@@ -1004,7 +1007,8 @@ class Log(mc.MyTextFormat):
         self.alignment_params = my_aligner.param_dict
         self.custom_cigar_score_dict = my_aligner.get_custom_cigar_score_dict()
         self.score_threshold = alignment_result.score_threshold
-        self.score_matrix = alignment_result.matrix2string(my_aligner.my_custom_matrix.matrix, digit=3, round=True)
+        my_custom_matrix = my_aligner.my_custom_matrix
+        self.score_matrix = alignment_result.matrix2string(my_custom_matrix.matrix, digit=3, round=True)
         self.consensus_settings = alignment_result.consensus_settings["sbq_pdf_version"]
         self.error_matrix = alignment_result.matrix2string(
                 alignment_result.consensus_settings["P_N_dict_matrix"], 
