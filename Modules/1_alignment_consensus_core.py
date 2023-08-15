@@ -169,7 +169,7 @@ class MyResult():
         else:
             setattr(self, "cigar", d["cigar"])
 
-class MyAligner():
+class MyAlignerBase():
     def __init__(self, refseq_list, combined_fastq, param_dict):
         # params
         self.param_dict = param_dict
@@ -180,21 +180,10 @@ class MyAligner():
         # others
         self.refseq_list = refseq_list
         self.combined_fastq = combined_fastq
-        self.duplicated_refseq_seq_list = None
         self.is_refseq_seq_all_ATGC_list = None
-        self.set_refseq_related_info()
     @property
     def my_custom_matrix(self):
         return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
-    def set_refseq_related_info(self):
-        self.duplicated_refseq_seq_list = []
-        self.is_refseq_seq_all_ATGC_list = []
-        for refseq in self.refseq_list:
-            self.duplicated_refseq_seq_list.append(refseq.seq + refseq.seq)
-            is_all_ATCG = all([b.upper() in "ATCG" for b in refseq.seq])
-            if not is_all_ATCG:
-                print(f"\033[38;2;255;0;0mWARNING: Non-ATCG letter(s) were found in '{refseq.path.name}'.\nWhen calculating the alignment score, they are treated as 'mismatched', no matter what characters they are.\033[0m")
-            self.is_refseq_seq_all_ATGC_list.append(is_all_ATCG)
     # refが環状プラスミドであるために、それを元に戻すのに使う（プラスミド上のどこがシーケンスの始まりと終わりなのか）を決めるのに使うカスタムのスコア
     def get_custom_cigar_score_dict(self):
         return {
@@ -226,6 +215,21 @@ class MyAligner():
             else:
                 raise Exception(f"unknown letter code: {L}")
         return score
+
+class MyAligner(MyAlignerBase):
+    def __init__(self, refseq_list, combined_fastq, param_dict) -> None:
+        super().__init__(refseq_list, combined_fastq, param_dict)
+        self.duplicated_refseq_seq_list = None
+        self.set_refseq_related_info()
+    def set_refseq_related_info(self):
+        self.duplicated_refseq_seq_list = []
+        self.is_refseq_seq_all_ATGC_list = []
+        for refseq in self.refseq_list:
+            self.duplicated_refseq_seq_list.append(refseq.seq + refseq.seq)
+            is_all_ATCG = all([b.upper() in "ATCG" for b in refseq.seq])
+            if not is_all_ATCG:
+                print(f"\033[38;2;255;0;0mWARNING: Non-ATCG letter(s) were found in '{refseq.path.name}'.\nWhen calculating the alignment score, they are treated as 'mismatched', no matter what characters they are.\033[0m")
+            self.is_refseq_seq_all_ATGC_list.append(is_all_ATCG)
     def align_all(self):
         fastq_len = len(self.combined_fastq)
         result_dict = OrderedDict()
@@ -238,6 +242,47 @@ class MyAligner():
                 result = parasail.sw_trace(query_seq, duplicated_refseq_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
                 result = MyResult(result)
                 result_rc = parasail.sw_trace(str(Seq(query_seq).reverse_complement()), duplicated_refseq_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+                result_rc = MyResult(result_rc)
+                # 一応スコアを確認する
+                if is_refseq_seq_all_ATGC:
+                    assert result.score == self.clac_cigar_score(result.cigar)
+                    assert result_rc.score == self.clac_cigar_score(result_rc.cigar)
+                # レジスター
+                result_list.append(result)
+                result_list.append(result_rc)
+                gc.collect()
+            result_dict[seq_id] = result_list
+        return result_dict
+
+class MyAlignerLinear(MyAlignerBase):
+    def __init__(self, refseq_list, combined_fastq, param_dict):
+        super().__init__(refseq_list, combined_fastq, param_dict)
+        self.refseq_seq_list = None
+        self.set_refseq_related_info()
+    @property
+    def my_custom_matrix(self):
+        return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
+    def set_refseq_related_info(self):
+        self.refseq_seq_list = []
+        self.is_refseq_seq_all_ATGC_list = []
+        for refseq in self.refseq_list:
+            self.refseq_seq_list.append(refseq.seq)
+            is_all_ATCG = all([b.upper() in "ATCG" for b in refseq.seq])
+            if not is_all_ATCG:
+                print(f"\033[38;2;255;0;0mWARNING: Non-ATCG letter(s) were found in '{refseq.path.name}'.\nWhen calculating the alignment score, they are treated as 'mismatched', no matter what characters they are.\033[0m")
+            self.is_refseq_seq_all_ATGC_list.append(is_all_ATCG)
+    def align_all(self):
+        fastq_len = len(self.combined_fastq)
+        result_dict = OrderedDict()
+        for query_idx, (seq_id, (query_seq, q_scores)) in enumerate(list(self.combined_fastq.items())):
+            print(f"\rExecuting alignment: {query_idx + 1} out of {fastq_len} ({seq_id})", end="")
+            # calc scores for each refseq
+            result_list = []
+            for refseq_seq, is_refseq_seq_all_ATGC in zip(self.refseq_seq_list, self.is_refseq_seq_all_ATGC_list):
+                # なぜか result の cigar に、左端にたくさん D もしくは I が連なることがあるが、多分スコアはちゃんと計算されてる
+                result = parasail.sw_trace(query_seq, refseq_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+                result = MyResult(result)
+                result_rc = parasail.sw_trace(str(Seq(query_seq).reverse_complement()), refseq_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
                 result_rc = MyResult(result_rc)
                 # 一応スコアを確認する
                 if is_refseq_seq_all_ATGC:
@@ -404,7 +449,13 @@ def organize_files(fastq_file_path_list, refseq_file_path_list):
 
 def execute_alignment(refseq_list, combined_fastq, param_dict, save_dir):
     my_aligner = MyAligner(refseq_list, combined_fastq, param_dict)
+    return execute_alignment_core(my_aligner, combined_fastq, save_dir)
 
+def execute_alignment_linear(refseq_list, combined_fastq, param_dict, save_dir):
+    my_aligner = MyAlignerLinear(refseq_list, combined_fastq, param_dict)
+    return execute_alignment_core(my_aligner, combined_fastq, save_dir)
+
+def execute_alignment_core(my_aligner,combined_fastq, save_dir):
     # load if there is intermediate data
     skip = False
     intermediate_results_save_path = save_dir / f"{combined_fastq.combined_name_stem}.intermediate_results.txt"
@@ -427,7 +478,7 @@ def execute_alignment(refseq_list, combined_fastq, param_dict, save_dir):
 
 #@title # 3. Set threshold for assignment
 
-class AlignmentResult():
+class AlignmentResultBase():
     def __init__(self, result_dict, my_aligner, param_dict):
         self.score_threshold = param_dict["score_threshold"]
         self.result_dict = result_dict
@@ -479,6 +530,176 @@ class AlignmentResult():
         with open(save_path, "w") as f:
             f.write(score_summary)
         return score_summary
+    def export_as_text(self, save_dir):
+        text_list = []
+        save_path_list = []
+        for refseq, aligned_result in zip(self.my_aligner.refseq_list, self.aligned_result_list):
+            text = ""
+            idx_label_minimum = "consensus"
+            query_idx_list = aligned_result["query_idx_list"]
+            query_idx_len_max = max([len(str(query_idx)) for query_idx in query_idx_list] + [0])
+            label_N0 = max(query_idx_len_max, len(idx_label_minimum)) + 1
+            seq_id_list = aligned_result["seq_id_list"]
+            seq_id_len_max = max([len(seq_id) for seq_id in seq_id_list] + [0])
+            label_N1 = max(seq_id_len_max, len(refseq.path.name)) + 1
+            text += (
+                "ref"
+                + " " * (label_N0 - 3)
+                + refseq.path.name
+                + " " * (label_N1 - len(refseq.path.name))
+                + aligned_result["refseq_with_insertion"]
+            )
+            consensus_seq, consensus_q_scores, consensus_seq_all, consensus_q_scores_all = self.consensus_dict[refseq.path.name]
+            text += (
+                "\n"
+                + "consensus"
+                + " " * (label_N0 - 9 + label_N1)
+                + consensus_seq_all
+            )
+            text += (
+                "\n"
+                + "consensus"
+                + " " * (label_N0 - 9 + label_N1)
+                + "".join([chr(q) for q in (np.array(consensus_q_scores_all) + 33)])
+            )
+            for query_idx, seq_id, my_cigar_str_with_insertion, new_seq_with_insertion, new_q_scores_with_insertion in \
+                zip(
+                    aligned_result["query_idx_list"], 
+                    aligned_result["seq_id_list"], 
+                    aligned_result["my_cigar_str_list_with_insertion"], 
+                    aligned_result["new_seq_list_with_insertion"], 
+                    aligned_result["new_q_scores_list_with_insertion"]
+                ):
+                label = (
+                    "\n"
+                    + str(query_idx)
+                    + " " * (label_N0 - len(str(query_idx)))
+                    + seq_id
+                    + " " * (label_N1 - len(seq_id))
+                )
+                text += (
+                    label
+                    + new_seq_with_insertion
+                    + label
+                    + my_cigar_str_with_insertion
+                    + label
+                    + "".join([chr(q) for q in (np.array(new_q_scores_with_insertion) + 33)])
+                )
+            save_path = (save_dir / refseq.path.name).with_suffix(".txt")
+            with open(save_path, "w") as f:
+                f.write(text)
+            text_list.append(text)
+            save_path_list.append(save_path)
+        return text_list, save_path_list
+    def alignment_reuslt_list_2_text_list(self, linewidth=""):
+        text_list = []
+        highlight_pos_list = []
+        refseq_name_list = []
+        for refseq, aligned_result in zip(self.my_aligner.refseq_list, self.aligned_result_list):
+            ref_label = "REF"
+            label_N = max(len(str(max(aligned_result["query_idx_list"]))), len(ref_label)) + 1
+            refseq_name_list.append(refseq.path.name)
+            # "linewidth" 行ごとにまとめて改行
+            child_lines = re.findall(fr".{{1,{linewidth}}}", aligned_result["refseq_with_insertion"].upper())
+            master_lines = [list(map(lambda l: ref_label + " " * (label_N - len(ref_label)) + l, child_lines))]
+            for idx, (new_seq_with_insertion, query_idx) in enumerate(zip(aligned_result["new_seq_list_with_insertion"], aligned_result["query_idx_list"])):
+                child_lines = re.findall(fr".{{1,{linewidth}}}", new_seq_with_insertion.upper())
+                master_lines.append(list(map(lambda l: f"{query_idx}" + " " * (label_N - len(str(query_idx))) + l, child_lines)))
+            # 改行したものを zip でくっつけていく
+            text = ""
+            for i, lines in enumerate(zip(*master_lines)):
+                text += (
+                    f"{i * linewidth + 1}-{(i + 1) * linewidth}\n"
+                    + "\n".join(lines)
+                    + "\n\n"
+                )
+            text_list.append(text.strip())
+            # ハイライト部分
+            highlight_pos_in_text = []
+            for i, my_cigar_str_with_insertion in enumerate(aligned_result["my_cigar_str_list_with_insertion"]):
+                # print(len(my_cigar_str_with_insertion))
+                true_highlight_pos = [m.start() for m in re.finditer('[IXDS]', my_cigar_str_with_insertion)]
+                for p in true_highlight_pos:
+                    r, c = divmod(p, linewidth) 
+                    r = r * (len(master_lines) + 2) + i + 2 # ポジション行、master_lines、改行空白
+                    c += label_N
+                    highlight_pos_in_text.append((r, c))
+            highlight_pos_list.append(highlight_pos_in_text)
+        return refseq_name_list, text_list, highlight_pos_list
+    def export_log(self, save_path):
+        log = Log(self)
+        log.save(save_path)
+    @staticmethod
+    def matrix2string(matrix, bases="ATCG", digit=3, round=True):
+        bio = io.BytesIO()
+        if round:
+            np.savetxt(bio, matrix, fmt=f"%{digit}d")
+        else:
+            np.savetxt(bio, matrix, fmt=f"%.5e")
+            digit = 11
+        matrix_str = bio.getvalue().decode('latin1')
+        bases = bases + "*"
+        output = (
+            " " * (digit + 1)
+            + (" " * digit).join(b for b in bases)
+        )
+        for b, m in zip(bases, matrix_str.split("\n")):
+            output += f"\n{b} {m}"
+        return output
+    def save_consensus(self, save_dir, id_suffix=""):
+        save_path_list = []
+        for key, val in self.consensus_dict.items():
+            save_path1 = save_dir / Path(key).with_suffix(".fastq")
+            consensus_seq, consensus_q_scores, *all_results = val
+            consensus_q_scores = "".join([chr(q + 33) for q in consensus_q_scores])
+            consensus_fastq_txt = f"@{key}_{id_suffix}:\n{consensus_seq.upper()}\n+\n{consensus_q_scores}"
+            with open(save_path1, "w") as f:
+                f.write(consensus_fastq_txt)
+            save_path_list.append(save_path1)
+        return save_path_list
+    def alignment_summary_bar_graphs(self):
+        N_array_list = []
+        bar_graph_img_list = []
+        filename_for_saving_list = []
+        for refseq_idx, aligned_result in enumerate(self.aligned_result_list):
+            filename_for_saving_list.append(f"{self.my_aligner.refseq_list[refseq_idx].path.stem}.gif")
+            # prepare
+            refseq_with_insertion = aligned_result["refseq_with_insertion"]
+            N_array = np.empty((5, len(refseq_with_insertion)), int)
+            tick_pos_list = []
+            tick_label_list = []
+            cur_ref_base_pos = 0
+            for refbase_idx, refbase in enumerate(refseq_with_insertion):
+
+                if refbase != "-":
+                    cur_ref_base_pos += 1
+                    if cur_ref_base_pos%100 == 0:
+                        tick_pos_list.append(refbase_idx)
+                        tick_label_list.append(cur_ref_base_pos)
+
+                N_match = 0     # =
+                N_mismatch = 0  # X
+                N_insertion = 0 # I
+                N_deletion = 0  # D
+                N_omitted = 0   # N, H, S
+                for my_cigar_str in aligned_result["my_cigar_str_list_with_insertion"]:
+                    L = my_cigar_str[refbase_idx]
+                    if L == "=":    N_match += 1
+                    elif L == "X":  N_mismatch += 1
+                    elif L == "I":  N_insertion += 1
+                    elif L == "D":  N_deletion += 1
+                    elif L in "NHS":    N_omitted += 1
+                    else:   raise Exception(f"unknown cigar string {L}")
+                N_array[:, refbase_idx] = [N_match, N_omitted, N_mismatch, N_insertion, N_deletion]
+            N_array_list.append(N_array)
+            # 描画していく！
+            bar_graph_img = BarGraphImg(N_array, tick_pos_list, tick_label_list)
+            bar_graph_img.generate_bar_graph_ndarray()
+            bar_graph_img.set_legend(legend_list=["match", "omitted", "mismatch", "insertion", "deletion"])
+            bar_graph_img_list.append(bar_graph_img)
+        return bar_graph_img_list, filename_for_saving_list
+
+class AlignmentResult(AlignmentResultBase):
     def normalize_scores_and_apply_threshold(self):
         self.score_list_ALL = []
         self.result_info_assigned = [[] for i in self.my_aligner.refseq_list] # [[[seq_id, is_reverse_compliment, result, query_idx], ...], ...]
@@ -823,174 +1044,254 @@ class AlignmentResult():
                     # "new_q_scores_list_with_insertion": [[-1] * len(refseq.seq)]
                 })
         assert len(self.my_aligner.refseq_list) == len(self.aligned_result_list)
-    def export_as_text(self, save_dir):
-        text_list = []
-        save_path_list = []
-        for refseq, aligned_result in zip(self.my_aligner.refseq_list, self.aligned_result_list):
-            text = ""
-            idx_label_minimum = "consensus"
-            query_idx_list = aligned_result["query_idx_list"]
-            query_idx_len_max = max([len(str(query_idx)) for query_idx in query_idx_list] + [0])
-            label_N0 = max(query_idx_len_max, len(idx_label_minimum)) + 1
-            seq_id_list = aligned_result["seq_id_list"]
-            seq_id_len_max = max([len(seq_id) for seq_id in seq_id_list] + [0])
-            label_N1 = max(seq_id_len_max, len(refseq.path.name)) + 1
-            text += (
-                "ref"
-                + " " * (label_N0 - 3)
-                + refseq.path.name
-                + " " * (label_N1 - len(refseq.path.name))
-                + aligned_result["refseq_with_insertion"]
-            )
-            consensus_seq, consensus_q_scores, consensus_seq_all, consensus_q_scores_all = self.consensus_dict[refseq.path.name]
-            text += (
-                "\n"
-                + "consensus"
-                + " " * (label_N0 - 9 + label_N1)
-                + consensus_seq_all
-            )
-            text += (
-                "\n"
-                + "consensus"
-                + " " * (label_N0 - 9 + label_N1)
-                + "".join([chr(q) for q in (np.array(consensus_q_scores_all) + 33)])
-            )
-            for query_idx, seq_id, my_cigar_str_with_insertion, new_seq_with_insertion, new_q_scores_with_insertion in \
-                zip(
-                    aligned_result["query_idx_list"], 
-                    aligned_result["seq_id_list"], 
-                    aligned_result["my_cigar_str_list_with_insertion"], 
-                    aligned_result["new_seq_list_with_insertion"], 
-                    aligned_result["new_q_scores_list_with_insertion"]
-                ):
-                label = (
-                    "\n"
-                    + str(query_idx)
-                    + " " * (label_N0 - len(str(query_idx)))
-                    + seq_id
-                    + " " * (label_N1 - len(seq_id))
-                )
-                text += (
-                    label
-                    + new_seq_with_insertion
-                    + label
-                    + my_cigar_str_with_insertion
-                    + label
-                    + "".join([chr(q) for q in (np.array(new_q_scores_with_insertion) + 33)])
-                )
-            save_path = (save_dir / refseq.path.name).with_suffix(".txt")
-            with open(save_path, "w") as f:
-                f.write(text)
-            text_list.append(text)
-            save_path_list.append(save_path)
-        return text_list, save_path_list
-    def alignment_reuslt_list_2_text_list(self, linewidth=""):
-        text_list = []
-        highlight_pos_list = []
-        refseq_name_list = []
-        for refseq, aligned_result in zip(self.my_aligner.refseq_list, self.aligned_result_list):
-            ref_label = "REF"
-            label_N = max(len(str(max(aligned_result["query_idx_list"]))), len(ref_label)) + 1
-            refseq_name_list.append(refseq.path.name)
-            # "linewidth" 行ごとにまとめて改行
-            child_lines = re.findall(fr".{{1,{linewidth}}}", aligned_result["refseq_with_insertion"].upper())
-            master_lines = [list(map(lambda l: ref_label + " " * (label_N - len(ref_label)) + l, child_lines))]
-            for idx, (new_seq_with_insertion, query_idx) in enumerate(zip(aligned_result["new_seq_list_with_insertion"], aligned_result["query_idx_list"])):
-                child_lines = re.findall(fr".{{1,{linewidth}}}", new_seq_with_insertion.upper())
-                master_lines.append(list(map(lambda l: f"{query_idx}" + " " * (label_N - len(str(query_idx))) + l, child_lines)))
-            # 改行したものを zip でくっつけていく
-            text = ""
-            for i, lines in enumerate(zip(*master_lines)):
-                text += (
-                    f"{i * linewidth + 1}-{(i + 1) * linewidth}\n"
-                    + "\n".join(lines)
-                    + "\n\n"
-                )
-            text_list.append(text.strip())
-            # ハイライト部分
-            highlight_pos_in_text = []
-            for i, my_cigar_str_with_insertion in enumerate(aligned_result["my_cigar_str_list_with_insertion"]):
-                # print(len(my_cigar_str_with_insertion))
-                true_highlight_pos = [m.start() for m in re.finditer('[IXDS]', my_cigar_str_with_insertion)]
-                for p in true_highlight_pos:
-                    r, c = divmod(p, linewidth) 
-                    r = r * (len(master_lines) + 2) + i + 2 # ポジション行、master_lines、改行空白
-                    c += label_N
-                    highlight_pos_in_text.append((r, c))
-            highlight_pos_list.append(highlight_pos_in_text)
-        return refseq_name_list, text_list, highlight_pos_list
-    def export_log(self, save_path):
-        log = Log(self)
-        log.save(save_path)
-    @staticmethod
-    def matrix2string(matrix, bases="ATCG", digit=3, round=True):
-        bio = io.BytesIO()
-        if round:
-            np.savetxt(bio, matrix, fmt=f"%{digit}d")
-        else:
-            np.savetxt(bio, matrix, fmt=f"%.5e")
-            digit = 11
-        matrix_str = bio.getvalue().decode('latin1')
-        bases = bases + "*"
-        output = (
-            " " * (digit + 1)
-            + (" " * digit).join(b for b in bases)
-        )
-        for b, m in zip(bases, matrix_str.split("\n")):
-            output += f"\n{b} {m}"
-        return output
-    def save_consensus(self, save_dir, id_suffix=""):
-        save_path_list = []
-        for key, val in self.consensus_dict.items():
-            save_path1 = save_dir / Path(key).with_suffix(".fastq")
-            consensus_seq, consensus_q_scores, *all_results = val
-            consensus_q_scores = "".join([chr(q + 33) for q in consensus_q_scores])
-            consensus_fastq_txt = f"@{key}_{id_suffix}:\n{consensus_seq.upper()}\n+\n{consensus_q_scores}"
-            with open(save_path1, "w") as f:
-                f.write(consensus_fastq_txt)
-            save_path_list.append(save_path1)
-        return save_path_list
-    def alignment_summary_bar_graphs(self):
-        N_array_list = []
-        bar_graph_img_list = []
-        filename_for_saving_list = []
-        for refseq_idx, aligned_result in enumerate(self.aligned_result_list):
-            filename_for_saving_list.append(f"{self.my_aligner.refseq_list[refseq_idx].path.stem}.gif")
-            # prepare
-            refseq_with_insertion = aligned_result["refseq_with_insertion"]
-            N_array = np.empty((5, len(refseq_with_insertion)), int)
-            tick_pos_list = []
-            tick_label_list = []
-            cur_ref_base_pos = 0
-            for refbase_idx, refbase in enumerate(refseq_with_insertion):
 
-                if refbase != "-":
-                    cur_ref_base_pos += 1
-                    if cur_ref_base_pos%100 == 0:
-                        tick_pos_list.append(refbase_idx)
-                        tick_label_list.append(cur_ref_base_pos)
+class AlignmentResultLinear(AlignmentResultBase):
+    def normalize_scores_and_apply_threshold(self):
+        self.score_list_ALL = []
+        self.result_info_assigned = [[] for i in self.my_aligner.refseq_list] # [[[seq_id, is_reverse_compliment, result, query_idx], ...], ...]
+        assert len(self.result_dict) == len(self.my_aligner.combined_fastq)
+        for query_idx, (seq_id, result_list) in enumerate(self.result_dict.items()):
+            assert len(result_list) == len(self.my_aligner.refseq_seq_list) * 2
+            # normalize scores for each refseq
+            score_list = []
+            normalized_score_list = []
+            for result_idx, result in enumerate(result_list):
+                score_list.append(result.score)
+                refseq_seq = self.my_aligner.refseq_seq_list[result_idx // 2]
+                normalized_score = result.score / len(refseq_seq)
+                if normalized_score > 1:
+                    normalized_score = 1
+                normalized_score_list.append(normalized_score)
+            # choose sequence with maximum score
+            idx = np.argmax(normalized_score_list)
+            refseq_idx, is_reverse_compliment = divmod(idx, 2)
+            result = result_list[idx]
+            # quality check
+            assigned = (normalized_score_list[idx] >= self.score_threshold)\
+                     & (result.score <= len(self.my_aligner.refseq_list[refseq_idx].seq) * self.my_aligner.match_score)\
+                     & (len(self.my_aligner.combined_fastq[seq_id][0]) <= len(self.my_aligner.refseq_seq_list[refseq_idx]) * 2)\
+                     & ((np.array(score_list) == score_list[idx]).sum() == 1)   # refseq の長さの二倍以上ある query_seq は omit する、全く同じスコアがある場合は omit する
+            # register
+            self.score_list_ALL.append({
+                "query_idx":query_idx,
+                "seq_id":seq_id,
+                "score_list":score_list,
+                "normalized_score_list":normalized_score_list,
+                "assigned_refseq_idx":refseq_idx,
+                "is_reverse_compliment":is_reverse_compliment,
+                "assigned":int(assigned)
+            })
+            if assigned:
+                self.result_info_assigned[refseq_idx].append([
+                    seq_id,
+                    is_reverse_compliment,
+                    result,
+                    query_idx
+                ])
+    def integrate_assigned_result_info(self):
+        self.aligned_result_list = []
+        assert len(self.my_aligner.refseq_list) == len(self.result_info_assigned)
+        total_N = len(self.my_aligner.refseq_list)
+        for cur_idx, (refseq, result_info_list) in enumerate(zip(self.my_aligner.refseq_list, self.result_info_assigned)):
+            print(f"\rIntegrating alignment results: {cur_idx + 1} out of {total_N}", end="")
+            if len(result_info_list) > 0:
+                my_cigar_str_list = []
+                new_q_scores_list = []
+                new_seq_list = []
+                seq_id_list, is_reverse_compliment_list, result_list, query_idx_list = list(zip(*result_info_list))
+                for result, is_reverse_compliment, seq_id in zip(result_list, is_reverse_compliment_list, seq_id_list):
+                    # query info
+                    seq = self.my_aligner.combined_fastq[seq_id][0]
+                    q_scores = self.my_aligner.combined_fastq[seq_id][1]
+                    if is_reverse_compliment:
+                        seq = str(Seq(seq).reverse_complement())
+                        q_scores = q_scores[::-1]
+                    # results
+                    my_cigar_str = MyCigarStr(result.cigar)
+                    # organize alignment based on refseq
+                    number_of_ref_bases_before_query = result.beg_ref - result.beg_query
+                    number_of_ref_bases_after_query = (refseq.length - result.end_ref - 1) - (len(seq) - result.end_query - 1)
+                    """
+                                beg_ref(9)      end_ref(24)
+                                     |                |
+                    pos     0         10         20         30
+                    ref     atcgatcggGGCTATG-CTTGCAT-GCatcgatcg
+                    align   HHHHHHHSS====X==I===D===N==SSSHHHHH
+                    query          caGGCTGTGACTT-CAT-GCtga
+                    pos            0         10          20
+                                     |                |
+                                beg_query(2)    end_query(17)
+                    """
+                    # truncate
+                    assert (number_of_ref_bases_before_query >= 0) or (number_of_ref_bases_after_query >= 0)
+                    if (number_of_ref_bases_before_query < 0):
+                        q_scores = q_scores[-number_of_ref_bases_before_query:]
+                        seq      = seq[-number_of_ref_bases_before_query:]
+                        result.beg_query -= -number_of_ref_bases_before_query
+                        result.end_query -= -number_of_ref_bases_before_query
+                        number_of_ref_bases_before_query = 0
+                    if (number_of_ref_bases_after_query < 0):
+                        q_scores = q_scores[:number_of_ref_bases_after_query]
+                        seq      = seq[:number_of_ref_bases_after_query]
+                        # result.beg_query # do nothing
+                        # result.end_query # do nothing
+                        number_of_ref_bases_after_query = 0
+                    assert (number_of_ref_bases_before_query >= 0) & (number_of_ref_bases_after_query >= 0)
+                    # organize my_cigar_str
+                    my_cigar_str = MyCigarStr(
+                        "H" * number_of_ref_bases_before_query      # add deletion of ref
+                        + "S" * result.beg_query                    # soft clip of query
+                        + my_cigar_str                              # aligned region
+                        + "S" * (len(seq) - result.end_query - 1)   # soft clip of query
+                        + "H" * number_of_ref_bases_after_query     # add deletion of ref
+                    )
+                    my_cigar_str = MyCigarStr(
+                        "H" * my_cigar_str.number_of_letters_on_5prime("HD")    # なぜか parasail の結果で 5'側に D が連なっている場合があるので、それを除く（本来 beg_ref で調節されるべき？）
+                        + my_cigar_str.clip_from_both_ends("HD")
+                        + "H" * my_cigar_str.number_of_letters_on_3prime("HD")
+                    )
+                    my_cigar_str_H_clip = my_cigar_str.clip_from_both_ends("H")
+                    assert len(q_scores) == len(seq) == len(my_cigar_str_H_clip) - my_cigar_str_H_clip.count("D")
+                    assert refseq.length == len(my_cigar_str) - my_cigar_str_H_clip.count("I")
 
-                N_match = 0     # =
-                N_mismatch = 0  # X
-                N_insertion = 0 # I
-                N_deletion = 0  # D
-                N_omitted = 0   # N, H, S
-                for my_cigar_str in aligned_result["my_cigar_str_list_with_insertion"]:
-                    L = my_cigar_str[refbase_idx]
-                    if L == "=":    N_match += 1
-                    elif L == "X":  N_mismatch += 1
-                    elif L == "I":  N_insertion += 1
-                    elif L == "D":  N_deletion += 1
-                    elif L in "NHS":    N_omitted += 1
-                    else:   raise Exception(f"unknown cigar string {L}")
-                N_array[:, refbase_idx] = [N_match, N_omitted, N_mismatch, N_insertion, N_deletion]
-            N_array_list.append(N_array)
-            # 描画していく！
-            bar_graph_img = BarGraphImg(N_array, tick_pos_list, tick_label_list)
-            bar_graph_img.generate_bar_graph_ndarray()
-            bar_graph_img.set_legend(legend_list=["match", "omitted", "mismatch", "insertion", "deletion"])
-            bar_graph_img_list.append(bar_graph_img)
-        return bar_graph_img_list, filename_for_saving_list
+                    # なぜか parasail の結果で 5'側に I が連なっている場合があるので、それを除く（本来 beg_query で調節されるべき？）
+                    number_of_I_on_5prime = my_cigar_str.number_of_letters_on_5prime("I")
+                    if number_of_I_on_5prime > 0:
+                        my_cigar_str = MyCigarStr(my_cigar_str[number_of_I_on_5prime:])
+                        q_scores = q_scores[number_of_I_on_5prime:]
+                        seq = seq[number_of_I_on_5prime:]
+                    my_cigar_str_list.append(my_cigar_str)
+                    new_q_scores_list.append(q_scores)
+                    new_seq_list.append(seq)
+                # further organize to match refseq, new_seq (query), and new_qscores.
+                my_cigar_str_net_length_list = [len(my_cigar_str) - my_cigar_str.count("I") for my_cigar_str in my_cigar_str_list]
+                assert all(my_cigar_str_net_length_list[0] == x for x in my_cigar_str_net_length_list)
+
+                refseq_with_insertion = ""
+                my_cigar_str_list_with_insertion = ["" for i in my_cigar_str_list]
+                new_q_scores_list_with_insertion = [[] for i in new_q_scores_list]
+                new_seq_list_with_insertion = ["" for i in new_seq_list]
+
+                # current idx (positions of new_q_scores and new_seq are the same)
+                cur_refseq_idx = 0
+                cur_my_cigar_str_idx_list = [0 for i in my_cigar_str_list]
+                cur_q_scores_idx_list = [0 for i in new_q_scores_list]
+                max_refseq_idx = refseq.length - 1
+                max_my_cigar_str_idx_list = [len(my_cigar_str) - 1 for my_cigar_str in my_cigar_str_list]
+                max_q_scores_idx_list = [len(new_q_scores) - 1 for new_q_scores in new_q_scores_list]
+
+                # print(max_refseq_idx)
+                # print(max_my_cigar_str_idx_list)
+                # print(max_q_scores_idx_list)
+
+                all_done = False
+                cur_idx = -1
+                while not all_done:
+                    cur_idx += 1
+                    cur_my_cigar_letter_list = [my_cigar_str[cur_my_cigar_str_idx] for my_cigar_str, cur_my_cigar_str_idx in zip(my_cigar_str_list, cur_my_cigar_str_idx_list)]
+                    if "I" not in cur_my_cigar_letter_list:
+                        for i, L in enumerate(cur_my_cigar_letter_list):
+                            if L in "DH":
+                                my_cigar_str_list_with_insertion[i] += L
+                                new_q_scores_list_with_insertion[i] += [-1]
+                                new_seq_list_with_insertion[i]      += "-"
+                                cur_my_cigar_str_idx_list[i]        += 1
+                            elif L == "=":
+                                my_cigar_str_list_with_insertion[i] += L
+                                new_q_scores_list_with_insertion[i] += [ new_q_scores_list[i][cur_q_scores_idx_list[i]] ]
+                                new_seq_list_with_insertion[i]      += new_seq_list[i][cur_q_scores_idx_list[i]]
+                                cur_my_cigar_str_idx_list[i]        += 1
+                                cur_q_scores_idx_list[i]            += 1
+                            elif L == "X":
+                                my_cigar_str_list_with_insertion[i] += L
+                                new_q_scores_list_with_insertion[i] += [ new_q_scores_list[i][cur_q_scores_idx_list[i]] ]
+                                new_seq_list_with_insertion[i]      += new_seq_list[i][cur_q_scores_idx_list[i]]
+                                cur_my_cigar_str_idx_list[i]        += 1
+                                cur_q_scores_idx_list[i]            += 1
+                            elif L == "S":
+                                my_cigar_str_list_with_insertion[i] += L
+                                new_q_scores_list_with_insertion[i] += [ new_q_scores_list[i][cur_q_scores_idx_list[i]] ]
+                                new_seq_list_with_insertion[i]      += new_seq_list[i][cur_q_scores_idx_list[i]]
+                                cur_my_cigar_str_idx_list[i]        += 1
+                                cur_q_scores_idx_list[i]            += 1
+                            else:
+                                print(L)
+                                raise Exception("error!")
+                        else:
+                            refseq_with_insertion += refseq.seq[cur_refseq_idx]
+                            cur_refseq_idx += 1
+                    else:
+                        # TODO: insertion 同士に関してはアラインメントしてないよ！
+                        for i, L in enumerate(cur_my_cigar_letter_list):
+                            if L == "I":
+                                my_cigar_str_list_with_insertion[i] += "I"
+                                new_q_scores_list_with_insertion[i] += [ new_q_scores_list[i][cur_q_scores_idx_list[i]] ]
+                                new_seq_list_with_insertion[i]      += new_seq_list[i][cur_q_scores_idx_list[i]]
+                                cur_my_cigar_str_idx_list[i]        += 1
+                                cur_q_scores_idx_list[i]            += 1
+                            else:
+                                my_cigar_str_list_with_insertion[i] += "N"
+                                new_q_scores_list_with_insertion[i] += [-1]
+                                new_seq_list_with_insertion[i]      += "-"
+                        else:
+                            refseq_with_insertion += "-"
+
+                    # インデックスの最大値を参照して、すべて終わったら終える！
+                    all_done = bool(
+                        (cur_refseq_idx > max_refseq_idx)
+                        * all([cur_my_cigar_str_idx > max_my_cigar_str_idx for cur_my_cigar_str_idx, max_my_cigar_str_idx in zip(cur_my_cigar_str_idx_list, max_my_cigar_str_idx_list)])
+                        * all([cur_q_scores_idx > max_q_scores_idx for cur_q_scores_idx, max_q_scores_idx in zip(cur_q_scores_idx_list, max_q_scores_idx_list)])
+                    )
+                # print(refseq_with_insertion)
+                # print(refseq_with_insertion[turning_idx:])
+                for i in my_cigar_str_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+                for i in new_seq_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+                for i in new_q_scores_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+
+                # check
+                assert refseq_with_insertion[-1] != "-"
+                for i in my_cigar_str_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+                for i in new_seq_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+                for i in new_q_scores_list_with_insertion:
+                    assert len(refseq_with_insertion) == len(i)
+
+                # print(seq_id_list)
+                # print(refseq_with_insertion)
+                # for i, seq_id in enumerate(seq_id_list):
+                #     # print(seq_id)
+                #     print(my_cigar_str_list_with_insertion[i])
+                #     print(new_seq_list_with_insertion[i])
+                #     print(new_q_scores_list_with_insertion[i])
+                self.aligned_result_list.append({
+                    "refseq_with_insertion": refseq_with_insertion,
+                    "query_idx_list": query_idx_list,
+                    "seq_id_list": seq_id_list,
+                    "my_cigar_str_list_with_insertion": my_cigar_str_list_with_insertion,
+                    "new_seq_list_with_insertion": new_seq_list_with_insertion,
+                    "new_q_scores_list_with_insertion": new_q_scores_list_with_insertion
+                })
+            else:
+                self.aligned_result_list.append({
+                    "refseq_with_insertion": refseq.seq,
+
+                    "query_idx_list": (),
+                    "seq_id_list": (),
+                    "my_cigar_str_list_with_insertion": [],
+                    "new_seq_list_with_insertion": [],
+                    "new_q_scores_list_with_insertion": []
+
+                    # "query_idx_list": (-1, ),
+                    # "seq_id_list": ("@None", ),
+                    # "my_cigar_str_list_with_insertion": ["X" * len(refseq.seq)],
+                    # "new_seq_list_with_insertion": ["-" * len(refseq.seq)],
+                    # "new_q_scores_list_with_insertion": [[-1] * len(refseq.seq)]
+                })
+        assert len(self.my_aligner.refseq_list) == len(self.aligned_result_list)
 
 class Log(mc.MyTextFormat):
     app_name = app_name
@@ -998,7 +1299,9 @@ class Log(mc.MyTextFormat):
     description = description
     def __init__(self, alignment_result) -> None:
         my_aligner = alignment_result.my_aligner
-        self.header = f"{app_name} ver{version}\n{description}"
+        if isinstance(alignment_result, AlignmentResultLinear): version_appendix = " Linear"
+        else:                                                   version_appendix = ""
+        self.header = f"{app_name} ver{version}{version_appendix}\n{description}"
         self.datetime = datetime.now()
         self.input_reference_files = [refseq.path for refseq in my_aligner.refseq_list]
         self.input_fastq_files = [fastq_path for fastq_path in my_aligner.combined_fastq.path]
@@ -1486,8 +1789,8 @@ def draw_alignment_score_scatter(score_summary_df, score_threshold):
             diagonal_axes.append(ax)
             hist_params = dict(
                 x=[
-                    score_summary_df.query("(assigned_refseq_idx == @refseq_idx1)&(assigned == 1)")[refseq_name1], 
-                    score_summary_df.query("(assigned_refseq_idx != @refseq_idx1)&(assigned == 1)")[refseq_name1], 
+                    score_summary_df.query(f"(assigned_refseq_idx == {refseq_idx1})&(assigned == 1)")[refseq_name1], 
+                    score_summary_df.query(f"(assigned_refseq_idx != {refseq_idx1})&(assigned == 1)")[refseq_name1], 
                     score_summary_df.query("(assigned == 0)")[refseq_name1]
                 ], 
                 color=[focused_color1, focused_color2, not_assigned_color], 
@@ -1511,8 +1814,8 @@ def draw_alignment_score_scatter(score_summary_df, score_threshold):
                 linestyle="--", 
                 linewidth=1
             )
-            score_summary_df.query("(assigned_refseq_idx == @refseq_idx2)&(assigned == 1)").plot.scatter(color=focused_color1, **scatter_params)
-            score_summary_df.query("(assigned_refseq_idx != @refseq_idx2)&(assigned == 1)").plot.scatter(color=focused_color2, **scatter_params)
+            score_summary_df.query(f"(assigned_refseq_idx == {refseq_idx2})&(assigned == 1)").plot.scatter(color=focused_color1, **scatter_params)
+            score_summary_df.query(f"(assigned_refseq_idx != {refseq_idx2})&(assigned == 1)").plot.scatter(color=focused_color2, **scatter_params)
             score_summary_df.query("assigned == 0").plot.scatter(color=not_assigned_color, **scatter_params)
             ax.plot((score_threshold, score_threshold), (0, score_threshold), **plot_params)
             ax.plot((0, score_threshold), (score_threshold, score_threshold), **plot_params)
@@ -1568,6 +1871,20 @@ def draw_alignment_score_scatter(score_summary_df, score_threshold):
 
 def set_threshold_for_assignment(result_dict, my_aligner, param_dict):
     alignment_result = AlignmentResult(result_dict, my_aligner, param_dict)
+    print("normalizing scores...")
+    alignment_result.normalize_scores_and_apply_threshold()
+    print("normalization: DONE")
+
+    # score_summary_df = alignment_result.get_score_summary_df()
+    # print("drawing figures...")
+    # # draw graphical summary
+    # draw_distributions(score_summary_df, my_aligner.combined_fastq)
+    # draw_alignment_score_scatter(score_summary_df, alignment_result.score_threshold)
+
+    return alignment_result
+
+def set_threshold_for_assignment_linear(result_dict, my_aligner, param_dict):
+    alignment_result = AlignmentResultLinear(result_dict, my_aligner, param_dict)
     print("normalizing scores...")
     alignment_result.normalize_scores_and_apply_threshold()
     print("normalization: DONE")

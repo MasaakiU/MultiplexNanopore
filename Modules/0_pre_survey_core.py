@@ -68,6 +68,42 @@ def calc_distance(duplicated_refseq_seq, query_seq, param_dict):
     else:
         return len(query_seq) - result_rc.count_N_match() + result_rc.count_N_del()
 
+def pre_survery_linear(refseq_list, param_dict):
+    N = len(refseq_list)
+    total_N = N ** 2
+    i = 0
+    score_matrix = np.empty((N, N), dtype=int)
+    for r, my_refseq in enumerate(refseq_list):
+        for c, query in enumerate(refseq_list):
+            print(f"\rProcessing... {i+1}/{total_N}", end="")
+            i += 1
+            if r != c:
+                score_matrix[r, c] = calc_distance_linear(my_refseq.seq, query.seq, param_dict)
+            else:
+                score_matrix[r, c] = 0
+    print()
+    return score_matrix
+
+def calc_distance_linear(refseq_seq, query_seq, param_dict):
+    gap_open_penalty = param_dict["gap_open_penalty"]
+    gap_extend_penalty = param_dict["gap_extend_penalty"]
+    match_score = param_dict["match_score"]
+    mismatch_score = param_dict["mismatch_score"]
+    my_custom_matrix =parasail.matrix_create("ACGT", match_score, mismatch_score)
+    # alignment
+    result = parasail.sw_trace(query_seq, refseq_seq, gap_open_penalty, gap_extend_penalty, my_custom_matrix)
+    result = MyResult_Minimum(result)
+    # alignment for reverse complement
+    result_rc = parasail.sw_trace(str(Seq(query_seq).reverse_complement()), refseq_seq, gap_open_penalty, gap_extend_penalty, my_custom_matrix)
+    result_rc = MyResult_Minimum(result_rc)
+    # use alignment with higher match
+    gc.collect()
+    is_rc = np.argmax([result.score, result_rc.score])
+    if not is_rc:
+        return len(query_seq) - result.count_N_match() + result.count_N_del()
+    else:
+        return len(query_seq) - result_rc.count_N_match() + result_rc.count_N_del()
+
 def recommended_combination(score_matrix, score_threshold):
     print(score_matrix)
 
