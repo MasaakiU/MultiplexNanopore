@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/MasaakiU/MultiplexNanopore/raw/master/resources/logo/SAVEMONEY_logo_with_letter.png" height="250"/></p>
+<p align="center"><img src="https://github.com/MasaakiU/MultiplexNanopore/raw/master/resources/logo/SAVEMONEY_logo_with_letter.png"/></p>
 
 *Simple Algorithm for Very Efficient Multiplexing of Oxford Nanopore Experiments for You!*
 
