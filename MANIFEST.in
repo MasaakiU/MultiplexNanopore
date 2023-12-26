@@ -1,0 +1,5 @@
+
+include savemoney/modules/cython_functions/alignment_functions.pyx
+include savemoney/modules/NanoporeStats_PDF/NanoporeStats_pdf_0.2.0.csv
+include README.md
+include LICENSE

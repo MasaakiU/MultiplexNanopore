@@ -416,6 +416,8 @@ class IntermediateResults(mc.MyTextFormat):
         return result_dict
 
 def save_intermediate_results(result_dict, my_aligner, intermediate_results_save_path):
+    if not intermediate_results_save_path.parent.exists():
+        intermediate_results_save_path = Path.home() / intermediate_results_save_path.name
     ir = IntermediateResults(result_dict=result_dict, my_aligner=my_aligner)
     ir.path = intermediate_results_save_path
     ir.save(intermediate_results_save_path)

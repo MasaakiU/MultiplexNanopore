@@ -45,7 +45,6 @@ def pre_survery(refseq_list, param_dict):
                 score_matrix[r, c] = calc_distance(duplicated_refseq_seq, query.seq, param_dict)
             else:
                 score_matrix[r, c] = 0
-    print()
     return score_matrix
 
 def calc_distance(duplicated_refseq_seq, query_seq, param_dict):
