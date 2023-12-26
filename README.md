@@ -80,22 +80,22 @@ All of the plasmid map files with `*.dna` and `.fasta` extension (and in additio
 ```python
 # pre-survey
 kwargs = {
-    'distance_threshold':   5, 	# main parameter to be changed 
-    'number_of_groups':     1, 	# main parameter to be changed 
-	  'gap_open_penalty':     3, 	# alignment parameter
-    'gap_extend_penalty':   1, 	# alignment parameter
-    'match_score':          1, 	# alignment parameter
-    'mismatch_score':       -2, # alignment parameter
+    'distance_threshold':   5,  # main parameter to be changed
+    'number_of_groups':     1,  # main parameter to be changed
+    'gap_open_penalty':     3,  # alignment parameter
+    'gap_extend_penalty':   1,  # alignment parameter
+    'match_score':          1,  # alignment parameter
+    'mismatch_score':      -2,  # alignment parameter
 }
 
 # post-analysis
 kwargs = {
-    'score_threshold': 			0.3, 	# main parameter to be changed 
-	  'gap_open_penalty': 		3, 		# alignment parameter
-    'gap_extend_penalty': 	1, 		# alignment parameter
-    'match_score': 					1, 		# alignment parameter
-    'mismatch_score': 			-2, 	# alignment parameter
-    'error_rate': 					0.0001, 		# prior probability for Bayesian analysis
+    'score_threshold':    0.3,   # main parameter to be changed 
+    'gap_open_penalty':     3,   # alignment parameter
+    'gap_extend_penalty':   1,   # alignment parameter
+    'match_score':          1,   # alignment parameter
+    'mismatch_score':      -2,   # alignment parameter
+    'error_rate':      0.0001,   # prior probability for Bayesian analysis
     'del_mut_rate': 				0.0001 / 4, # prior probability for Bayesian analysis # e.g. "A -> T, C, G, del"
     'ins_rate': 						0.0001, 		# prior probability for Bayesian analysis
 }
