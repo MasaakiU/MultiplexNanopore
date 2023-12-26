@@ -96,8 +96,8 @@ kwargs = {
     'match_score':          1,   # alignment parameter
     'mismatch_score':      -2,   # alignment parameter
     'error_rate':      0.0001,   # prior probability for Bayesian analysis
-    'del_mut_rate': 				0.0001 / 4, # prior probability for Bayesian analysis # e.g. "A -> T, C, G, del"
-    'ins_rate': 						0.0001, 		# prior probability for Bayesian analysis
+    'del_mut_rate':  0.0001/4,   # prior probability for Bayesian analysis # e.g. "A -> T, C, G, del"
+    'ins_rate':        0.0001,   # prior probability for Bayesian analysis
 }
 ```
 
