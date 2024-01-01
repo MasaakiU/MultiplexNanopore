@@ -9,7 +9,7 @@ from ..modules import msa
 def show_consensus(consensus_alignment_path: str, **param_dict: dict):
     my_msa = msa.MyMSA()
     my_msa.load_consensus_alignment(consensus_alignment_path)
-    my_msa.print_alignment(param_dict)
+    my_msa.print_alignment(**param_dict)
 
 
 if __name__ == "__main__":

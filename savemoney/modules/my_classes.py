@@ -344,16 +344,45 @@ class AlignmentBase():
                 r_idx += 1
                 q_idx += 1
             elif c in "I":
-                ref += " "
+                ref += "-"
                 query += query_seq[q_idx]
                 q_idx += 1
             elif c in "D":
                 ref += ref_seq[r_idx]
+                query += "-"
+                r_idx += 1
+            elif c in "S":
+                ref += ref_seq[r_idx]
+                query += "S"
+                r_idx += 1
+                q_idx += 1
+            elif c in "H":
+                ref += ref_seq[r_idx]
                 query += " "
                 r_idx += 1
+            else:
+                raise Exception(f"unknown cigar {c}")
         print(ref)
         print(query)
         print(my_cigar)
+    @staticmethod
+    def assert_alignment(ref_seq, query_seq, my_cigar):
+        r_idx = 0
+        q_idx = 0
+        for i, c in enumerate(my_cigar):
+            if c in "=XS":
+                if c == "=":
+                    assert ref_seq[r_idx] == query_seq[q_idx]
+                elif c == "X":
+                    assert ref_seq[r_idx] != query_seq[q_idx]
+                r_idx += 1
+                q_idx += 1
+            elif c in "IE":
+                q_idx += 1
+            elif c in "DH":
+                r_idx += 1
+            else:
+                raise Exception(f"unknown cigar {c}")
 
 class MyCigarBase():
     @staticmethod
@@ -363,7 +392,9 @@ class MyCigarBase():
     def generate_cigar_iter(my_cigar):
         return re.findall(r"((.)\2*)", my_cigar)
 
-
+#####################
+# GENERAL FUNCTIONS #
+#####################
 def assert_parent_directory(dir_path: Path):
     if not dir_path.parent.exists():
         raise FileNotFoundError(f"No such file or directory: {dir_path}")

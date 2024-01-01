@@ -1218,8 +1218,9 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "stdexcept"
 #include "typeinfo"
 #include <vector>
-#include "pythread.h"
 #include <string.h>
+#include <string>
+#include "pythread.h"
 #include <stdlib.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -1633,12 +1634,12 @@ typedef struct {
 
 /* #### Code section: numeric_typedefs ### */
 
-/* "savemoney/modules/cython_functions/alignment_functions.pyx":44
- * 
+/* "savemoney/modules/cython_functions/alignment_functions.pyx":43
+ * # cythonize -3 -a -i alignment_functions.pyx
  * from libcpp.vector cimport vector #cppvector
- * ctypedef long long LL             # <<<<<<<<<<<<<<
+ * ctypedef long long LL   # unsigned             # <<<<<<<<<<<<<<
  * ctypedef vector[LL] vec
- * cpdef k_mer_offset_analysis_(
+ * cpdef k_mer_offset_analysis_2(
  */
 typedef PY_LONG_LONG __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL;
 /* #### Code section: complex_type_declarations ### */
@@ -1650,11 +1651,11 @@ struct __pyx_MemviewEnum_obj;
 struct __pyx_memoryview_obj;
 struct __pyx_memoryviewslice_obj;
 
-/* "savemoney/modules/cython_functions/alignment_functions.pyx":45
+/* "savemoney/modules/cython_functions/alignment_functions.pyx":44
  * from libcpp.vector cimport vector #cppvector
- * ctypedef long long LL
+ * ctypedef long long LL   # unsigned
  * ctypedef vector[LL] vec             # <<<<<<<<<<<<<<
- * cpdef k_mer_offset_analysis_(
+ * cpdef k_mer_offset_analysis_2(
  *         LL[:] ref_seq_v_repeated,
  */
 typedef std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL>  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec;
@@ -2372,6 +2373,14 @@ static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name);
 static CYTHON_INLINE int __Pyx_HasAttr(PyObject *, PyObject *);
 #endif
 
+/* MoveIfSupported.proto */
+#if CYTHON_USE_CPP_STD_MOVE
+  #include <utility>
+  #define __PYX_STD_MOVE_IF_SUPPORTED(x) std::move(x)
+#else
+  #define __PYX_STD_MOVE_IF_SUPPORTED(x) x
+#endif
+
 /* PyObject_GenericGetAttrNoDict.proto */
 #if CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP && PY_VERSION_HEX < 0x03070000
 static CYTHON_INLINE PyObject* __Pyx_PyObject_GenericGetAttrNoDict(PyObject* obj, PyObject* attr_name);
@@ -2732,6 +2741,9 @@ static CYTHON_INLINE PY_LONG_LONG __Pyx_PyInt_As_PY_LONG_LONG(PyObject *);
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_PY_LONG_LONG(PY_LONG_LONG value);
 
+/* CIntFromPy.proto */
+static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *);
+
 /* None.proto */
 #include <new>
 
@@ -2786,6 +2798,10 @@ static PyObject *__pyx_memoryviewslice__get_base(struct __pyx_memoryviewslice_ob
 
 /* Module declarations from "libcpp.vector" */
 
+/* Module declarations from "libc.string" */
+
+/* Module declarations from "libcpp.string" */
+
 /* Module declarations from "savemoney.modules.cython_functions.alignment_functions" */
 static PyObject *__pyx_collections_abc_Sequence = 0;
 static PyObject *generic = 0;
@@ -2795,8 +2811,11 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(__Pyx_memviewslice, __Pyx_memviewslice, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, int __pyx_skip_dispatch); /*proto*/
+static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(__Pyx_memviewslice, __Pyx_memviewslice, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, int __pyx_skip_dispatch); /*proto*/
+static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_my_special_dp_cython(std::string, std::string, std::string, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL, int __pyx_skip_dispatch); /*proto*/
+static std::string __pyx_convert_string_from_py_std__in_string(PyObject *); /*proto*/
 static PyObject *__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL>  const &); /*proto*/
+static PyObject *__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec>  const &); /*proto*/
 static int __pyx_array_allocate_buffer(struct __pyx_array_obj *); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -2841,12 +2860,12 @@ int __pyx_module_is_main_savemoney__modules__cython_functions__alignment_functio
 /* Implementation of "savemoney.modules.cython_functions.alignment_functions" */
 /* #### Code section: global_var ### */
 static PyObject *__pyx_builtin_range;
+static PyObject *__pyx_builtin_AssertionError;
 static PyObject *__pyx_builtin_MemoryError;
 static PyObject *__pyx_builtin___import__;
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_enumerate;
 static PyObject *__pyx_builtin_TypeError;
-static PyObject *__pyx_builtin_AssertionError;
 static PyObject *__pyx_builtin_Ellipsis;
 static PyObject *__pyx_builtin_id;
 static PyObject *__pyx_builtin_IndexError;
@@ -2860,7 +2879,7 @@ static const char __pyx_k__6[] = "'";
 static const char __pyx_k__7[] = ")";
 static const char __pyx_k_gc[] = "gc";
 static const char __pyx_k_id[] = "id";
-static const char __pyx_k__22[] = "?";
+static const char __pyx_k__24[] = "?";
 static const char __pyx_k_abc[] = "abc";
 static const char __pyx_k_and[] = " and ";
 static const char __pyx_k_got[] = " (got ";
@@ -2902,6 +2921,7 @@ static const char __pyx_k_update[] = "update";
 static const char __pyx_k_disable[] = "disable";
 static const char __pyx_k_fortran[] = "fortran";
 static const char __pyx_k_memview[] = "memview";
+static const char __pyx_k_ref_seq[] = "ref_seq";
 static const char __pyx_k_Ellipsis[] = "Ellipsis";
 static const char __pyx_k_Sequence[] = "Sequence";
 static const char __pyx_k_getstate[] = "__getstate__";
@@ -2921,6 +2941,9 @@ static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_MemoryError[] = "MemoryError";
 static const char __pyx_k_PickleError[] = "PickleError";
 static const char __pyx_k_collections[] = "collections";
+static const char __pyx_k_match_score[] = "match_score";
+static const char __pyx_k_query_seq_1[] = "query_seq_1";
+static const char __pyx_k_query_seq_2[] = "query_seq_2";
 static const char __pyx_k_query_seq_v[] = "query_seq_v";
 static const char __pyx_k_initializing[] = "_initializing";
 static const char __pyx_k_is_coroutine[] = "_is_coroutine";
@@ -2930,6 +2953,7 @@ static const char __pyx_k_version_info[] = "version_info";
 static const char __pyx_k_class_getitem[] = "__class_getitem__";
 static const char __pyx_k_reduce_cython[] = "__reduce_cython__";
 static const char __pyx_k_AssertionError[] = "AssertionError";
+static const char __pyx_k_mismatch_score[] = "mismatch_score";
 static const char __pyx_k_View_MemoryView[] = "View.MemoryView";
 static const char __pyx_k_allocate_buffer[] = "allocate_buffer";
 static const char __pyx_k_collections_abc[] = "collections.abc";
@@ -2937,20 +2961,23 @@ static const char __pyx_k_dtype_is_object[] = "dtype_is_object";
 static const char __pyx_k_len_query_seq_v[] = "len_query_seq_v";
 static const char __pyx_k_pyx_PickleError[] = "__pyx_PickleError";
 static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
+static const char __pyx_k_gap_open_penalty[] = "gap_open_penalty";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_asyncio_coroutines[] = "asyncio.coroutines";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
+static const char __pyx_k_gap_extend_penalty[] = "gap_extend_penalty";
 static const char __pyx_k_ref_seq_v_repeated[] = "ref_seq_v_repeated";
 static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
+static const char __pyx_k_my_special_dp_cython[] = "my_special_dp_cython";
 static const char __pyx_k_strided_and_indirect[] = "<strided and indirect>";
 static const char __pyx_k_Invalid_shape_in_axis[] = "Invalid shape in axis ";
 static const char __pyx_k_contiguous_and_direct[] = "<contiguous and direct>";
-static const char __pyx_k_k_mer_offset_analysis[] = "k_mer_offset_analysis_";
 static const char __pyx_k_Cannot_index_with_type[] = "Cannot index with type '";
 static const char __pyx_k_MemoryView_of_r_object[] = "<MemoryView of %r object>";
 static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x>";
 static const char __pyx_k_alignment_functions_pyx[] = "alignment_functions.pyx";
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
+static const char __pyx_k_k_mer_offset_analysis_2[] = "k_mer_offset_analysis_2";
 static const char __pyx_k_Dimension_d_is_not_direct[] = "Dimension %d is not direct";
 static const char __pyx_k_Index_out_of_bounds_axis_d[] = "Index out of bounds (axis %d)";
 static const char __pyx_k_Step_may_not_be_zero_axis_d[] = "Step may not be zero (axis %d)";
@@ -3015,7 +3042,8 @@ static void __pyx_memoryviewslice___pyx_pf_15View_dot_MemoryView_16_memoryviewsl
 static PyObject *__pyx_pf___pyx_memoryviewslice___reduce_cython__(CYTHON_UNUSED struct __pyx_memoryviewslice_obj *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf___pyx_memoryviewslice_2__setstate_cython__(CYTHON_UNUSED struct __pyx_memoryviewslice_obj *__pyx_v_self, CYTHON_UNUSED PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_15View_dot_MemoryView___pyx_unpickle_Enum(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v___pyx_type, long __pyx_v___pyx_checksum, PyObject *__pyx_v___pyx_state); /* proto */
-static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v); /* proto */
+static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v); /* proto */
+static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_2my_special_dp_cython(CYTHON_UNUSED PyObject *__pyx_self, std::string __pyx_v_query_seq_1, std::string __pyx_v_query_seq_2, std::string __pyx_v_ref_seq, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_open_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_extend_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_match_score, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_mismatch_score); /* proto */
 static PyObject *__pyx_tp_new_array(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_memoryview(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -3046,6 +3074,10 @@ typedef struct {
   #endif
   #ifdef __Pyx_Coroutine_USED
   PyTypeObject *__pyx_CoroutineType;
+  #endif
+  #if CYTHON_USE_MODULE_STATE
+  #endif
+  #if CYTHON_USE_MODULE_STATE
   #endif
   #if CYTHON_USE_MODULE_STATE
   #endif
@@ -3092,7 +3124,7 @@ typedef struct {
   PyObject *__pyx_n_s_ValueError;
   PyObject *__pyx_n_s_View_MemoryView;
   PyObject *__pyx_kp_u__2;
-  PyObject *__pyx_n_s__22;
+  PyObject *__pyx_n_s__24;
   PyObject *__pyx_n_s__3;
   PyObject *__pyx_kp_u__6;
   PyObject *__pyx_kp_u__7;
@@ -3123,6 +3155,8 @@ typedef struct {
   PyObject *__pyx_n_s_format;
   PyObject *__pyx_n_s_fortran;
   PyObject *__pyx_n_u_fortran;
+  PyObject *__pyx_n_s_gap_extend_penalty;
+  PyObject *__pyx_n_s_gap_open_penalty;
   PyObject *__pyx_kp_u_gc;
   PyObject *__pyx_n_s_getstate;
   PyObject *__pyx_kp_u_got;
@@ -3135,11 +3169,14 @@ typedef struct {
   PyObject *__pyx_kp_u_isenabled;
   PyObject *__pyx_n_s_itemsize;
   PyObject *__pyx_kp_s_itemsize_0_for_cython_array;
-  PyObject *__pyx_n_s_k_mer_offset_analysis;
+  PyObject *__pyx_n_s_k_mer_offset_analysis_2;
   PyObject *__pyx_n_s_len_query_seq_v;
   PyObject *__pyx_n_s_main;
+  PyObject *__pyx_n_s_match_score;
   PyObject *__pyx_n_s_memview;
+  PyObject *__pyx_n_s_mismatch_score;
   PyObject *__pyx_n_s_mode;
+  PyObject *__pyx_n_s_my_special_dp_cython;
   PyObject *__pyx_n_s_name;
   PyObject *__pyx_n_s_name_2;
   PyObject *__pyx_n_s_ndim;
@@ -3155,11 +3192,14 @@ typedef struct {
   PyObject *__pyx_n_s_pyx_type;
   PyObject *__pyx_n_s_pyx_unpickle_Enum;
   PyObject *__pyx_n_s_pyx_vtable;
+  PyObject *__pyx_n_s_query_seq_1;
+  PyObject *__pyx_n_s_query_seq_2;
   PyObject *__pyx_n_s_query_seq_v;
   PyObject *__pyx_n_s_range;
   PyObject *__pyx_n_s_reduce;
   PyObject *__pyx_n_s_reduce_cython;
   PyObject *__pyx_n_s_reduce_ex;
+  PyObject *__pyx_n_s_ref_seq;
   PyObject *__pyx_n_s_ref_seq_v_repeated;
   PyObject *__pyx_n_s_register;
   PyObject *__pyx_n_s_savemoney_modules_cython_functio;
@@ -3204,8 +3244,10 @@ typedef struct {
   PyObject *__pyx_tuple__17;
   PyObject *__pyx_tuple__18;
   PyObject *__pyx_tuple__20;
+  PyObject *__pyx_tuple__22;
   PyObject *__pyx_codeobj__19;
   PyObject *__pyx_codeobj__21;
+  PyObject *__pyx_codeobj__23;
 } __pyx_mstate;
 
 #if CYTHON_USE_MODULE_STATE
@@ -3289,7 +3331,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_ValueError);
   Py_CLEAR(clear_module_state->__pyx_n_s_View_MemoryView);
   Py_CLEAR(clear_module_state->__pyx_kp_u__2);
-  Py_CLEAR(clear_module_state->__pyx_n_s__22);
+  Py_CLEAR(clear_module_state->__pyx_n_s__24);
   Py_CLEAR(clear_module_state->__pyx_n_s__3);
   Py_CLEAR(clear_module_state->__pyx_kp_u__6);
   Py_CLEAR(clear_module_state->__pyx_kp_u__7);
@@ -3320,6 +3362,8 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_format);
   Py_CLEAR(clear_module_state->__pyx_n_s_fortran);
   Py_CLEAR(clear_module_state->__pyx_n_u_fortran);
+  Py_CLEAR(clear_module_state->__pyx_n_s_gap_extend_penalty);
+  Py_CLEAR(clear_module_state->__pyx_n_s_gap_open_penalty);
   Py_CLEAR(clear_module_state->__pyx_kp_u_gc);
   Py_CLEAR(clear_module_state->__pyx_n_s_getstate);
   Py_CLEAR(clear_module_state->__pyx_kp_u_got);
@@ -3332,11 +3376,14 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_kp_u_isenabled);
   Py_CLEAR(clear_module_state->__pyx_n_s_itemsize);
   Py_CLEAR(clear_module_state->__pyx_kp_s_itemsize_0_for_cython_array);
-  Py_CLEAR(clear_module_state->__pyx_n_s_k_mer_offset_analysis);
+  Py_CLEAR(clear_module_state->__pyx_n_s_k_mer_offset_analysis_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_len_query_seq_v);
   Py_CLEAR(clear_module_state->__pyx_n_s_main);
+  Py_CLEAR(clear_module_state->__pyx_n_s_match_score);
   Py_CLEAR(clear_module_state->__pyx_n_s_memview);
+  Py_CLEAR(clear_module_state->__pyx_n_s_mismatch_score);
   Py_CLEAR(clear_module_state->__pyx_n_s_mode);
+  Py_CLEAR(clear_module_state->__pyx_n_s_my_special_dp_cython);
   Py_CLEAR(clear_module_state->__pyx_n_s_name);
   Py_CLEAR(clear_module_state->__pyx_n_s_name_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_ndim);
@@ -3352,11 +3399,14 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_pyx_type);
   Py_CLEAR(clear_module_state->__pyx_n_s_pyx_unpickle_Enum);
   Py_CLEAR(clear_module_state->__pyx_n_s_pyx_vtable);
+  Py_CLEAR(clear_module_state->__pyx_n_s_query_seq_1);
+  Py_CLEAR(clear_module_state->__pyx_n_s_query_seq_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_query_seq_v);
   Py_CLEAR(clear_module_state->__pyx_n_s_range);
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce);
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce_cython);
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce_ex);
+  Py_CLEAR(clear_module_state->__pyx_n_s_ref_seq);
   Py_CLEAR(clear_module_state->__pyx_n_s_ref_seq_v_repeated);
   Py_CLEAR(clear_module_state->__pyx_n_s_register);
   Py_CLEAR(clear_module_state->__pyx_n_s_savemoney_modules_cython_functio);
@@ -3401,8 +3451,10 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_tuple__17);
   Py_CLEAR(clear_module_state->__pyx_tuple__18);
   Py_CLEAR(clear_module_state->__pyx_tuple__20);
+  Py_CLEAR(clear_module_state->__pyx_tuple__22);
   Py_CLEAR(clear_module_state->__pyx_codeobj__19);
   Py_CLEAR(clear_module_state->__pyx_codeobj__21);
+  Py_CLEAR(clear_module_state->__pyx_codeobj__23);
   return 0;
 }
 #endif
@@ -3464,7 +3516,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_ValueError);
   Py_VISIT(traverse_module_state->__pyx_n_s_View_MemoryView);
   Py_VISIT(traverse_module_state->__pyx_kp_u__2);
-  Py_VISIT(traverse_module_state->__pyx_n_s__22);
+  Py_VISIT(traverse_module_state->__pyx_n_s__24);
   Py_VISIT(traverse_module_state->__pyx_n_s__3);
   Py_VISIT(traverse_module_state->__pyx_kp_u__6);
   Py_VISIT(traverse_module_state->__pyx_kp_u__7);
@@ -3495,6 +3547,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_format);
   Py_VISIT(traverse_module_state->__pyx_n_s_fortran);
   Py_VISIT(traverse_module_state->__pyx_n_u_fortran);
+  Py_VISIT(traverse_module_state->__pyx_n_s_gap_extend_penalty);
+  Py_VISIT(traverse_module_state->__pyx_n_s_gap_open_penalty);
   Py_VISIT(traverse_module_state->__pyx_kp_u_gc);
   Py_VISIT(traverse_module_state->__pyx_n_s_getstate);
   Py_VISIT(traverse_module_state->__pyx_kp_u_got);
@@ -3507,11 +3561,14 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_kp_u_isenabled);
   Py_VISIT(traverse_module_state->__pyx_n_s_itemsize);
   Py_VISIT(traverse_module_state->__pyx_kp_s_itemsize_0_for_cython_array);
-  Py_VISIT(traverse_module_state->__pyx_n_s_k_mer_offset_analysis);
+  Py_VISIT(traverse_module_state->__pyx_n_s_k_mer_offset_analysis_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_len_query_seq_v);
   Py_VISIT(traverse_module_state->__pyx_n_s_main);
+  Py_VISIT(traverse_module_state->__pyx_n_s_match_score);
   Py_VISIT(traverse_module_state->__pyx_n_s_memview);
+  Py_VISIT(traverse_module_state->__pyx_n_s_mismatch_score);
   Py_VISIT(traverse_module_state->__pyx_n_s_mode);
+  Py_VISIT(traverse_module_state->__pyx_n_s_my_special_dp_cython);
   Py_VISIT(traverse_module_state->__pyx_n_s_name);
   Py_VISIT(traverse_module_state->__pyx_n_s_name_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_ndim);
@@ -3527,11 +3584,14 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_pyx_type);
   Py_VISIT(traverse_module_state->__pyx_n_s_pyx_unpickle_Enum);
   Py_VISIT(traverse_module_state->__pyx_n_s_pyx_vtable);
+  Py_VISIT(traverse_module_state->__pyx_n_s_query_seq_1);
+  Py_VISIT(traverse_module_state->__pyx_n_s_query_seq_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_query_seq_v);
   Py_VISIT(traverse_module_state->__pyx_n_s_range);
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce);
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce_cython);
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce_ex);
+  Py_VISIT(traverse_module_state->__pyx_n_s_ref_seq);
   Py_VISIT(traverse_module_state->__pyx_n_s_ref_seq_v_repeated);
   Py_VISIT(traverse_module_state->__pyx_n_s_register);
   Py_VISIT(traverse_module_state->__pyx_n_s_savemoney_modules_cython_functio);
@@ -3576,8 +3636,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_tuple__17);
   Py_VISIT(traverse_module_state->__pyx_tuple__18);
   Py_VISIT(traverse_module_state->__pyx_tuple__20);
+  Py_VISIT(traverse_module_state->__pyx_tuple__22);
   Py_VISIT(traverse_module_state->__pyx_codeobj__19);
   Py_VISIT(traverse_module_state->__pyx_codeobj__21);
+  Py_VISIT(traverse_module_state->__pyx_codeobj__23);
   return 0;
 }
 #endif
@@ -3605,6 +3667,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #endif
 #ifdef __Pyx_Coroutine_USED
 #define __pyx_CoroutineType __pyx_mstate_global->__pyx_CoroutineType
+#endif
+#if CYTHON_USE_MODULE_STATE
+#endif
+#if CYTHON_USE_MODULE_STATE
 #endif
 #if CYTHON_USE_MODULE_STATE
 #endif
@@ -3651,7 +3717,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_ValueError __pyx_mstate_global->__pyx_n_s_ValueError
 #define __pyx_n_s_View_MemoryView __pyx_mstate_global->__pyx_n_s_View_MemoryView
 #define __pyx_kp_u__2 __pyx_mstate_global->__pyx_kp_u__2
-#define __pyx_n_s__22 __pyx_mstate_global->__pyx_n_s__22
+#define __pyx_n_s__24 __pyx_mstate_global->__pyx_n_s__24
 #define __pyx_n_s__3 __pyx_mstate_global->__pyx_n_s__3
 #define __pyx_kp_u__6 __pyx_mstate_global->__pyx_kp_u__6
 #define __pyx_kp_u__7 __pyx_mstate_global->__pyx_kp_u__7
@@ -3682,6 +3748,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_format __pyx_mstate_global->__pyx_n_s_format
 #define __pyx_n_s_fortran __pyx_mstate_global->__pyx_n_s_fortran
 #define __pyx_n_u_fortran __pyx_mstate_global->__pyx_n_u_fortran
+#define __pyx_n_s_gap_extend_penalty __pyx_mstate_global->__pyx_n_s_gap_extend_penalty
+#define __pyx_n_s_gap_open_penalty __pyx_mstate_global->__pyx_n_s_gap_open_penalty
 #define __pyx_kp_u_gc __pyx_mstate_global->__pyx_kp_u_gc
 #define __pyx_n_s_getstate __pyx_mstate_global->__pyx_n_s_getstate
 #define __pyx_kp_u_got __pyx_mstate_global->__pyx_kp_u_got
@@ -3694,11 +3762,14 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_kp_u_isenabled __pyx_mstate_global->__pyx_kp_u_isenabled
 #define __pyx_n_s_itemsize __pyx_mstate_global->__pyx_n_s_itemsize
 #define __pyx_kp_s_itemsize_0_for_cython_array __pyx_mstate_global->__pyx_kp_s_itemsize_0_for_cython_array
-#define __pyx_n_s_k_mer_offset_analysis __pyx_mstate_global->__pyx_n_s_k_mer_offset_analysis
+#define __pyx_n_s_k_mer_offset_analysis_2 __pyx_mstate_global->__pyx_n_s_k_mer_offset_analysis_2
 #define __pyx_n_s_len_query_seq_v __pyx_mstate_global->__pyx_n_s_len_query_seq_v
 #define __pyx_n_s_main __pyx_mstate_global->__pyx_n_s_main
+#define __pyx_n_s_match_score __pyx_mstate_global->__pyx_n_s_match_score
 #define __pyx_n_s_memview __pyx_mstate_global->__pyx_n_s_memview
+#define __pyx_n_s_mismatch_score __pyx_mstate_global->__pyx_n_s_mismatch_score
 #define __pyx_n_s_mode __pyx_mstate_global->__pyx_n_s_mode
+#define __pyx_n_s_my_special_dp_cython __pyx_mstate_global->__pyx_n_s_my_special_dp_cython
 #define __pyx_n_s_name __pyx_mstate_global->__pyx_n_s_name
 #define __pyx_n_s_name_2 __pyx_mstate_global->__pyx_n_s_name_2
 #define __pyx_n_s_ndim __pyx_mstate_global->__pyx_n_s_ndim
@@ -3714,11 +3785,14 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_pyx_type __pyx_mstate_global->__pyx_n_s_pyx_type
 #define __pyx_n_s_pyx_unpickle_Enum __pyx_mstate_global->__pyx_n_s_pyx_unpickle_Enum
 #define __pyx_n_s_pyx_vtable __pyx_mstate_global->__pyx_n_s_pyx_vtable
+#define __pyx_n_s_query_seq_1 __pyx_mstate_global->__pyx_n_s_query_seq_1
+#define __pyx_n_s_query_seq_2 __pyx_mstate_global->__pyx_n_s_query_seq_2
 #define __pyx_n_s_query_seq_v __pyx_mstate_global->__pyx_n_s_query_seq_v
 #define __pyx_n_s_range __pyx_mstate_global->__pyx_n_s_range
 #define __pyx_n_s_reduce __pyx_mstate_global->__pyx_n_s_reduce
 #define __pyx_n_s_reduce_cython __pyx_mstate_global->__pyx_n_s_reduce_cython
 #define __pyx_n_s_reduce_ex __pyx_mstate_global->__pyx_n_s_reduce_ex
+#define __pyx_n_s_ref_seq __pyx_mstate_global->__pyx_n_s_ref_seq
 #define __pyx_n_s_ref_seq_v_repeated __pyx_mstate_global->__pyx_n_s_ref_seq_v_repeated
 #define __pyx_n_s_register __pyx_mstate_global->__pyx_n_s_register
 #define __pyx_n_s_savemoney_modules_cython_functio __pyx_mstate_global->__pyx_n_s_savemoney_modules_cython_functio
@@ -3763,9 +3837,80 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_tuple__17 __pyx_mstate_global->__pyx_tuple__17
 #define __pyx_tuple__18 __pyx_mstate_global->__pyx_tuple__18
 #define __pyx_tuple__20 __pyx_mstate_global->__pyx_tuple__20
+#define __pyx_tuple__22 __pyx_mstate_global->__pyx_tuple__22
 #define __pyx_codeobj__19 __pyx_mstate_global->__pyx_codeobj__19
 #define __pyx_codeobj__21 __pyx_mstate_global->__pyx_codeobj__21
+#define __pyx_codeobj__23 __pyx_mstate_global->__pyx_codeobj__23
 /* #### Code section: module_code ### */
+
+/* "string.from_py":13
+ * 
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:             # <<<<<<<<<<<<<<
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ */
+
+static std::string __pyx_convert_string_from_py_std__in_string(PyObject *__pyx_v_o) {
+  Py_ssize_t __pyx_v_length;
+  char const *__pyx_v_data;
+  std::string __pyx_r;
+  char const *__pyx_t_1;
+  std::string __pyx_t_2;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+
+  /* "string.from_py":14
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:
+ *     cdef Py_ssize_t length = 0             # <<<<<<<<<<<<<<
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ *     return string(data, length)
+ */
+  __pyx_v_length = 0;
+
+  /* "string.from_py":15
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)             # <<<<<<<<<<<<<<
+ *     return string(data, length)
+ * 
+ */
+  __pyx_t_1 = __Pyx_PyObject_AsStringAndSize(__pyx_v_o, (&__pyx_v_length)); if (unlikely(__pyx_t_1 == ((char const *)NULL))) __PYX_ERR(1, 15, __pyx_L1_error)
+  __pyx_v_data = __pyx_t_1;
+
+  /* "string.from_py":16
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ *     return string(data, length)             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  try {
+    __pyx_t_2 = std::string(__pyx_v_data, __pyx_v_length);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(1, 16, __pyx_L1_error)
+  }
+  __pyx_r = __pyx_t_2;
+  goto __pyx_L0;
+
+  /* "string.from_py":13
+ * 
+ * @cname("__pyx_convert_string_from_py_std__in_string")
+ * cdef string __pyx_convert_string_from_py_std__in_string(object o) except *:             # <<<<<<<<<<<<<<
+ *     cdef Py_ssize_t length = 0
+ *     cdef const char* data = __Pyx_PyObject_AsStringAndSize(o, &length)
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("string.from_py.__pyx_convert_string_from_py_std__in_string", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_pretend_to_initialize(&__pyx_r);
+  __pyx_L0:;
+  return __pyx_r;
+}
 
 /* "vector.to_py":66
  * 
@@ -3907,6 +4052,147 @@ static PyObject *__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_AddTraceback("vector.to_py.__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_v_o);
+  __Pyx_XDECREF(__pyx_v_item);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec>  const &__pyx_v_v) {
+  Py_ssize_t __pyx_v_v_size_signed;
+  PyObject *__pyx_v_o = NULL;
+  Py_ssize_t __pyx_v_i;
+  PyObject *__pyx_v_item = 0;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  PyObject *__pyx_t_2 = NULL;
+  Py_ssize_t __pyx_t_3;
+  Py_ssize_t __pyx_t_4;
+  Py_ssize_t __pyx_t_5;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec", 1);
+
+  /* "vector.to_py":67
+ * @cname("__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec")
+ * cdef object __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(const vector[X]& v):
+ *     if v.size() > <size_t> PY_SSIZE_T_MAX:             # <<<<<<<<<<<<<<
+ *         raise MemoryError()
+ *     v_size_signed = <Py_ssize_t> v.size()
+ */
+  __pyx_t_1 = (__pyx_v_v.size() > ((size_t)PY_SSIZE_T_MAX));
+  if (unlikely(__pyx_t_1)) {
+
+    /* "vector.to_py":68
+ * cdef object __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(const vector[X]& v):
+ *     if v.size() > <size_t> PY_SSIZE_T_MAX:
+ *         raise MemoryError()             # <<<<<<<<<<<<<<
+ *     v_size_signed = <Py_ssize_t> v.size()
+ * 
+ */
+    PyErr_NoMemory(); __PYX_ERR(1, 68, __pyx_L1_error)
+
+    /* "vector.to_py":67
+ * @cname("__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec")
+ * cdef object __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(const vector[X]& v):
+ *     if v.size() > <size_t> PY_SSIZE_T_MAX:             # <<<<<<<<<<<<<<
+ *         raise MemoryError()
+ *     v_size_signed = <Py_ssize_t> v.size()
+ */
+  }
+
+  /* "vector.to_py":69
+ *     if v.size() > <size_t> PY_SSIZE_T_MAX:
+ *         raise MemoryError()
+ *     v_size_signed = <Py_ssize_t> v.size()             # <<<<<<<<<<<<<<
+ * 
+ *     o = PyList_New(v_size_signed)
+ */
+  __pyx_v_v_size_signed = ((Py_ssize_t)__pyx_v_v.size());
+
+  /* "vector.to_py":71
+ *     v_size_signed = <Py_ssize_t> v.size()
+ * 
+ *     o = PyList_New(v_size_signed)             # <<<<<<<<<<<<<<
+ * 
+ *     cdef Py_ssize_t i
+ */
+  __pyx_t_2 = PyList_New(__pyx_v_v_size_signed); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 71, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_v_o = ((PyObject*)__pyx_t_2);
+  __pyx_t_2 = 0;
+
+  /* "vector.to_py":76
+ *     cdef object item
+ * 
+ *     for i in range(v_size_signed):             # <<<<<<<<<<<<<<
+ *         item = v[i]
+ *         Py_INCREF(item)
+ */
+  __pyx_t_3 = __pyx_v_v_size_signed;
+  __pyx_t_4 = __pyx_t_3;
+  for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
+    __pyx_v_i = __pyx_t_5;
+
+    /* "vector.to_py":77
+ * 
+ *     for i in range(v_size_signed):
+ *         item = v[i]             # <<<<<<<<<<<<<<
+ *         Py_INCREF(item)
+ *         PyList_SET_ITEM(o, i, item)
+ */
+    __pyx_t_2 = __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL((__pyx_v_v[__pyx_v_i])); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 77, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_XDECREF_SET(__pyx_v_item, __pyx_t_2);
+    __pyx_t_2 = 0;
+
+    /* "vector.to_py":78
+ *     for i in range(v_size_signed):
+ *         item = v[i]
+ *         Py_INCREF(item)             # <<<<<<<<<<<<<<
+ *         PyList_SET_ITEM(o, i, item)
+ * 
+ */
+    Py_INCREF(__pyx_v_item);
+
+    /* "vector.to_py":79
+ *         item = v[i]
+ *         Py_INCREF(item)
+ *         PyList_SET_ITEM(o, i, item)             # <<<<<<<<<<<<<<
+ * 
+ *     return o
+ */
+    PyList_SET_ITEM(__pyx_v_o, __pyx_v_i, __pyx_v_item);
+  }
+
+  /* "vector.to_py":81
+ *         PyList_SET_ITEM(o, i, item)
+ * 
+ *     return o             # <<<<<<<<<<<<<<
+ * 
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_o);
+  __pyx_r = __pyx_v_o;
+  goto __pyx_L0;
+
+  /* "vector.to_py":66
+ * 
+ * @cname("__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec")
+ * cdef object __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(const vector[X]& v):             # <<<<<<<<<<<<<<
+ *     if v.size() > <size_t> PY_SSIZE_T_MAX:
+ *         raise MemoryError()
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("vector.to_py.__pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_o);
@@ -17542,22 +17828,22 @@ static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *__
   return __pyx_r;
 }
 
-/* "savemoney/modules/cython_functions/alignment_functions.pyx":46
- * ctypedef long long LL
+/* "savemoney/modules/cython_functions/alignment_functions.pyx":45
+ * ctypedef long long LL   # unsigned
  * ctypedef vector[LL] vec
- * cpdef k_mer_offset_analysis_(             # <<<<<<<<<<<<<<
+ * cpdef k_mer_offset_analysis_2(             # <<<<<<<<<<<<<<
  *         LL[:] ref_seq_v_repeated,
  *         LL[:] query_seq_v,
  */
 
-static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_(PyObject *__pyx_self, 
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(__Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(__Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v, CYTHON_UNUSED int __pyx_skip_dispatch) {
   __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_k;
   __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_i;
   __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_s;
@@ -17577,11 +17863,25 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("k_mer_offset_analysis_", 1);
+  __Pyx_RefNannySetupContext("k_mer_offset_analysis_2", 1);
 
-  /* "savemoney/modules/cython_functions/alignment_functions.pyx":56
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":55
  *     cdef LL s
  *     cdef vec result_array
+ *     result_array.reserve(N_ref)             # <<<<<<<<<<<<<<
+ *     s = 0
+ *     for k in range(N_ref):    # k
+ */
+  try {
+    __pyx_v_result_array.reserve(__pyx_v_N_ref);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 55, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":56
+ *     cdef vec result_array
+ *     result_array.reserve(N_ref)
  *     s = 0             # <<<<<<<<<<<<<<
  *     for k in range(N_ref):    # k
  *         for i in range(len_query_seq_v):
@@ -17589,7 +17889,7 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
   __pyx_v_s = 0;
 
   /* "savemoney/modules/cython_functions/alignment_functions.pyx":57
- *     cdef vec result_array
+ *     result_array.reserve(N_ref)
  *     s = 0
  *     for k in range(N_ref):    # k             # <<<<<<<<<<<<<<
  *         for i in range(len_query_seq_v):
@@ -17662,6 +17962,7 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
  *         result_array.push_back(s)
  *         s = 0             # <<<<<<<<<<<<<<
  *     return result_array
+ * 
  */
     __pyx_v_s = 0;
   }
@@ -17670,6 +17971,8 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
  *         result_array.push_back(s)
  *         s = 0
  *     return result_array             # <<<<<<<<<<<<<<
+ * 
+ * from libcpp.string cimport string
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_10 = __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(__pyx_v_result_array); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 63, __pyx_L1_error)
@@ -17678,10 +17981,10 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
   __pyx_t_10 = 0;
   goto __pyx_L0;
 
-  /* "savemoney/modules/cython_functions/alignment_functions.pyx":46
- * ctypedef long long LL
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":45
+ * ctypedef long long LL   # unsigned
  * ctypedef vector[LL] vec
- * cpdef k_mer_offset_analysis_(             # <<<<<<<<<<<<<<
+ * cpdef k_mer_offset_analysis_2(             # <<<<<<<<<<<<<<
  *         LL[:] ref_seq_v_repeated,
  *         LL[:] query_seq_v,
  */
@@ -17689,7 +17992,7 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_2", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -17698,15 +18001,15 @@ static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_func
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_(PyObject *__pyx_self, 
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_ = {"k_mer_offset_analysis_", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_(PyObject *__pyx_self, 
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2 = {"k_mer_offset_analysis_2", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -17727,7 +18030,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("k_mer_offset_analysis_ (wrapper)", 0);
+  __Pyx_RefNannySetupContext("k_mer_offset_analysis_2 (wrapper)", 0);
   #if !CYTHON_METH_FASTCALL
   #if CYTHON_ASSUME_SAFE_MACROS
   __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
@@ -17759,7 +18062,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 45, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -17767,9 +18070,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 45, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_", 1, 4, 4, 1); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_2", 1, 4, 4, 1); __PYX_ERR(0, 45, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
@@ -17777,9 +18080,9 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 45, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_", 1, 4, 4, 2); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_2", 1, 4, 4, 2); __PYX_ERR(0, 45, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
@@ -17787,14 +18090,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[3]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 46, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 45, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_", 1, 4, 4, 3); __PYX_ERR(0, 46, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_2", 1, 4, 4, 3); __PYX_ERR(0, 45, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "k_mer_offset_analysis_") < 0)) __PYX_ERR(0, 46, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "k_mer_offset_analysis_2") < 0)) __PYX_ERR(0, 45, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 4)) {
       goto __pyx_L5_argtuple_error;
@@ -17804,14 +18107,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
       values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
     }
-    __pyx_v_ref_seq_v_repeated = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_ref_seq_v_repeated.memview)) __PYX_ERR(0, 47, __pyx_L3_error)
-    __pyx_v_query_seq_v = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_query_seq_v.memview)) __PYX_ERR(0, 48, __pyx_L3_error)
-    __pyx_v_N_ref = __Pyx_PyInt_As_PY_LONG_LONG(values[2]); if (unlikely((__pyx_v_N_ref == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 49, __pyx_L3_error)
-    __pyx_v_len_query_seq_v = __Pyx_PyInt_As_PY_LONG_LONG(values[3]); if (unlikely((__pyx_v_len_query_seq_v == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 50, __pyx_L3_error)
+    __pyx_v_ref_seq_v_repeated = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_ref_seq_v_repeated.memview)) __PYX_ERR(0, 46, __pyx_L3_error)
+    __pyx_v_query_seq_v = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_query_seq_v.memview)) __PYX_ERR(0, 47, __pyx_L3_error)
+    __pyx_v_N_ref = __Pyx_PyInt_As_PY_LONG_LONG(values[2]); if (unlikely((__pyx_v_N_ref == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 48, __pyx_L3_error)
+    __pyx_v_len_query_seq_v = __Pyx_PyInt_As_PY_LONG_LONG(values[3]); if (unlikely((__pyx_v_len_query_seq_v == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 49, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 46, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("k_mer_offset_analysis_2", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 45, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -17823,11 +18126,11 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   __PYX_XCLEAR_MEMVIEW(&__pyx_v_ref_seq_v_repeated, 1);
   __PYX_XCLEAR_MEMVIEW(&__pyx_v_query_seq_v, 1);
-  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_2", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(__pyx_self, __pyx_v_ref_seq_v_repeated, __pyx_v_query_seq_v, __pyx_v_N_ref, __pyx_v_len_query_seq_v);
+  __pyx_r = __pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(__pyx_self, __pyx_v_ref_seq_v_repeated, __pyx_v_query_seq_v, __pyx_v_N_ref, __pyx_v_len_query_seq_v);
 
   /* function exit code */
   __PYX_XCLEAR_MEMVIEW(&__pyx_v_ref_seq_v_repeated, 1);
@@ -17842,18 +18145,18 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v) {
+static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_ref_seq_v_repeated, __Pyx_memviewslice __pyx_v_query_seq_v, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_N_ref, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_len_query_seq_v) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("k_mer_offset_analysis_", 1);
+  __Pyx_RefNannySetupContext("k_mer_offset_analysis_2", 1);
   __Pyx_XDECREF(__pyx_r);
-  if (unlikely(!__pyx_v_ref_seq_v_repeated.memview)) { __Pyx_RaiseUnboundLocalError("ref_seq_v_repeated"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  if (unlikely(!__pyx_v_query_seq_v.memview)) { __Pyx_RaiseUnboundLocalError("query_seq_v"); __PYX_ERR(0, 46, __pyx_L1_error) }
-  __pyx_t_1 = __pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_(__pyx_v_ref_seq_v_repeated, __pyx_v_query_seq_v, __pyx_v_N_ref, __pyx_v_len_query_seq_v, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 46, __pyx_L1_error)
+  if (unlikely(!__pyx_v_ref_seq_v_repeated.memview)) { __Pyx_RaiseUnboundLocalError("ref_seq_v_repeated"); __PYX_ERR(0, 45, __pyx_L1_error) }
+  if (unlikely(!__pyx_v_query_seq_v.memview)) { __Pyx_RaiseUnboundLocalError("query_seq_v"); __PYX_ERR(0, 45, __pyx_L1_error) }
+  __pyx_t_1 = __pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2(__pyx_v_ref_seq_v_repeated, __pyx_v_query_seq_v, __pyx_v_N_ref, __pyx_v_len_query_seq_v, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -17862,7 +18165,3961 @@ static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_fun
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.k_mer_offset_analysis_2", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "savemoney/modules/cython_functions/alignment_functions.pyx":66
+ * 
+ * from libcpp.string cimport string
+ * cpdef my_special_dp_cython(             # <<<<<<<<<<<<<<
+ *         string query_seq_1,
+ *         string query_seq_2,
+ */
+
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+); /*proto*/
+static PyObject *__pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_my_special_dp_cython(std::string __pyx_v_query_seq_1, std::string __pyx_v_query_seq_2, std::string __pyx_v_ref_seq, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_open_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_extend_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_match_score, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_mismatch_score, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  size_t __pyx_v_N_ref_seq;
+  size_t __pyx_v_N_query_seq_1;
+  size_t __pyx_v_N_query_seq_2;
+  std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec>  __pyx_v_dp;
+  std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec>  __pyx_v_trace;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec __pyx_v_dp_row;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec __pyx_v_trace_row;
+  size_t __pyx_v_i;
+  size_t __pyx_v_j;
+  char __pyx_v_r;
+  char __pyx_v_q;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_aligned_score;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_insertion_score;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_deletion_score;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_modifier;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec __pyx_v_traceback;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec __pyx_v_score_trace;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_t;
+  std::vector<__pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec>  __pyx_v_result;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  size_t __pyx_t_2;
+  size_t __pyx_t_3;
+  size_t __pyx_t_4;
+  size_t __pyx_t_5;
+  size_t __pyx_t_6;
+  size_t __pyx_t_7;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_t_8;
+  int __pyx_t_9;
+  PyObject *__pyx_t_10 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("my_special_dp_cython", 1);
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":78
+ *     cdef size_t N_query_seq_1
+ *     cdef size_t N_query_seq_2
+ *     N_ref_seq = ref_seq.size()             # <<<<<<<<<<<<<<
+ *     N_query_seq_1 = query_seq_1.size()
+ *     N_query_seq_2 = query_seq_2.size()
+ */
+  __pyx_v_N_ref_seq = __pyx_v_ref_seq.size();
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":79
+ *     cdef size_t N_query_seq_2
+ *     N_ref_seq = ref_seq.size()
+ *     N_query_seq_1 = query_seq_1.size()             # <<<<<<<<<<<<<<
+ *     N_query_seq_2 = query_seq_2.size()
+ *     assert N_ref_seq > N_query_seq_1 + N_query_seq_2
+ */
+  __pyx_v_N_query_seq_1 = __pyx_v_query_seq_1.size();
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":80
+ *     N_ref_seq = ref_seq.size()
+ *     N_query_seq_1 = query_seq_1.size()
+ *     N_query_seq_2 = query_seq_2.size()             # <<<<<<<<<<<<<<
+ *     assert N_ref_seq > N_query_seq_1 + N_query_seq_2
+ * 
+ */
+  __pyx_v_N_query_seq_2 = __pyx_v_query_seq_2.size();
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":81
+ *     N_query_seq_1 = query_seq_1.size()
+ *     N_query_seq_2 = query_seq_2.size()
+ *     assert N_ref_seq > N_query_seq_1 + N_query_seq_2             # <<<<<<<<<<<<<<
+ * 
+ *     ################
+ */
+  #ifndef CYTHON_WITHOUT_ASSERTIONS
+  if (unlikely(__pyx_assertions_enabled())) {
+    __pyx_t_1 = (__pyx_v_N_ref_seq > (__pyx_v_N_query_seq_1 + __pyx_v_N_query_seq_2));
+    if (unlikely(!__pyx_t_1)) {
+      __Pyx_Raise(__pyx_builtin_AssertionError, 0, 0, 0);
+      __PYX_ERR(0, 81, __pyx_L1_error)
+    }
+  }
+  #else
+  if ((1)); else __PYX_ERR(0, 81, __pyx_L1_error)
+  #endif
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":120
+ *     cdef LL deletion_score
+ *     cdef LL modifier
+ *     dp_row.reserve(N_ref_seq + 1)             # <<<<<<<<<<<<<<
+ *     dp_row.push_back(0)
+ *     dp.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ */
+  try {
+    __pyx_v_dp_row.reserve((__pyx_v_N_ref_seq + 1));
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 120, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":121
+ *     cdef LL modifier
+ *     dp_row.reserve(N_ref_seq + 1)
+ *     dp_row.push_back(0)             # <<<<<<<<<<<<<<
+ *     dp.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ *     trace_row.reserve(N_ref_seq + 1)
+ */
+  try {
+    __pyx_v_dp_row.push_back(0);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 121, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":122
+ *     dp_row.reserve(N_ref_seq + 1)
+ *     dp_row.push_back(0)
+ *     dp.reserve(N_query_seq_1 + N_query_seq_2 + 1)             # <<<<<<<<<<<<<<
+ *     trace_row.reserve(N_ref_seq + 1)
+ *     trace_row.push_back(42)     # origin
+ */
+  try {
+    __pyx_v_dp.reserve(((__pyx_v_N_query_seq_1 + __pyx_v_N_query_seq_2) + 1));
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 122, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":123
+ *     dp_row.push_back(0)
+ *     dp.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ *     trace_row.reserve(N_ref_seq + 1)             # <<<<<<<<<<<<<<
+ *     trace_row.push_back(42)     # origin
+ *     trace.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ */
+  try {
+    __pyx_v_trace_row.reserve((__pyx_v_N_ref_seq + 1));
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 123, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":124
+ *     dp.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ *     trace_row.reserve(N_ref_seq + 1)
+ *     trace_row.push_back(42)     # origin             # <<<<<<<<<<<<<<
+ *     trace.reserve(N_query_seq_1 + N_query_seq_2 + 1)
+ *     #####################
+ */
+  try {
+    __pyx_v_trace_row.push_back(42);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 124, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":125
+ *     trace_row.reserve(N_ref_seq + 1)
+ *     trace_row.push_back(42)     # origin
+ *     trace.reserve(N_query_seq_1 + N_query_seq_2 + 1)             # <<<<<<<<<<<<<<
+ *     #####################
+ *     # DP of query_seq_1 #
+ */
+  try {
+    __pyx_v_trace.reserve(((__pyx_v_N_query_seq_1 + __pyx_v_N_query_seq_2) + 1));
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 125, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":129
+ *     # DP of query_seq_1 #
+ *     #####################
+ *     if N_query_seq_1 > 0:             # <<<<<<<<<<<<<<
+ *         ###############
+ *         # query_seq_1 #
+ */
+  __pyx_t_1 = (__pyx_v_N_query_seq_1 > 0);
+  if (__pyx_t_1) {
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":134
+ *         ###############
+ *         #
+ *         dp_row.push_back(-gap_open_penalty)             # <<<<<<<<<<<<<<
+ *         trace_row.push_back(68)
+ *         for j in range(1, N_ref_seq):
+ */
+    try {
+      __pyx_v_dp_row.push_back((-__pyx_v_gap_open_penalty));
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 134, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":135
+ *         #
+ *         dp_row.push_back(-gap_open_penalty)
+ *         trace_row.push_back(68)             # <<<<<<<<<<<<<<
+ *         for j in range(1, N_ref_seq):
+ *             dp_row.push_back(dp_row[j] - gap_extend_penalty)
+ */
+    try {
+      __pyx_v_trace_row.push_back(68);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 135, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":136
+ *         dp_row.push_back(-gap_open_penalty)
+ *         trace_row.push_back(68)
+ *         for j in range(1, N_ref_seq):             # <<<<<<<<<<<<<<
+ *             dp_row.push_back(dp_row[j] - gap_extend_penalty)
+ *             trace_row.push_back(68) #  deletion
+ */
+    __pyx_t_2 = __pyx_v_N_ref_seq;
+    __pyx_t_3 = __pyx_t_2;
+    for (__pyx_t_4 = 1; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+      __pyx_v_j = __pyx_t_4;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":137
+ *         trace_row.push_back(68)
+ *         for j in range(1, N_ref_seq):
+ *             dp_row.push_back(dp_row[j] - gap_extend_penalty)             # <<<<<<<<<<<<<<
+ *             trace_row.push_back(68) #  deletion
+ *         dp.push_back(dp_row)
+ */
+      try {
+        __pyx_v_dp_row.push_back(((__pyx_v_dp_row[__pyx_v_j]) - __pyx_v_gap_extend_penalty));
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 137, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":138
+ *         for j in range(1, N_ref_seq):
+ *             dp_row.push_back(dp_row[j] - gap_extend_penalty)
+ *             trace_row.push_back(68) #  deletion             # <<<<<<<<<<<<<<
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)
+ */
+      try {
+        __pyx_v_trace_row.push_back(68);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 138, __pyx_L1_error)
+      }
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":139
+ *             dp_row.push_back(dp_row[j] - gap_extend_penalty)
+ *             trace_row.push_back(68) #  deletion
+ *         dp.push_back(dp_row)             # <<<<<<<<<<<<<<
+ *         trace.push_back(trace_row)
+ *         #
+ */
+    try {
+      __pyx_v_dp.push_back(__pyx_v_dp_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 139, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":140
+ *             trace_row.push_back(68) #  deletion
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)             # <<<<<<<<<<<<<<
+ *         #
+ *         for i in range(N_query_seq_1 - 1):
+ */
+    try {
+      __pyx_v_trace.push_back(__pyx_v_trace_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 140, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":142
+ *         trace.push_back(trace_row)
+ *         #
+ *         for i in range(N_query_seq_1 - 1):             # <<<<<<<<<<<<<<
+ *             q = query_seq_1[i]
+ *             #
+ */
+    __pyx_t_2 = (__pyx_v_N_query_seq_1 - 1);
+    __pyx_t_3 = __pyx_t_2;
+    for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+      __pyx_v_i = __pyx_t_4;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":143
+ *         #
+ *         for i in range(N_query_seq_1 - 1):
+ *             q = query_seq_1[i]             # <<<<<<<<<<<<<<
+ *             #
+ *             dp_row.clear()
+ */
+      __pyx_v_q = (__pyx_v_query_seq_1[__pyx_v_i]);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":145
+ *             q = query_seq_1[i]
+ *             #
+ *             dp_row.clear()             # <<<<<<<<<<<<<<
+ *             if i == 0:
+ *                 dp_row.push_back(dp[i][0] - gap_open_penalty)
+ */
+      __pyx_v_dp_row.clear();
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":146
+ *             #
+ *             dp_row.clear()
+ *             if i == 0:             # <<<<<<<<<<<<<<
+ *                 dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *             else:
+ */
+      __pyx_t_1 = (__pyx_v_i == 0);
+      if (__pyx_t_1) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":147
+ *             dp_row.clear()
+ *             if i == 0:
+ *                 dp_row.push_back(dp[i][0] - gap_open_penalty)             # <<<<<<<<<<<<<<
+ *             else:
+ *                 dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ */
+        try {
+          __pyx_v_dp_row.push_back((((__pyx_v_dp[__pyx_v_i])[0]) - __pyx_v_gap_open_penalty));
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 147, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":146
+ *             #
+ *             dp_row.clear()
+ *             if i == 0:             # <<<<<<<<<<<<<<
+ *                 dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *             else:
+ */
+        goto __pyx_L8;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":149
+ *                 dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *             else:
+ *                 dp_row.push_back(dp[i][0] - gap_extend_penalty)             # <<<<<<<<<<<<<<
+ *             trace_row.clear()
+ *             trace_row.push_back(73)     #  insertion
+ */
+      /*else*/ {
+        try {
+          __pyx_v_dp_row.push_back((((__pyx_v_dp[__pyx_v_i])[0]) - __pyx_v_gap_extend_penalty));
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 149, __pyx_L1_error)
+        }
+      }
+      __pyx_L8:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":150
+ *             else:
+ *                 dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *             trace_row.clear()             # <<<<<<<<<<<<<<
+ *             trace_row.push_back(73)     #  insertion
+ *             #
+ */
+      __pyx_v_trace_row.clear();
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":151
+ *                 dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *             trace_row.clear()
+ *             trace_row.push_back(73)     #  insertion             # <<<<<<<<<<<<<<
+ *             #
+ *             for j in range(N_ref_seq):
+ */
+      try {
+        __pyx_v_trace_row.push_back(73);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 151, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":153
+ *             trace_row.push_back(73)     #  insertion
+ *             #
+ *             for j in range(N_ref_seq):             # <<<<<<<<<<<<<<
+ *                 r = ref_seq[j]
+ *                 # aligned_score
+ */
+      __pyx_t_5 = __pyx_v_N_ref_seq;
+      __pyx_t_6 = __pyx_t_5;
+      for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
+        __pyx_v_j = __pyx_t_7;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":154
+ *             #
+ *             for j in range(N_ref_seq):
+ *                 r = ref_seq[j]             # <<<<<<<<<<<<<<
+ *                 # aligned_score
+ *                 if q == r:
+ */
+        __pyx_v_r = (__pyx_v_ref_seq[__pyx_v_j]);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":156
+ *                 r = ref_seq[j]
+ *                 # aligned_score
+ *                 if q == r:             # <<<<<<<<<<<<<<
+ *                     aligned_score = dp[i][j] + match_score
+ *                     modifier = 0
+ */
+        __pyx_t_1 = (__pyx_v_q == __pyx_v_r);
+        if (__pyx_t_1) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":157
+ *                 # aligned_score
+ *                 if q == r:
+ *                     aligned_score = dp[i][j] + match_score             # <<<<<<<<<<<<<<
+ *                     modifier = 0
+ *                 else:
+ */
+          __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_match_score);
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":158
+ *                 if q == r:
+ *                     aligned_score = dp[i][j] + match_score
+ *                     modifier = 0             # <<<<<<<<<<<<<<
+ *                 else:
+ *                     aligned_score = dp[i][j] + mismatch_score
+ */
+          __pyx_v_modifier = 0;
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":156
+ *                 r = ref_seq[j]
+ *                 # aligned_score
+ *                 if q == r:             # <<<<<<<<<<<<<<
+ *                     aligned_score = dp[i][j] + match_score
+ *                     modifier = 0
+ */
+          goto __pyx_L11;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":160
+ *                     modifier = 0
+ *                 else:
+ *                     aligned_score = dp[i][j] + mismatch_score             # <<<<<<<<<<<<<<
+ *                     modifier = 27
+ *                 # insertion_score   #  insertion
+ */
+        /*else*/ {
+          __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_mismatch_score);
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":161
+ *                 else:
+ *                     aligned_score = dp[i][j] + mismatch_score
+ *                     modifier = 27             # <<<<<<<<<<<<<<
+ *                 # insertion_score   #  insertion
+ *                 if trace[i][j+1] in (73, 141, 134, 202, 161, 229):
+ */
+          __pyx_v_modifier = 27;
+        }
+        __pyx_L11:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":163
+ *                     modifier = 27
+ *                 # insertion_score   #  insertion
+ *                 if trace[i][j+1] in (73, 141, 134, 202, 161, 229):             # <<<<<<<<<<<<<<
+ *                     insertion_score = dp[i][j+1] - gap_extend_penalty
+ *                 else:
+ */
+        __pyx_t_8 = ((__pyx_v_trace[__pyx_v_i])[(__pyx_v_j + 1)]);
+        __pyx_t_9 = (__pyx_t_8 == 73);
+        if (!__pyx_t_9) {
+        } else {
+          __pyx_t_1 = __pyx_t_9;
+          goto __pyx_L13_bool_binop_done;
+        }
+        __pyx_t_9 = (__pyx_t_8 == 0x8D);
+        if (!__pyx_t_9) {
+        } else {
+          __pyx_t_1 = __pyx_t_9;
+          goto __pyx_L13_bool_binop_done;
+        }
+        __pyx_t_9 = (__pyx_t_8 == 0x86);
+        if (!__pyx_t_9) {
+        } else {
+          __pyx_t_1 = __pyx_t_9;
+          goto __pyx_L13_bool_binop_done;
+        }
+        __pyx_t_9 = (__pyx_t_8 == 0xCA);
+        if (!__pyx_t_9) {
+        } else {
+          __pyx_t_1 = __pyx_t_9;
+          goto __pyx_L13_bool_binop_done;
+        }
+        __pyx_t_9 = (__pyx_t_8 == 0xA1);
+        if (!__pyx_t_9) {
+        } else {
+          __pyx_t_1 = __pyx_t_9;
+          goto __pyx_L13_bool_binop_done;
+        }
+        __pyx_t_9 = (__pyx_t_8 == 0xE5);
+        __pyx_t_1 = __pyx_t_9;
+        __pyx_L13_bool_binop_done:;
+        __pyx_t_9 = __pyx_t_1;
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":164
+ *                 # insertion_score   #  insertion
+ *                 if trace[i][j+1] in (73, 141, 134, 202, 161, 229):
+ *                     insertion_score = dp[i][j+1] - gap_extend_penalty             # <<<<<<<<<<<<<<
+ *                 else:
+ *                     insertion_score = dp[i][j+1] - gap_open_penalty
+ */
+          __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_extend_penalty);
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":163
+ *                     modifier = 27
+ *                 # insertion_score   #  insertion
+ *                 if trace[i][j+1] in (73, 141, 134, 202, 161, 229):             # <<<<<<<<<<<<<<
+ *                     insertion_score = dp[i][j+1] - gap_extend_penalty
+ *                 else:
+ */
+          goto __pyx_L12;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":166
+ *                     insertion_score = dp[i][j+1] - gap_extend_penalty
+ *                 else:
+ *                     insertion_score = dp[i][j+1] - gap_open_penalty             # <<<<<<<<<<<<<<
+ *                 # deletion_score   #  deletion
+ *                 if trace_row[j] in (68, 141, 129, 202, 156, 229):
+ */
+        /*else*/ {
+          __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_open_penalty);
+        }
+        __pyx_L12:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":168
+ *                     insertion_score = dp[i][j+1] - gap_open_penalty
+ *                 # deletion_score   #  deletion
+ *                 if trace_row[j] in (68, 141, 129, 202, 156, 229):             # <<<<<<<<<<<<<<
+ *                     deletion_score = dp_row[j] - gap_extend_penalty
+ *                 else:
+ */
+        __pyx_t_8 = (__pyx_v_trace_row[__pyx_v_j]);
+        __pyx_t_1 = (__pyx_t_8 == 68);
+        if (!__pyx_t_1) {
+        } else {
+          __pyx_t_9 = __pyx_t_1;
+          goto __pyx_L20_bool_binop_done;
+        }
+        __pyx_t_1 = (__pyx_t_8 == 0x8D);
+        if (!__pyx_t_1) {
+        } else {
+          __pyx_t_9 = __pyx_t_1;
+          goto __pyx_L20_bool_binop_done;
+        }
+        __pyx_t_1 = (__pyx_t_8 == 0x81);
+        if (!__pyx_t_1) {
+        } else {
+          __pyx_t_9 = __pyx_t_1;
+          goto __pyx_L20_bool_binop_done;
+        }
+        __pyx_t_1 = (__pyx_t_8 == 0xCA);
+        if (!__pyx_t_1) {
+        } else {
+          __pyx_t_9 = __pyx_t_1;
+          goto __pyx_L20_bool_binop_done;
+        }
+        __pyx_t_1 = (__pyx_t_8 == 0x9C);
+        if (!__pyx_t_1) {
+        } else {
+          __pyx_t_9 = __pyx_t_1;
+          goto __pyx_L20_bool_binop_done;
+        }
+        __pyx_t_1 = (__pyx_t_8 == 0xE5);
+        __pyx_t_9 = __pyx_t_1;
+        __pyx_L20_bool_binop_done:;
+        __pyx_t_1 = __pyx_t_9;
+        if (__pyx_t_1) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":169
+ *                 # deletion_score   #  deletion
+ *                 if trace_row[j] in (68, 141, 129, 202, 156, 229):
+ *                     deletion_score = dp_row[j] - gap_extend_penalty             # <<<<<<<<<<<<<<
+ *                 else:
+ *                     deletion_score = dp_row[j] - gap_open_penalty
+ */
+          __pyx_v_deletion_score = ((__pyx_v_dp_row[__pyx_v_j]) - __pyx_v_gap_extend_penalty);
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":168
+ *                     insertion_score = dp[i][j+1] - gap_open_penalty
+ *                 # deletion_score   #  deletion
+ *                 if trace_row[j] in (68, 141, 129, 202, 156, 229):             # <<<<<<<<<<<<<<
+ *                     deletion_score = dp_row[j] - gap_extend_penalty
+ *                 else:
+ */
+          goto __pyx_L19;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":171
+ *                     deletion_score = dp_row[j] - gap_extend_penalty
+ *                 else:
+ *                     deletion_score = dp_row[j] - gap_open_penalty             # <<<<<<<<<<<<<<
+ *                 # set dp and trace
+ *                 if aligned_score > deletion_score:
+ */
+        /*else*/ {
+          __pyx_v_deletion_score = ((__pyx_v_dp_row[__pyx_v_j]) - __pyx_v_gap_open_penalty);
+        }
+        __pyx_L19:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":173
+ *                     deletion_score = dp_row[j] - gap_open_penalty
+ *                 # set dp and trace
+ *                 if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                     if aligned_score > insertion_score:     # = or X
+ *                         dp_row.push_back(aligned_score)
+ */
+        __pyx_t_1 = (__pyx_v_aligned_score > __pyx_v_deletion_score);
+        if (__pyx_t_1) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":174
+ *                 # set dp and trace
+ *                 if aligned_score > deletion_score:
+ *                     if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(aligned_score)
+ *                         trace_row.push_back(61 + modifier)
+ */
+          __pyx_t_1 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":175
+ *                 if aligned_score > deletion_score:
+ *                     if aligned_score > insertion_score:     # = or X
+ *                         dp_row.push_back(aligned_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(61 + modifier)
+ *                     elif aligned_score < insertion_score:   # I
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_aligned_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 175, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":176
+ *                     if aligned_score > insertion_score:     # = or X
+ *                         dp_row.push_back(aligned_score)
+ *                         trace_row.push_back(61 + modifier)             # <<<<<<<<<<<<<<
+ *                     elif aligned_score < insertion_score:   # I
+ *                         dp_row.push_back(insertion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back((61 + __pyx_v_modifier));
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 176, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":174
+ *                 # set dp and trace
+ *                 if aligned_score > deletion_score:
+ *                     if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(aligned_score)
+ *                         trace_row.push_back(61 + modifier)
+ */
+            goto __pyx_L27;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":177
+ *                         dp_row.push_back(aligned_score)
+ *                         trace_row.push_back(61 + modifier)
+ *                     elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+          __pyx_t_1 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":178
+ *                         trace_row.push_back(61 + modifier)
+ *                     elif aligned_score < insertion_score:   # I
+ *                         dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(73)
+ *                     else:                                   # I= or IX
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 178, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":179
+ *                     elif aligned_score < insertion_score:   # I
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                     else:                                   # I= or IX
+ *                         dp_row.push_back(insertion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back(73);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 179, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":177
+ *                         dp_row.push_back(aligned_score)
+ *                         trace_row.push_back(61 + modifier)
+ *                     elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+            goto __pyx_L27;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":181
+ *                         trace_row.push_back(73)
+ *                     else:                                   # I= or IX
+ *                         dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(134 + modifier)
+ *                 elif aligned_score < deletion_score:
+ */
+          /*else*/ {
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 181, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":182
+ *                     else:                                   # I= or IX
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(134 + modifier)             # <<<<<<<<<<<<<<
+ *                 elif aligned_score < deletion_score:
+ *                     if insertion_score > deletion_score:    # I
+ */
+            try {
+              __pyx_v_trace_row.push_back((0x86 + __pyx_v_modifier));
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 182, __pyx_L1_error)
+            }
+          }
+          __pyx_L27:;
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":173
+ *                     deletion_score = dp_row[j] - gap_open_penalty
+ *                 # set dp and trace
+ *                 if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                     if aligned_score > insertion_score:     # = or X
+ *                         dp_row.push_back(aligned_score)
+ */
+          goto __pyx_L26;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":183
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(134 + modifier)
+ *                 elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                     if insertion_score > deletion_score:    # I
+ *                         dp_row.push_back(insertion_score)
+ */
+        __pyx_t_1 = (__pyx_v_aligned_score < __pyx_v_deletion_score);
+        if (__pyx_t_1) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":184
+ *                         trace_row.push_back(134 + modifier)
+ *                 elif aligned_score < deletion_score:
+ *                     if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+          __pyx_t_1 = (__pyx_v_insertion_score > __pyx_v_deletion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":185
+ *                 elif aligned_score < deletion_score:
+ *                     if insertion_score > deletion_score:    # I
+ *                         dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(73)
+ *                     elif insertion_score < deletion_score:  # D
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 185, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":186
+ *                     if insertion_score > deletion_score:    # I
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                     elif insertion_score < deletion_score:  # D
+ *                         dp_row.push_back(deletion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back(73);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 186, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":184
+ *                         trace_row.push_back(134 + modifier)
+ *                 elif aligned_score < deletion_score:
+ *                     if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+            goto __pyx_L28;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":187
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ *                     elif insertion_score < deletion_score:  # D             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(68)
+ */
+          __pyx_t_1 = (__pyx_v_insertion_score < __pyx_v_deletion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":188
+ *                         trace_row.push_back(73)
+ *                     elif insertion_score < deletion_score:  # D
+ *                         dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(68)
+ *                     else:                                   # ID
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 188, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":189
+ *                     elif insertion_score < deletion_score:  # D
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(68)             # <<<<<<<<<<<<<<
+ *                     else:                                   # ID
+ *                         dp_row.push_back(deletion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back(68);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 189, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":187
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ *                     elif insertion_score < deletion_score:  # D             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(68)
+ */
+            goto __pyx_L28;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":191
+ *                         trace_row.push_back(68)
+ *                     else:                                   # ID
+ *                         dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(141)
+ *                 else:
+ */
+          /*else*/ {
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 191, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":192
+ *                     else:                                   # ID
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(141)             # <<<<<<<<<<<<<<
+ *                 else:
+ *                     if aligned_score < insertion_score:     # I
+ */
+            try {
+              __pyx_v_trace_row.push_back(0x8D);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 192, __pyx_L1_error)
+            }
+          }
+          __pyx_L28:;
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":183
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(134 + modifier)
+ *                 elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                     if insertion_score > deletion_score:    # I
+ *                         dp_row.push_back(insertion_score)
+ */
+          goto __pyx_L26;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":194
+ *                         trace_row.push_back(141)
+ *                 else:
+ *                     if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+        /*else*/ {
+          __pyx_t_1 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":195
+ *                 else:
+ *                     if aligned_score < insertion_score:     # I
+ *                         dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(73)
+ *                     elif aligned_score > insertion_score:   # D= or DX
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 195, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":196
+ *                     if aligned_score < insertion_score:     # I
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                     elif aligned_score > insertion_score:   # D= or DX
+ *                         dp_row.push_back(deletion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back(73);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 196, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":194
+ *                         trace_row.push_back(141)
+ *                 else:
+ *                     if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ */
+            goto __pyx_L29;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":197
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ *                     elif aligned_score > insertion_score:   # D= or DX             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(129 + modifier)
+ */
+          __pyx_t_1 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+          if (__pyx_t_1) {
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":198
+ *                         trace_row.push_back(73)
+ *                     elif aligned_score > insertion_score:   # D= or DX
+ *                         dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(129 + modifier)
+ *                     else:                                   # ID= or IDX
+ */
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 198, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":199
+ *                     elif aligned_score > insertion_score:   # D= or DX
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(129 + modifier)             # <<<<<<<<<<<<<<
+ *                     else:                                   # ID= or IDX
+ *                         dp_row.push_back(deletion_score)
+ */
+            try {
+              __pyx_v_trace_row.push_back((0x81 + __pyx_v_modifier));
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 199, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":197
+ *                         dp_row.push_back(insertion_score)
+ *                         trace_row.push_back(73)
+ *                     elif aligned_score > insertion_score:   # D= or DX             # <<<<<<<<<<<<<<
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(129 + modifier)
+ */
+            goto __pyx_L29;
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":201
+ *                         trace_row.push_back(129 + modifier)
+ *                     else:                                   # ID= or IDX
+ *                         dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                         trace_row.push_back(202 + modifier)
+ *             dp.push_back(dp_row)
+ */
+          /*else*/ {
+            try {
+              __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 201, __pyx_L1_error)
+            }
+
+            /* "savemoney/modules/cython_functions/alignment_functions.pyx":202
+ *                     else:                                   # ID= or IDX
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(202 + modifier)             # <<<<<<<<<<<<<<
+ *             dp.push_back(dp_row)
+ *             trace.push_back(trace_row)
+ */
+            try {
+              __pyx_v_trace_row.push_back((0xCA + __pyx_v_modifier));
+            } catch(...) {
+              __Pyx_CppExn2PyErr();
+              __PYX_ERR(0, 202, __pyx_L1_error)
+            }
+          }
+          __pyx_L29:;
+        }
+        __pyx_L26:;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":203
+ *                         dp_row.push_back(deletion_score)
+ *                         trace_row.push_back(202 + modifier)
+ *             dp.push_back(dp_row)             # <<<<<<<<<<<<<<
+ *             trace.push_back(trace_row)
+ *         ###########
+ */
+      try {
+        __pyx_v_dp.push_back(__pyx_v_dp_row);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 203, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":204
+ *                         trace_row.push_back(202 + modifier)
+ *             dp.push_back(dp_row)
+ *             trace.push_back(trace_row)             # <<<<<<<<<<<<<<
+ *         ###########
+ *         # query #
+ */
+      try {
+        __pyx_v_trace.push_back(__pyx_v_trace_row);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 204, __pyx_L1_error)
+      }
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":208
+ *         # query #
+ *         ###########
+ *         i = N_query_seq_1 - 1             # <<<<<<<<<<<<<<
+ *         q = query_seq_1[N_query_seq_1 - 1]
+ *         #
+ */
+    __pyx_v_i = (__pyx_v_N_query_seq_1 - 1);
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":209
+ *         ###########
+ *         i = N_query_seq_1 - 1
+ *         q = query_seq_1[N_query_seq_1 - 1]             # <<<<<<<<<<<<<<
+ *         #
+ *         dp_row.clear()
+ */
+    __pyx_v_q = (__pyx_v_query_seq_1[(__pyx_v_N_query_seq_1 - 1)]);
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":211
+ *         q = query_seq_1[N_query_seq_1 - 1]
+ *         #
+ *         dp_row.clear()             # <<<<<<<<<<<<<<
+ *         dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *         trace_row.clear()
+ */
+    __pyx_v_dp_row.clear();
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":212
+ *         #
+ *         dp_row.clear()
+ *         dp_row.push_back(dp[i][0] - gap_extend_penalty)             # <<<<<<<<<<<<<<
+ *         trace_row.clear()
+ *         trace_row.push_back(73)     #  insertion
+ */
+    try {
+      __pyx_v_dp_row.push_back((((__pyx_v_dp[__pyx_v_i])[0]) - __pyx_v_gap_extend_penalty));
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 212, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":213
+ *         dp_row.clear()
+ *         dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *         trace_row.clear()             # <<<<<<<<<<<<<<
+ *         trace_row.push_back(73)     #  insertion
+ *         #
+ */
+    __pyx_v_trace_row.clear();
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":214
+ *         dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *         trace_row.clear()
+ *         trace_row.push_back(73)     #  insertion             # <<<<<<<<<<<<<<
+ *         #
+ *         for j in range(N_ref_seq):
+ */
+    try {
+      __pyx_v_trace_row.push_back(73);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 214, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":216
+ *         trace_row.push_back(73)     #  insertion
+ *         #
+ *         for j in range(N_ref_seq):             # <<<<<<<<<<<<<<
+ *             r = ref_seq[j]
+ *             # aligned_score
+ */
+    __pyx_t_2 = __pyx_v_N_ref_seq;
+    __pyx_t_3 = __pyx_t_2;
+    for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+      __pyx_v_j = __pyx_t_4;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":217
+ *         #
+ *         for j in range(N_ref_seq):
+ *             r = ref_seq[j]             # <<<<<<<<<<<<<<
+ *             # aligned_score
+ *             if q == r:
+ */
+      __pyx_v_r = (__pyx_v_ref_seq[__pyx_v_j]);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":219
+ *             r = ref_seq[j]
+ *             # aligned_score
+ *             if q == r:             # <<<<<<<<<<<<<<
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0
+ */
+      __pyx_t_1 = (__pyx_v_q == __pyx_v_r);
+      if (__pyx_t_1) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":220
+ *             # aligned_score
+ *             if q == r:
+ *                 aligned_score = dp[i][j] + match_score             # <<<<<<<<<<<<<<
+ *                 modifier = 0
+ *             else:
+ */
+        __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_match_score);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":221
+ *             if q == r:
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0             # <<<<<<<<<<<<<<
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score
+ */
+        __pyx_v_modifier = 0;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":219
+ *             r = ref_seq[j]
+ *             # aligned_score
+ *             if q == r:             # <<<<<<<<<<<<<<
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0
+ */
+        goto __pyx_L32;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":223
+ *                 modifier = 0
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score             # <<<<<<<<<<<<<<
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ */
+      /*else*/ {
+        __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_mismatch_score);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":224
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score
+ *                 modifier = 27             # <<<<<<<<<<<<<<
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229):
+ */
+        __pyx_v_modifier = 27;
+      }
+      __pyx_L32:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":226
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229):             # <<<<<<<<<<<<<<
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ */
+      __pyx_t_8 = ((__pyx_v_trace[__pyx_v_i])[(__pyx_v_j + 1)]);
+      __pyx_t_9 = (__pyx_t_8 == 73);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L34_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0x8D);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L34_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0x86);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L34_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0xCA);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L34_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0xA1);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L34_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0xE5);
+      __pyx_t_1 = __pyx_t_9;
+      __pyx_L34_bool_binop_done:;
+      __pyx_t_9 = __pyx_t_1;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":227
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229):
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty             # <<<<<<<<<<<<<<
+ *             else:
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty
+ */
+        __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_extend_penalty);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":226
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229):             # <<<<<<<<<<<<<<
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ */
+        goto __pyx_L33;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":229
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty             # <<<<<<<<<<<<<<
+ *             # deletion_score   #  deletion
+ *             deletion_score = dp_row[j]      # special deletion: no penalty
+ */
+      /*else*/ {
+        __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_open_penalty);
+      }
+      __pyx_L33:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":231
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty
+ *             # deletion_score   #  deletion
+ *             deletion_score = dp_row[j]      # special deletion: no penalty             # <<<<<<<<<<<<<<
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ */
+      __pyx_v_deletion_score = (__pyx_v_dp_row[__pyx_v_j]);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":233
+ *             deletion_score = dp_row[j]      # special deletion: no penalty
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ */
+      __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_deletion_score);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":234
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":235
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_aligned_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 235, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":236
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)             # <<<<<<<<<<<<<<
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back((61 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 236, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":234
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ */
+          goto __pyx_L41;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":237
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":238
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 else:                                   # I= or IX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 238, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":239
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 239, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":237
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L41;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":241
+ *                     trace_row.push_back(73)
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 241, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":242
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)             # <<<<<<<<<<<<<<
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I
+ */
+          try {
+            __pyx_v_trace_row.push_back((0x86 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 242, __pyx_L1_error)
+          }
+        }
+        __pyx_L41:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":233
+ *             deletion_score = dp_row[j]      # special deletion: no penalty
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ */
+        goto __pyx_L40;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":243
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ */
+      __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_deletion_score);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":244
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+        __pyx_t_9 = (__pyx_v_insertion_score > __pyx_v_deletion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":245
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # H #  deletion
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 245, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":246
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 elif insertion_score < deletion_score:  # H #  deletion
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 246, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":244
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L42;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":247
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # H #  deletion             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(72)
+ */
+        __pyx_t_9 = (__pyx_v_insertion_score < __pyx_v_deletion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":248
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # H #  deletion
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(72)
+ *                 else:                                   # IH
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 248, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":249
+ *                 elif insertion_score < deletion_score:  # H #  deletion
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(72)             # <<<<<<<<<<<<<<
+ *                 else:                                   # IH
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(72);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 249, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":247
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # H #  deletion             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(72)
+ */
+          goto __pyx_L42;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":251
+ *                     trace_row.push_back(72)
+ *                 else:                                   # IH
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(145)
+ *             else:
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 251, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":252
+ *                 else:                                   # IH
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(145)             # <<<<<<<<<<<<<<
+ *             else:
+ *                 if aligned_score < insertion_score:     # I
+ */
+          try {
+            __pyx_v_trace_row.push_back(0x91);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 252, __pyx_L1_error)
+          }
+        }
+        __pyx_L42:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":243
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ */
+        goto __pyx_L40;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":254
+ *                     trace_row.push_back(145)
+ *             else:
+ *                 if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+      /*else*/ {
+        __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":255
+ *             else:
+ *                 if aligned_score < insertion_score:     # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # H= or HX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 255, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":256
+ *                 if aligned_score < insertion_score:     # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 elif aligned_score > insertion_score:   # H= or HX
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 256, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":254
+ *                     trace_row.push_back(145)
+ *             else:
+ *                 if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L43;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":257
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # H= or HX             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(133 + modifier)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":258
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # H= or HX
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(133 + modifier)
+ *                 else:                                   # IH= or IHX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 258, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":259
+ *                 elif aligned_score > insertion_score:   # H= or HX
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(133 + modifier)             # <<<<<<<<<<<<<<
+ *                 else:                                   # IH= or IHX
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back((0x85 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 259, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":257
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # H= or HX             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(133 + modifier)
+ */
+          goto __pyx_L43;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":261
+ *                     trace_row.push_back(133 + modifier)
+ *                 else:                                   # IH= or IHX
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(206 + modifier)
+ *         dp.push_back(dp_row)
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 261, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":262
+ *                 else:                                   # IH= or IHX
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(206 + modifier)             # <<<<<<<<<<<<<<
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)
+ */
+          try {
+            __pyx_v_trace_row.push_back((0xCE + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 262, __pyx_L1_error)
+          }
+        }
+        __pyx_L43:;
+      }
+      __pyx_L40:;
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":263
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(206 + modifier)
+ *         dp.push_back(dp_row)             # <<<<<<<<<<<<<<
+ *         trace.push_back(trace_row)
+ *     else:
+ */
+    try {
+      __pyx_v_dp.push_back(__pyx_v_dp_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 263, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":264
+ *                     trace_row.push_back(206 + modifier)
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)             # <<<<<<<<<<<<<<
+ *     else:
+ *         #
+ */
+    try {
+      __pyx_v_trace.push_back(__pyx_v_trace_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 264, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":129
+ *     # DP of query_seq_1 #
+ *     #####################
+ *     if N_query_seq_1 > 0:             # <<<<<<<<<<<<<<
+ *         ###############
+ *         # query_seq_1 #
+ */
+    goto __pyx_L3;
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":267
+ *     else:
+ *         #
+ *         for j in range(N_ref_seq):             # <<<<<<<<<<<<<<
+ *             dp_row.push_back(0)
+ *             trace_row.push_back(72)
+ */
+  /*else*/ {
+    __pyx_t_2 = __pyx_v_N_ref_seq;
+    __pyx_t_3 = __pyx_t_2;
+    for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+      __pyx_v_j = __pyx_t_4;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":268
+ *         #
+ *         for j in range(N_ref_seq):
+ *             dp_row.push_back(0)             # <<<<<<<<<<<<<<
+ *             trace_row.push_back(72)
+ *         dp.push_back(dp_row)
+ */
+      try {
+        __pyx_v_dp_row.push_back(0);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 268, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":269
+ *         for j in range(N_ref_seq):
+ *             dp_row.push_back(0)
+ *             trace_row.push_back(72)             # <<<<<<<<<<<<<<
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)
+ */
+      try {
+        __pyx_v_trace_row.push_back(72);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 269, __pyx_L1_error)
+      }
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":270
+ *             dp_row.push_back(0)
+ *             trace_row.push_back(72)
+ *         dp.push_back(dp_row)             # <<<<<<<<<<<<<<
+ *         trace.push_back(trace_row)
+ *     #####################
+ */
+    try {
+      __pyx_v_dp.push_back(__pyx_v_dp_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 270, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":271
+ *             trace_row.push_back(72)
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)             # <<<<<<<<<<<<<<
+ *     #####################
+ *     # DP of query_seq_2 #
+ */
+    try {
+      __pyx_v_trace.push_back(__pyx_v_trace_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 271, __pyx_L1_error)
+    }
+  }
+  __pyx_L3:;
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":275
+ *     # DP of query_seq_2 #
+ *     #####################
+ *     for i in range(N_query_seq_2):             # <<<<<<<<<<<<<<
+ *         q = query_seq_2[i]
+ *         i += N_query_seq_1
+ */
+  __pyx_t_2 = __pyx_v_N_query_seq_2;
+  __pyx_t_3 = __pyx_t_2;
+  for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+    __pyx_v_i = __pyx_t_4;
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":276
+ *     #####################
+ *     for i in range(N_query_seq_2):
+ *         q = query_seq_2[i]             # <<<<<<<<<<<<<<
+ *         i += N_query_seq_1
+ *         #
+ */
+    __pyx_v_q = (__pyx_v_query_seq_2[__pyx_v_i]);
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":277
+ *     for i in range(N_query_seq_2):
+ *         q = query_seq_2[i]
+ *         i += N_query_seq_1             # <<<<<<<<<<<<<<
+ *         #
+ *         dp_row.clear()
+ */
+    __pyx_v_i = (__pyx_v_i + __pyx_v_N_query_seq_1);
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":279
+ *         i += N_query_seq_1
+ *         #
+ *         dp_row.clear()             # <<<<<<<<<<<<<<
+ *         if i == 0:
+ *             dp_row.push_back(dp[i][0] - gap_open_penalty)
+ */
+    __pyx_v_dp_row.clear();
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":280
+ *         #
+ *         dp_row.clear()
+ *         if i == 0:             # <<<<<<<<<<<<<<
+ *             dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *         else:
+ */
+    __pyx_t_9 = (__pyx_v_i == 0);
+    if (__pyx_t_9) {
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":281
+ *         dp_row.clear()
+ *         if i == 0:
+ *             dp_row.push_back(dp[i][0] - gap_open_penalty)             # <<<<<<<<<<<<<<
+ *         else:
+ *             dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ */
+      try {
+        __pyx_v_dp_row.push_back((((__pyx_v_dp[__pyx_v_i])[0]) - __pyx_v_gap_open_penalty));
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 281, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":280
+ *         #
+ *         dp_row.clear()
+ *         if i == 0:             # <<<<<<<<<<<<<<
+ *             dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *         else:
+ */
+      goto __pyx_L48;
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":283
+ *             dp_row.push_back(dp[i][0] - gap_open_penalty)
+ *         else:
+ *             dp_row.push_back(dp[i][0] - gap_extend_penalty)             # <<<<<<<<<<<<<<
+ *         trace_row.clear()
+ *         trace_row.push_back(73)     #  insertion
+ */
+    /*else*/ {
+      try {
+        __pyx_v_dp_row.push_back((((__pyx_v_dp[__pyx_v_i])[0]) - __pyx_v_gap_extend_penalty));
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 283, __pyx_L1_error)
+      }
+    }
+    __pyx_L48:;
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":284
+ *         else:
+ *             dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *         trace_row.clear()             # <<<<<<<<<<<<<<
+ *         trace_row.push_back(73)     #  insertion
+ *         #
+ */
+    __pyx_v_trace_row.clear();
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":285
+ *             dp_row.push_back(dp[i][0] - gap_extend_penalty)
+ *         trace_row.clear()
+ *         trace_row.push_back(73)     #  insertion             # <<<<<<<<<<<<<<
+ *         #
+ *         for j in range(N_ref_seq):
+ */
+    try {
+      __pyx_v_trace_row.push_back(73);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 285, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":287
+ *         trace_row.push_back(73)     #  insertion
+ *         #
+ *         for j in range(N_ref_seq):             # <<<<<<<<<<<<<<
+ *             r = ref_seq[j]
+ *             # aligned_score
+ */
+    __pyx_t_5 = __pyx_v_N_ref_seq;
+    __pyx_t_6 = __pyx_t_5;
+    for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
+      __pyx_v_j = __pyx_t_7;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":288
+ *         #
+ *         for j in range(N_ref_seq):
+ *             r = ref_seq[j]             # <<<<<<<<<<<<<<
+ *             # aligned_score
+ *             if q == r:
+ */
+      __pyx_v_r = (__pyx_v_ref_seq[__pyx_v_j]);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":290
+ *             r = ref_seq[j]
+ *             # aligned_score
+ *             if q == r:             # <<<<<<<<<<<<<<
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0
+ */
+      __pyx_t_9 = (__pyx_v_q == __pyx_v_r);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":291
+ *             # aligned_score
+ *             if q == r:
+ *                 aligned_score = dp[i][j] + match_score             # <<<<<<<<<<<<<<
+ *                 modifier = 0
+ *             else:
+ */
+        __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_match_score);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":292
+ *             if q == r:
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0             # <<<<<<<<<<<<<<
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score
+ */
+        __pyx_v_modifier = 0;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":290
+ *             r = ref_seq[j]
+ *             # aligned_score
+ *             if q == r:             # <<<<<<<<<<<<<<
+ *                 aligned_score = dp[i][j] + match_score
+ *                 modifier = 0
+ */
+        goto __pyx_L51;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":294
+ *                 modifier = 0
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score             # <<<<<<<<<<<<<<
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ */
+      /*else*/ {
+        __pyx_v_aligned_score = (((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]) + __pyx_v_mismatch_score);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":295
+ *             else:
+ *                 aligned_score = dp[i][j] + mismatch_score
+ *                 modifier = 27             # <<<<<<<<<<<<<<
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229, 145, 206, 233):
+ */
+        __pyx_v_modifier = 27;
+      }
+      __pyx_L51:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":297
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229, 145, 206, 233):             # <<<<<<<<<<<<<<
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ */
+      __pyx_t_8 = ((__pyx_v_trace[__pyx_v_i])[(__pyx_v_j + 1)]);
+      __pyx_t_1 = (__pyx_t_8 == 73);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0x8D);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0x86);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0xCA);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0xA1);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0xE5);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0x91);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0xCE);
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L53_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_t_8 == 0xE9);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L53_bool_binop_done:;
+      __pyx_t_1 = __pyx_t_9;
+      if (__pyx_t_1) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":298
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229, 145, 206, 233):
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty             # <<<<<<<<<<<<<<
+ *             else:
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty
+ */
+        __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_extend_penalty);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":297
+ *                 modifier = 27
+ *             # insertion_score   #  insertion
+ *             if trace[i][j+1] in (73, 141, 134, 202, 161, 229, 145, 206, 233):             # <<<<<<<<<<<<<<
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ */
+        goto __pyx_L52;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":300
+ *                 insertion_score = dp[i][j+1] - gap_extend_penalty
+ *             else:
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty             # <<<<<<<<<<<<<<
+ *             # deletion_score   #  deletion
+ *             if trace_row[j] in (68, 141, 129, 202, 156, 229):
+ */
+      /*else*/ {
+        __pyx_v_insertion_score = (((__pyx_v_dp[__pyx_v_i])[(__pyx_v_j + 1)]) - __pyx_v_gap_open_penalty);
+      }
+      __pyx_L52:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":302
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty
+ *             # deletion_score   #  deletion
+ *             if trace_row[j] in (68, 141, 129, 202, 156, 229):             # <<<<<<<<<<<<<<
+ *                 deletion_score = dp_row[j] - gap_extend_penalty
+ *             else:
+ */
+      __pyx_t_8 = (__pyx_v_trace_row[__pyx_v_j]);
+      __pyx_t_9 = (__pyx_t_8 == 68);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L63_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0x8D);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L63_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0x81);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L63_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0xCA);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L63_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0x9C);
+      if (!__pyx_t_9) {
+      } else {
+        __pyx_t_1 = __pyx_t_9;
+        goto __pyx_L63_bool_binop_done;
+      }
+      __pyx_t_9 = (__pyx_t_8 == 0xE5);
+      __pyx_t_1 = __pyx_t_9;
+      __pyx_L63_bool_binop_done:;
+      __pyx_t_9 = __pyx_t_1;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":303
+ *             # deletion_score   #  deletion
+ *             if trace_row[j] in (68, 141, 129, 202, 156, 229):
+ *                 deletion_score = dp_row[j] - gap_extend_penalty             # <<<<<<<<<<<<<<
+ *             else:
+ *                 deletion_score = dp_row[j] - gap_open_penalty
+ */
+        __pyx_v_deletion_score = ((__pyx_v_dp_row[__pyx_v_j]) - __pyx_v_gap_extend_penalty);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":302
+ *                 insertion_score = dp[i][j+1] - gap_open_penalty
+ *             # deletion_score   #  deletion
+ *             if trace_row[j] in (68, 141, 129, 202, 156, 229):             # <<<<<<<<<<<<<<
+ *                 deletion_score = dp_row[j] - gap_extend_penalty
+ *             else:
+ */
+        goto __pyx_L62;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":305
+ *                 deletion_score = dp_row[j] - gap_extend_penalty
+ *             else:
+ *                 deletion_score = dp_row[j] - gap_open_penalty             # <<<<<<<<<<<<<<
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ */
+      /*else*/ {
+        __pyx_v_deletion_score = ((__pyx_v_dp_row[__pyx_v_j]) - __pyx_v_gap_open_penalty);
+      }
+      __pyx_L62:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":307
+ *                 deletion_score = dp_row[j] - gap_open_penalty
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ */
+      __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_deletion_score);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":308
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":309
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_aligned_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 309, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":310
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)             # <<<<<<<<<<<<<<
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back((61 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 310, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":308
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:
+ *                 if aligned_score > insertion_score:     # = or X             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ */
+          goto __pyx_L70;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":311
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":312
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 else:                                   # I= or IX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 312, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":313
+ *                 elif aligned_score < insertion_score:   # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 313, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":311
+ *                     dp_row.push_back(aligned_score)
+ *                     trace_row.push_back(61 + modifier)
+ *                 elif aligned_score < insertion_score:   # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L70;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":315
+ *                     trace_row.push_back(73)
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 315, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":316
+ *                 else:                                   # I= or IX
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)             # <<<<<<<<<<<<<<
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I
+ */
+          try {
+            __pyx_v_trace_row.push_back((0x86 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 316, __pyx_L1_error)
+          }
+        }
+        __pyx_L70:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":307
+ *                 deletion_score = dp_row[j] - gap_open_penalty
+ *             # set dp and trace
+ *             if aligned_score > deletion_score:             # <<<<<<<<<<<<<<
+ *                 if aligned_score > insertion_score:     # = or X
+ *                     dp_row.push_back(aligned_score)
+ */
+        goto __pyx_L69;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":317
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ */
+      __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_deletion_score);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":318
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+        __pyx_t_9 = (__pyx_v_insertion_score > __pyx_v_deletion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":319
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # D
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 319, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":320
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 elif insertion_score < deletion_score:  # D
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 320, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":318
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:
+ *                 if insertion_score > deletion_score:    # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L71;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":321
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # D             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(68)
+ */
+        __pyx_t_9 = (__pyx_v_insertion_score < __pyx_v_deletion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":322
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # D
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(68)
+ *                 else:                                   # ID
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 322, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":323
+ *                 elif insertion_score < deletion_score:  # D
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(68)             # <<<<<<<<<<<<<<
+ *                 else:                                   # ID
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(68);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 323, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":321
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif insertion_score < deletion_score:  # D             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(68)
+ */
+          goto __pyx_L71;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":325
+ *                     trace_row.push_back(68)
+ *                 else:                                   # ID
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(141)
+ *             else:
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 325, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":326
+ *                 else:                                   # ID
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(141)             # <<<<<<<<<<<<<<
+ *             else:
+ *                 if aligned_score < insertion_score:     # I
+ */
+          try {
+            __pyx_v_trace_row.push_back(0x8D);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 326, __pyx_L1_error)
+          }
+        }
+        __pyx_L71:;
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":317
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(134 + modifier)
+ *             elif aligned_score < deletion_score:             # <<<<<<<<<<<<<<
+ *                 if insertion_score > deletion_score:    # I
+ *                     dp_row.push_back(insertion_score)
+ */
+        goto __pyx_L69;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":328
+ *                     trace_row.push_back(141)
+ *             else:
+ *                 if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+      /*else*/ {
+        __pyx_t_9 = (__pyx_v_aligned_score < __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":329
+ *             else:
+ *                 if aligned_score < insertion_score:     # I
+ *                     dp_row.push_back(insertion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # D= or DX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_insertion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 329, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":330
+ *                 if aligned_score < insertion_score:     # I
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)             # <<<<<<<<<<<<<<
+ *                 elif aligned_score > insertion_score:   # D= or DX
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back(73);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 330, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":328
+ *                     trace_row.push_back(141)
+ *             else:
+ *                 if aligned_score < insertion_score:     # I             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ */
+          goto __pyx_L72;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":331
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # D= or DX             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(129 + modifier)
+ */
+        __pyx_t_9 = (__pyx_v_aligned_score > __pyx_v_insertion_score);
+        if (__pyx_t_9) {
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":332
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # D= or DX
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(129 + modifier)
+ *                 else:                                   # ID= or IDX
+ */
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 332, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":333
+ *                 elif aligned_score > insertion_score:   # D= or DX
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(129 + modifier)             # <<<<<<<<<<<<<<
+ *                 else:                                   # ID= or IDX
+ *                     dp_row.push_back(deletion_score)
+ */
+          try {
+            __pyx_v_trace_row.push_back((0x81 + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 333, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":331
+ *                     dp_row.push_back(insertion_score)
+ *                     trace_row.push_back(73)
+ *                 elif aligned_score > insertion_score:   # D= or DX             # <<<<<<<<<<<<<<
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(129 + modifier)
+ */
+          goto __pyx_L72;
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":335
+ *                     trace_row.push_back(129 + modifier)
+ *                 else:                                   # ID= or IDX
+ *                     dp_row.push_back(deletion_score)             # <<<<<<<<<<<<<<
+ *                     trace_row.push_back(202 + modifier)
+ *         dp.push_back(dp_row)
+ */
+        /*else*/ {
+          try {
+            __pyx_v_dp_row.push_back(__pyx_v_deletion_score);
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 335, __pyx_L1_error)
+          }
+
+          /* "savemoney/modules/cython_functions/alignment_functions.pyx":336
+ *                 else:                                   # ID= or IDX
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(202 + modifier)             # <<<<<<<<<<<<<<
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)
+ */
+          try {
+            __pyx_v_trace_row.push_back((0xCA + __pyx_v_modifier));
+          } catch(...) {
+            __Pyx_CppExn2PyErr();
+            __PYX_ERR(0, 336, __pyx_L1_error)
+          }
+        }
+        __pyx_L72:;
+      }
+      __pyx_L69:;
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":337
+ *                     dp_row.push_back(deletion_score)
+ *                     trace_row.push_back(202 + modifier)
+ *         dp.push_back(dp_row)             # <<<<<<<<<<<<<<
+ *         trace.push_back(trace_row)
+ *     #############
+ */
+    try {
+      __pyx_v_dp.push_back(__pyx_v_dp_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 337, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":338
+ *                     trace_row.push_back(202 + modifier)
+ *         dp.push_back(dp_row)
+ *         trace.push_back(trace_row)             # <<<<<<<<<<<<<<
+ *     #############
+ *     # traceback #
+ */
+    try {
+      __pyx_v_trace.push_back(__pyx_v_trace_row);
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 338, __pyx_L1_error)
+    }
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":343
+ *     #############
+ *     #
+ *     i = N_query_seq_1 + N_query_seq_2             # <<<<<<<<<<<<<<
+ *     j = N_ref_seq
+ *     cdef vec traceback
+ */
+  __pyx_v_i = (__pyx_v_N_query_seq_1 + __pyx_v_N_query_seq_2);
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":344
+ *     #
+ *     i = N_query_seq_1 + N_query_seq_2
+ *     j = N_ref_seq             # <<<<<<<<<<<<<<
+ *     cdef vec traceback
+ *     cdef vec score_trace
+ */
+  __pyx_v_j = __pyx_v_N_ref_seq;
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":348
+ *     cdef vec score_trace
+ *     cdef LL t
+ *     while True:             # <<<<<<<<<<<<<<
+ *         t = trace[i][j]
+ *         score_trace.push_back(dp[i][j])
+ */
+  while (1) {
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":349
+ *     cdef LL t
+ *     while True:
+ *         t = trace[i][j]             # <<<<<<<<<<<<<<
+ *         score_trace.push_back(dp[i][j])
+ *         if t == 61:     # I
+ */
+    __pyx_v_t = ((__pyx_v_trace[__pyx_v_i])[__pyx_v_j]);
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":350
+ *     while True:
+ *         t = trace[i][j]
+ *         score_trace.push_back(dp[i][j])             # <<<<<<<<<<<<<<
+ *         if t == 61:     # I
+ *             i -= 1
+ */
+    try {
+      __pyx_v_score_trace.push_back(((__pyx_v_dp[__pyx_v_i])[__pyx_v_j]));
+    } catch(...) {
+      __Pyx_CppExn2PyErr();
+      __PYX_ERR(0, 350, __pyx_L1_error)
+    }
+
+    /* "savemoney/modules/cython_functions/alignment_functions.pyx":351
+ *         t = trace[i][j]
+ *         score_trace.push_back(dp[i][j])
+ *         if t == 61:     # I             # <<<<<<<<<<<<<<
+ *             i -= 1
+ *             j -= 1
+ */
+    switch (__pyx_v_t) {
+      case 61:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":352
+ *         score_trace.push_back(dp[i][j])
+ *         if t == 61:     # I
+ *             i -= 1             # <<<<<<<<<<<<<<
+ *             j -= 1
+ *             traceback.push_back(61)     # =
+ */
+      __pyx_v_i = (__pyx_v_i - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":353
+ *         if t == 61:     # I
+ *             i -= 1
+ *             j -= 1             # <<<<<<<<<<<<<<
+ *             traceback.push_back(61)     # =
+ *         elif t == 88:   # X
+ */
+      __pyx_v_j = (__pyx_v_j - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":354
+ *             i -= 1
+ *             j -= 1
+ *             traceback.push_back(61)     # =             # <<<<<<<<<<<<<<
+ *         elif t == 88:   # X
+ *             i -= 1
+ */
+      try {
+        __pyx_v_traceback.push_back(61);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 354, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":351
+ *         t = trace[i][j]
+ *         score_trace.push_back(dp[i][j])
+ *         if t == 61:     # I             # <<<<<<<<<<<<<<
+ *             i -= 1
+ *             j -= 1
+ */
+      break;
+      case 88:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":356
+ *             traceback.push_back(61)     # =
+ *         elif t == 88:   # X
+ *             i -= 1             # <<<<<<<<<<<<<<
+ *             j -= 1
+ *             traceback.push_back(88)     # X
+ */
+      __pyx_v_i = (__pyx_v_i - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":357
+ *         elif t == 88:   # X
+ *             i -= 1
+ *             j -= 1             # <<<<<<<<<<<<<<
+ *             traceback.push_back(88)     # X
+ *         elif t == 73:   # I
+ */
+      __pyx_v_j = (__pyx_v_j - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":358
+ *             i -= 1
+ *             j -= 1
+ *             traceback.push_back(88)     # X             # <<<<<<<<<<<<<<
+ *         elif t == 73:   # I
+ *             i -= 1
+ */
+      try {
+        __pyx_v_traceback.push_back(88);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 358, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":355
+ *             j -= 1
+ *             traceback.push_back(61)     # =
+ *         elif t == 88:   # X             # <<<<<<<<<<<<<<
+ *             i -= 1
+ *             j -= 1
+ */
+      break;
+      case 73:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":360
+ *             traceback.push_back(88)     # X
+ *         elif t == 73:   # I
+ *             i -= 1             # <<<<<<<<<<<<<<
+ *             traceback.push_back(73)     # I
+ *         elif t == 68:   # D
+ */
+      __pyx_v_i = (__pyx_v_i - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":361
+ *         elif t == 73:   # I
+ *             i -= 1
+ *             traceback.push_back(73)     # I             # <<<<<<<<<<<<<<
+ *         elif t == 68:   # D
+ *             j -= 1
+ */
+      try {
+        __pyx_v_traceback.push_back(73);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 361, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":359
+ *             j -= 1
+ *             traceback.push_back(88)     # X
+ *         elif t == 73:   # I             # <<<<<<<<<<<<<<
+ *             i -= 1
+ *             traceback.push_back(73)     # I
+ */
+      break;
+      case 68:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":363
+ *             traceback.push_back(73)     # I
+ *         elif t == 68:   # D
+ *             j -= 1             # <<<<<<<<<<<<<<
+ *             traceback.push_back(68)     # D
+ *         elif t == 134:  # I=, =
+ */
+      __pyx_v_j = (__pyx_v_j - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":364
+ *         elif t == 68:   # D
+ *             j -= 1
+ *             traceback.push_back(68)     # D             # <<<<<<<<<<<<<<
+ *         elif t == 134:  # I=, =
+ *             if traceback.empty() or (traceback.back() != 73):
+ */
+      try {
+        __pyx_v_traceback.push_back(68);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 364, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":362
+ *             i -= 1
+ *             traceback.push_back(73)     # I
+ *         elif t == 68:   # D             # <<<<<<<<<<<<<<
+ *             j -= 1
+ *             traceback.push_back(68)     # D
+ */
+      break;
+      case 0x86:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":366
+ *             traceback.push_back(68)     # D
+ *         elif t == 134:  # I=, =
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L76_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 73);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L76_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":367
+ *         elif t == 134:  # I=, =
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":368
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(61) # =
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":369
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(61) # =             # <<<<<<<<<<<<<<
+ *             else:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(61);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 369, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":366
+ *             traceback.push_back(68)     # D
+ *         elif t == 134:  # I=, =
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+        goto __pyx_L75;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":371
+ *                 traceback.push_back(61) # =
+ *             else:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(73) # I
+ *         elif t == 129:  # D=: =
+ */
+      /*else*/ {
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":372
+ *             else:
+ *                 i -= 1
+ *                 traceback.push_back(73) # I             # <<<<<<<<<<<<<<
+ *         elif t == 129:  # D=: =
+ *             if traceback.empty() or (traceback.back() != 68):
+ */
+        try {
+          __pyx_v_traceback.push_back(73);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 372, __pyx_L1_error)
+        }
+      }
+      __pyx_L75:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":365
+ *             j -= 1
+ *             traceback.push_back(68)     # D
+ *         elif t == 134:  # I=, =             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1
+ */
+      break;
+      case 0x81:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":374
+ *                 traceback.push_back(73) # I
+ *         elif t == 129:  # D=: =
+ *             if traceback.empty() or (traceback.back() != 68):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L79_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 68);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L79_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":375
+ *         elif t == 129:  # D=: =
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":376
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(61) # =
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":377
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(61) # =             # <<<<<<<<<<<<<<
+ *             else:
+ *                 j -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(61);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 377, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":374
+ *                 traceback.push_back(73) # I
+ *         elif t == 129:  # D=: =
+ *             if traceback.empty() or (traceback.back() != 68):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+        goto __pyx_L78;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":379
+ *                 traceback.push_back(61) # =
+ *             else:
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(68) # D
+ *         elif t == 161:  # IX: X
+ */
+      /*else*/ {
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":380
+ *             else:
+ *                 j -= 1
+ *                 traceback.push_back(68) # D             # <<<<<<<<<<<<<<
+ *         elif t == 161:  # IX: X
+ *             if traceback.empty() or (traceback.back() != 73):
+ */
+        try {
+          __pyx_v_traceback.push_back(68);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 380, __pyx_L1_error)
+        }
+      }
+      __pyx_L78:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":373
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ *         elif t == 129:  # D=: =             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1
+ */
+      break;
+      case 0xA1:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":382
+ *                 traceback.push_back(68) # D
+ *         elif t == 161:  # IX: X
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L82_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 73);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L82_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":383
+ *         elif t == 161:  # IX: X
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(88) # X
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":384
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(88) # X
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":385
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(88) # X             # <<<<<<<<<<<<<<
+ *             else:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(88);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 385, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":382
+ *                 traceback.push_back(68) # D
+ *         elif t == 161:  # IX: X
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+        goto __pyx_L81;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":387
+ *                 traceback.push_back(88) # X
+ *             else:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(73) # I
+ *         elif t == 156:  # DX: X
+ */
+      /*else*/ {
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":388
+ *             else:
+ *                 i -= 1
+ *                 traceback.push_back(73) # I             # <<<<<<<<<<<<<<
+ *         elif t == 156:  # DX: X
+ *             if traceback.empty() or (traceback.back() != 68):
+ */
+        try {
+          __pyx_v_traceback.push_back(73);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 388, __pyx_L1_error)
+        }
+      }
+      __pyx_L81:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":381
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ *         elif t == 161:  # IX: X             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 i -= 1
+ */
+      break;
+      case 0x9C:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":390
+ *                 traceback.push_back(73) # I
+ *         elif t == 156:  # DX: X
+ *             if traceback.empty() or (traceback.back() != 68):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L85_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 68);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L85_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":391
+ *         elif t == 156:  # DX: X
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(88) # X
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":392
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(88) # X
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":393
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(88) # X             # <<<<<<<<<<<<<<
+ *             else:
+ *                 j -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(88);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 393, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":390
+ *                 traceback.push_back(73) # I
+ *         elif t == 156:  # DX: X
+ *             if traceback.empty() or (traceback.back() != 68):             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+        goto __pyx_L84;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":395
+ *                 traceback.push_back(88) # X
+ *             else:
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(68) # D
+ * 
+ */
+      /*else*/ {
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":396
+ *             else:
+ *                 j -= 1
+ *                 traceback.push_back(68) # D             # <<<<<<<<<<<<<<
+ * 
+ *         elif t == 141:  # ID: D
+ */
+        try {
+          __pyx_v_traceback.push_back(68);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 396, __pyx_L1_error)
+        }
+      }
+      __pyx_L84:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":389
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ *         elif t == 156:  # DX: X             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 68):
+ *                 i -= 1
+ */
+      break;
+      case 0x8D:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":399
+ * 
+ *         elif t == 141:  # ID: D
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D  deletion
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L88_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 73);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L88_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":400
+ *         elif t == 141:  # ID: D
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(68) # D  deletion
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":401
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1
+ *                 traceback.push_back(68) # D  deletion             # <<<<<<<<<<<<<<
+ *             else:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(68);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 401, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":399
+ * 
+ *         elif t == 141:  # ID: D
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D  deletion
+ */
+        goto __pyx_L87;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":403
+ *                 traceback.push_back(68) # D  deletion
+ *             else:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(73) # I
+ *         elif t == 202:  # ID=: =
+ */
+      /*else*/ {
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":404
+ *             else:
+ *                 i -= 1
+ *                 traceback.push_back(73) # I             # <<<<<<<<<<<<<<
+ *         elif t == 202:  # ID=: =
+ *             if traceback.empty():
+ */
+        try {
+          __pyx_v_traceback.push_back(73);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 404, __pyx_L1_error)
+        }
+      }
+      __pyx_L87:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":398
+ *                 traceback.push_back(68) # D
+ * 
+ *         elif t == 141:  # ID: D             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1
+ */
+      break;
+      case 0xCA:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":406
+ *                 traceback.push_back(73) # I
+ *         elif t == 202:  # ID=: =
+ *             if traceback.empty():             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+      __pyx_t_9 = __pyx_v_traceback.empty();
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":407
+ *         elif t == 202:  # ID=: =
+ *             if traceback.empty():
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":408
+ *             if traceback.empty():
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(61) # =
+ *             elif traceback.back() == 68:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":409
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(61) # =             # <<<<<<<<<<<<<<
+ *             elif traceback.back() == 68:
+ *                 j -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(61);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 409, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":406
+ *                 traceback.push_back(73) # I
+ *         elif t == 202:  # ID=: =
+ *             if traceback.empty():             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 j -= 1
+ */
+        goto __pyx_L90;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":410
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ *             elif traceback.back() == 68:             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ */
+      __pyx_t_9 = (__pyx_v_traceback.back() == 68);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":411
+ *                 traceback.push_back(61) # =
+ *             elif traceback.back() == 68:
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(68) # D
+ *             elif traceback.back() == 73:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":412
+ *             elif traceback.back() == 68:
+ *                 j -= 1
+ *                 traceback.push_back(68) # D             # <<<<<<<<<<<<<<
+ *             elif traceback.back() == 73:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(68);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 412, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":410
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ *             elif traceback.back() == 68:             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ */
+        goto __pyx_L90;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":413
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ *             elif traceback.back() == 73:             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ */
+      __pyx_t_9 = (__pyx_v_traceback.back() == 73);
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":414
+ *                 traceback.push_back(68) # D
+ *             elif traceback.back() == 73:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(73) # I
+ *             else:
+ */
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":415
+ *             elif traceback.back() == 73:
+ *                 i -= 1
+ *                 traceback.push_back(73) # I             # <<<<<<<<<<<<<<
+ *             else:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(73);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 415, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":413
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ *             elif traceback.back() == 73:             # <<<<<<<<<<<<<<
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ */
+        goto __pyx_L90;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":417
+ *                 traceback.push_back(73) # I
+ *             else:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ */
+      /*else*/ {
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":418
+ *             else:
+ *                 i -= 1
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(61) # =
+ *         elif t == 229:  # IDX: D
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":419
+ *                 i -= 1
+ *                 j -= 1
+ *                 traceback.push_back(61) # =             # <<<<<<<<<<<<<<
+ *         elif t == 229:  # IDX: D
+ *             if traceback.empty() or (traceback.back() != 73):
+ */
+        try {
+          __pyx_v_traceback.push_back(61);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 419, __pyx_L1_error)
+        }
+      }
+      __pyx_L90:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":405
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ *         elif t == 202:  # ID=: =             # <<<<<<<<<<<<<<
+ *             if traceback.empty():
+ *                 i -= 1
+ */
+      break;
+      case 0xE5:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":421
+ *                 traceback.push_back(61) # =
+ *         elif t == 229:  # IDX: D
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ */
+      __pyx_t_1 = __pyx_v_traceback.empty();
+      if (!__pyx_t_1) {
+      } else {
+        __pyx_t_9 = __pyx_t_1;
+        goto __pyx_L92_bool_binop_done;
+      }
+      __pyx_t_1 = (__pyx_v_traceback.back() != 73);
+      __pyx_t_9 = __pyx_t_1;
+      __pyx_L92_bool_binop_done:;
+      if (__pyx_t_9) {
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":422
+ *         elif t == 229:  # IDX: D
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(68) # D
+ *             else:
+ */
+        __pyx_v_j = (__pyx_v_j - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":423
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1
+ *                 traceback.push_back(68) # D             # <<<<<<<<<<<<<<
+ *             else:
+ *                 i -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(68);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 423, __pyx_L1_error)
+        }
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":421
+ *                 traceback.push_back(61) # =
+ *         elif t == 229:  # IDX: D
+ *             if traceback.empty() or (traceback.back() != 73):             # <<<<<<<<<<<<<<
+ *                 j -= 1
+ *                 traceback.push_back(68) # D
+ */
+        goto __pyx_L91;
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":425
+ *                 traceback.push_back(68) # D
+ *             else:
+ *                 i -= 1             # <<<<<<<<<<<<<<
+ *                 traceback.push_back(73) # I
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H
+ */
+      /*else*/ {
+        __pyx_v_i = (__pyx_v_i - 1);
+
+        /* "savemoney/modules/cython_functions/alignment_functions.pyx":426
+ *             else:
+ *                 i -= 1
+ *                 traceback.push_back(73) # I             # <<<<<<<<<<<<<<
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H
+ *             j -= 1
+ */
+        try {
+          __pyx_v_traceback.push_back(73);
+        } catch(...) {
+          __Pyx_CppExn2PyErr();
+          __PYX_ERR(0, 426, __pyx_L1_error)
+        }
+      }
+      __pyx_L91:;
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":420
+ *                 j -= 1
+ *                 traceback.push_back(61) # =
+ *         elif t == 229:  # IDX: D             # <<<<<<<<<<<<<<
+ *             if traceback.empty() or (traceback.back() != 73):
+ *                 j -= 1
+ */
+      break;
+      case 72:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":427
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H             # <<<<<<<<<<<<<<
+ *             j -= 1
+ *             traceback.push_back(72)
+ */
+      case 0x91:
+      case 0x85:
+      case 0xCE:
+      case 0xA0:
+      case 0xE9:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":428
+ *                 traceback.push_back(73) # I
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H
+ *             j -= 1             # <<<<<<<<<<<<<<
+ *             traceback.push_back(72)
+ *         #
+ */
+      __pyx_v_j = (__pyx_v_j - 1);
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":429
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H
+ *             j -= 1
+ *             traceback.push_back(72)             # <<<<<<<<<<<<<<
+ *         #
+ *         else:
+ */
+      try {
+        __pyx_v_traceback.push_back(72);
+      } catch(...) {
+        __Pyx_CppExn2PyErr();
+        __PYX_ERR(0, 429, __pyx_L1_error)
+      }
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":427
+ *                 i -= 1
+ *                 traceback.push_back(73) # I
+ *         elif t in (72, 145, 133, 206, 160, 233):    # H             # <<<<<<<<<<<<<<
+ *             j -= 1
+ *             traceback.push_back(72)
+ */
+      break;
+      default:
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":432
+ *         #
+ *         else:
+ *             assert t == 42             # <<<<<<<<<<<<<<
+ *             break
+ *     cdef vector[vec] result
+ */
+      #ifndef CYTHON_WITHOUT_ASSERTIONS
+      if (unlikely(__pyx_assertions_enabled())) {
+        __pyx_t_9 = (__pyx_v_t == 42);
+        if (unlikely(!__pyx_t_9)) {
+          __Pyx_Raise(__pyx_builtin_AssertionError, 0, 0, 0);
+          __PYX_ERR(0, 432, __pyx_L1_error)
+        }
+      }
+      #else
+      if ((1)); else __PYX_ERR(0, 432, __pyx_L1_error)
+      #endif
+
+      /* "savemoney/modules/cython_functions/alignment_functions.pyx":433
+ *         else:
+ *             assert t == 42
+ *             break             # <<<<<<<<<<<<<<
+ *     cdef vector[vec] result
+ *     result.push_back(traceback)
+ */
+      goto __pyx_L74_break;
+      break;
+    }
+  }
+  __pyx_L74_break:;
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":435
+ *             break
+ *     cdef vector[vec] result
+ *     result.push_back(traceback)             # <<<<<<<<<<<<<<
+ *     result.push_back(score_trace)
+ *     return result
+ */
+  try {
+    __pyx_v_result.push_back(__pyx_v_traceback);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 435, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":436
+ *     cdef vector[vec] result
+ *     result.push_back(traceback)
+ *     result.push_back(score_trace)             # <<<<<<<<<<<<<<
+ *     return result
+ */
+  try {
+    __pyx_v_result.push_back(__pyx_v_score_trace);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 436, __pyx_L1_error)
+  }
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":437
+ *     result.push_back(traceback)
+ *     result.push_back(score_trace)
+ *     return result             # <<<<<<<<<<<<<<
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_10 = __pyx_convert_vector_to_py___pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_vec(__pyx_v_result); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 437, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
+  __pyx_r = __pyx_t_10;
+  __pyx_t_10 = 0;
+  goto __pyx_L0;
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":66
+ * 
+ * from libcpp.string cimport string
+ * cpdef my_special_dp_cython(             # <<<<<<<<<<<<<<
+ *         string query_seq_1,
+ *         string query_seq_2,
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_10);
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.my_special_dp_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+); /*proto*/
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython = {"my_special_dp_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython(PyObject *__pyx_self, 
+#if CYTHON_METH_FASTCALL
+PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
+#else
+PyObject *__pyx_args, PyObject *__pyx_kwds
+#endif
+) {
+  std::string __pyx_v_query_seq_1;
+  std::string __pyx_v_query_seq_2;
+  std::string __pyx_v_ref_seq;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_open_penalty;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_extend_penalty;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_match_score;
+  __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_mismatch_score;
+  #if !CYTHON_METH_FASTCALL
+  CYTHON_UNUSED Py_ssize_t __pyx_nargs;
+  #endif
+  CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
+  PyObject* values[7] = {0,0,0,0,0,0,0};
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("my_special_dp_cython (wrapper)", 0);
+  #if !CYTHON_METH_FASTCALL
+  #if CYTHON_ASSUME_SAFE_MACROS
+  __pyx_nargs = PyTuple_GET_SIZE(__pyx_args);
+  #else
+  __pyx_nargs = PyTuple_Size(__pyx_args); if (unlikely(__pyx_nargs < 0)) return NULL;
+  #endif
+  #endif
+  __pyx_kwvalues = __Pyx_KwValues_FASTCALL(__pyx_args, __pyx_nargs);
+  {
+    PyObject **__pyx_pyargnames[] = {&__pyx_n_s_query_seq_1,&__pyx_n_s_query_seq_2,&__pyx_n_s_ref_seq,&__pyx_n_s_gap_open_penalty,&__pyx_n_s_gap_extend_penalty,&__pyx_n_s_match_score,&__pyx_n_s_mismatch_score,0};
+    if (__pyx_kwds) {
+      Py_ssize_t kw_args;
+      switch (__pyx_nargs) {
+        case  7: values[6] = __Pyx_Arg_FASTCALL(__pyx_args, 6);
+        CYTHON_FALLTHROUGH;
+        case  6: values[5] = __Pyx_Arg_FASTCALL(__pyx_args, 5);
+        CYTHON_FALLTHROUGH;
+        case  5: values[4] = __Pyx_Arg_FASTCALL(__pyx_args, 4);
+        CYTHON_FALLTHROUGH;
+        case  4: values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = __Pyx_NumKwargs_FASTCALL(__pyx_kwds);
+      switch (__pyx_nargs) {
+        case  0:
+        if (likely((values[0] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_query_seq_1)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_query_seq_2)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 1); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_ref_seq)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[2]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 2); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (likely((values[3] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_gap_open_penalty)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[3]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 3); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  4:
+        if (likely((values[4] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_gap_extend_penalty)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[4]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 4); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  5:
+        if (likely((values[5] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_match_score)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[5]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 5); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  6:
+        if (likely((values[6] = __Pyx_GetKwValue_FASTCALL(__pyx_kwds, __pyx_kwvalues, __pyx_n_s_mismatch_score)) != 0)) {
+          (void)__Pyx_Arg_NewRef_FASTCALL(values[6]);
+          kw_args--;
+        }
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 66, __pyx_L3_error)
+        else {
+          __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, 6); __PYX_ERR(0, 66, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        const Py_ssize_t kwd_pos_args = __pyx_nargs;
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "my_special_dp_cython") < 0)) __PYX_ERR(0, 66, __pyx_L3_error)
+      }
+    } else if (unlikely(__pyx_nargs != 7)) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
+      values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
+      values[2] = __Pyx_Arg_FASTCALL(__pyx_args, 2);
+      values[3] = __Pyx_Arg_FASTCALL(__pyx_args, 3);
+      values[4] = __Pyx_Arg_FASTCALL(__pyx_args, 4);
+      values[5] = __Pyx_Arg_FASTCALL(__pyx_args, 5);
+      values[6] = __Pyx_Arg_FASTCALL(__pyx_args, 6);
+    }
+    __pyx_v_query_seq_1 = __pyx_convert_string_from_py_std__in_string(values[0]); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
+    __pyx_v_query_seq_2 = __pyx_convert_string_from_py_std__in_string(values[1]); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_ref_seq = __pyx_convert_string_from_py_std__in_string(values[2]); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 69, __pyx_L3_error)
+    __pyx_v_gap_open_penalty = __Pyx_PyInt_As_PY_LONG_LONG(values[3]); if (unlikely((__pyx_v_gap_open_penalty == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 70, __pyx_L3_error)
+    __pyx_v_gap_extend_penalty = __Pyx_PyInt_As_PY_LONG_LONG(values[4]); if (unlikely((__pyx_v_gap_extend_penalty == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 71, __pyx_L3_error)
+    __pyx_v_match_score = __Pyx_PyInt_As_PY_LONG_LONG(values[5]); if (unlikely((__pyx_v_match_score == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 72, __pyx_L3_error)
+    __pyx_v_mismatch_score = __Pyx_PyInt_As_PY_LONG_LONG(values[6]); if (unlikely((__pyx_v_mismatch_score == (PY_LONG_LONG)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
+  }
+  goto __pyx_L6_skip;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("my_special_dp_cython", 1, 7, 7, __pyx_nargs); __PYX_ERR(0, 66, __pyx_L3_error)
+  __pyx_L6_skip:;
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L3_error:;
+  {
+    Py_ssize_t __pyx_temp;
+    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
+      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
+    }
+  }
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.my_special_dp_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_2my_special_dp_cython(__pyx_self, __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_query_seq_1), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_query_seq_2), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_ref_seq), __pyx_v_gap_open_penalty, __pyx_v_gap_extend_penalty, __pyx_v_match_score, __pyx_v_mismatch_score);
+
+  /* function exit code */
+  {
+    Py_ssize_t __pyx_temp;
+    for (__pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
+      __Pyx_Arg_XDECREF_FASTCALL(values[__pyx_temp]);
+    }
+  }
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_9savemoney_7modules_16cython_functions_19alignment_functions_2my_special_dp_cython(CYTHON_UNUSED PyObject *__pyx_self, std::string __pyx_v_query_seq_1, std::string __pyx_v_query_seq_2, std::string __pyx_v_ref_seq, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_open_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_gap_extend_penalty, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_match_score, __pyx_t_9savemoney_7modules_16cython_functions_19alignment_functions_LL __pyx_v_mismatch_score) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("my_special_dp_cython", 1);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_9savemoney_7modules_16cython_functions_19alignment_functions_my_special_dp_cython(__pyx_v_query_seq_1, __pyx_v_query_seq_2, __pyx_v_ref_seq, __pyx_v_gap_open_penalty, __pyx_v_gap_extend_penalty, __pyx_v_match_score, __pyx_v_mismatch_score, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("savemoney.modules.cython_functions.alignment_functions.my_special_dp_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -18867,7 +23124,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
     {&__pyx_n_s_View_MemoryView, __pyx_k_View_MemoryView, sizeof(__pyx_k_View_MemoryView), 0, 0, 1, 1},
     {&__pyx_kp_u__2, __pyx_k__2, sizeof(__pyx_k__2), 0, 1, 0, 0},
-    {&__pyx_n_s__22, __pyx_k__22, sizeof(__pyx_k__22), 0, 0, 1, 1},
+    {&__pyx_n_s__24, __pyx_k__24, sizeof(__pyx_k__24), 0, 0, 1, 1},
     {&__pyx_n_s__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 0, 1, 1},
     {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
     {&__pyx_kp_u__7, __pyx_k__7, sizeof(__pyx_k__7), 0, 1, 0, 0},
@@ -18898,6 +23155,8 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
     {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
     {&__pyx_n_u_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 1, 0, 1},
+    {&__pyx_n_s_gap_extend_penalty, __pyx_k_gap_extend_penalty, sizeof(__pyx_k_gap_extend_penalty), 0, 0, 1, 1},
+    {&__pyx_n_s_gap_open_penalty, __pyx_k_gap_open_penalty, sizeof(__pyx_k_gap_open_penalty), 0, 0, 1, 1},
     {&__pyx_kp_u_gc, __pyx_k_gc, sizeof(__pyx_k_gc), 0, 1, 0, 0},
     {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
     {&__pyx_kp_u_got, __pyx_k_got, sizeof(__pyx_k_got), 0, 1, 0, 0},
@@ -18910,11 +23169,14 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_kp_u_isenabled, __pyx_k_isenabled, sizeof(__pyx_k_isenabled), 0, 1, 0, 0},
     {&__pyx_n_s_itemsize, __pyx_k_itemsize, sizeof(__pyx_k_itemsize), 0, 0, 1, 1},
     {&__pyx_kp_s_itemsize_0_for_cython_array, __pyx_k_itemsize_0_for_cython_array, sizeof(__pyx_k_itemsize_0_for_cython_array), 0, 0, 1, 0},
-    {&__pyx_n_s_k_mer_offset_analysis, __pyx_k_k_mer_offset_analysis, sizeof(__pyx_k_k_mer_offset_analysis), 0, 0, 1, 1},
+    {&__pyx_n_s_k_mer_offset_analysis_2, __pyx_k_k_mer_offset_analysis_2, sizeof(__pyx_k_k_mer_offset_analysis_2), 0, 0, 1, 1},
     {&__pyx_n_s_len_query_seq_v, __pyx_k_len_query_seq_v, sizeof(__pyx_k_len_query_seq_v), 0, 0, 1, 1},
     {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
+    {&__pyx_n_s_match_score, __pyx_k_match_score, sizeof(__pyx_k_match_score), 0, 0, 1, 1},
     {&__pyx_n_s_memview, __pyx_k_memview, sizeof(__pyx_k_memview), 0, 0, 1, 1},
+    {&__pyx_n_s_mismatch_score, __pyx_k_mismatch_score, sizeof(__pyx_k_mismatch_score), 0, 0, 1, 1},
     {&__pyx_n_s_mode, __pyx_k_mode, sizeof(__pyx_k_mode), 0, 0, 1, 1},
+    {&__pyx_n_s_my_special_dp_cython, __pyx_k_my_special_dp_cython, sizeof(__pyx_k_my_special_dp_cython), 0, 0, 1, 1},
     {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
     {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
     {&__pyx_n_s_ndim, __pyx_k_ndim, sizeof(__pyx_k_ndim), 0, 0, 1, 1},
@@ -18930,11 +23192,14 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_pyx_type, __pyx_k_pyx_type, sizeof(__pyx_k_pyx_type), 0, 0, 1, 1},
     {&__pyx_n_s_pyx_unpickle_Enum, __pyx_k_pyx_unpickle_Enum, sizeof(__pyx_k_pyx_unpickle_Enum), 0, 0, 1, 1},
     {&__pyx_n_s_pyx_vtable, __pyx_k_pyx_vtable, sizeof(__pyx_k_pyx_vtable), 0, 0, 1, 1},
+    {&__pyx_n_s_query_seq_1, __pyx_k_query_seq_1, sizeof(__pyx_k_query_seq_1), 0, 0, 1, 1},
+    {&__pyx_n_s_query_seq_2, __pyx_k_query_seq_2, sizeof(__pyx_k_query_seq_2), 0, 0, 1, 1},
     {&__pyx_n_s_query_seq_v, __pyx_k_query_seq_v, sizeof(__pyx_k_query_seq_v), 0, 0, 1, 1},
     {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
     {&__pyx_n_s_reduce, __pyx_k_reduce, sizeof(__pyx_k_reduce), 0, 0, 1, 1},
     {&__pyx_n_s_reduce_cython, __pyx_k_reduce_cython, sizeof(__pyx_k_reduce_cython), 0, 0, 1, 1},
     {&__pyx_n_s_reduce_ex, __pyx_k_reduce_ex, sizeof(__pyx_k_reduce_ex), 0, 0, 1, 1},
+    {&__pyx_n_s_ref_seq, __pyx_k_ref_seq, sizeof(__pyx_k_ref_seq), 0, 0, 1, 1},
     {&__pyx_n_s_ref_seq_v_repeated, __pyx_k_ref_seq_v_repeated, sizeof(__pyx_k_ref_seq_v_repeated), 0, 0, 1, 1},
     {&__pyx_n_s_register, __pyx_k_register, sizeof(__pyx_k_register), 0, 0, 1, 1},
     {&__pyx_n_s_savemoney_modules_cython_functio, __pyx_k_savemoney_modules_cython_functio, sizeof(__pyx_k_savemoney_modules_cython_functio), 0, 0, 1, 1},
@@ -18965,12 +23230,12 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 57, __pyx_L1_error)
+  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(0, 81, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 68, __pyx_L1_error)
   __pyx_builtin___import__ = __Pyx_GetBuiltinName(__pyx_n_s_import); if (!__pyx_builtin___import__) __PYX_ERR(1, 100, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 141, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(1, 159, __pyx_L1_error)
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(1, 2, __pyx_L1_error)
-  __pyx_builtin_AssertionError = __Pyx_GetBuiltinName(__pyx_n_s_AssertionError); if (!__pyx_builtin_AssertionError) __PYX_ERR(1, 373, __pyx_L1_error)
   __pyx_builtin_Ellipsis = __Pyx_GetBuiltinName(__pyx_n_s_Ellipsis); if (!__pyx_builtin_Ellipsis) __PYX_ERR(1, 408, __pyx_L1_error)
   __pyx_builtin_id = __Pyx_GetBuiltinName(__pyx_n_s_id); if (!__pyx_builtin_id) __PYX_ERR(1, 618, __pyx_L1_error)
   __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(1, 914, __pyx_L1_error)
@@ -19121,17 +23386,29 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__18);
   __pyx_codeobj__19 = (PyObject*)__Pyx_PyCode_New(3, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__18, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_stringsource, __pyx_n_s_pyx_unpickle_Enum, 1, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__19)) __PYX_ERR(1, 1, __pyx_L1_error)
 
-  /* "savemoney/modules/cython_functions/alignment_functions.pyx":46
- * ctypedef long long LL
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":45
+ * ctypedef long long LL   # unsigned
  * ctypedef vector[LL] vec
- * cpdef k_mer_offset_analysis_(             # <<<<<<<<<<<<<<
+ * cpdef k_mer_offset_analysis_2(             # <<<<<<<<<<<<<<
  *         LL[:] ref_seq_v_repeated,
  *         LL[:] query_seq_v,
  */
-  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_ref_seq_v_repeated, __pyx_n_s_query_seq_v, __pyx_n_s_N_ref, __pyx_n_s_len_query_seq_v); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_ref_seq_v_repeated, __pyx_n_s_query_seq_v, __pyx_n_s_N_ref, __pyx_n_s_len_query_seq_v); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
-  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_k_mer_offset_analysis, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_k_mer_offset_analysis_2, 45, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 45, __pyx_L1_error)
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":66
+ * 
+ * from libcpp.string cimport string
+ * cpdef my_special_dp_cython(             # <<<<<<<<<<<<<<
+ *         string query_seq_1,
+ *         string query_seq_2,
+ */
+  __pyx_tuple__22 = PyTuple_Pack(7, __pyx_n_s_query_seq_1, __pyx_n_s_query_seq_2, __pyx_n_s_ref_seq, __pyx_n_s_gap_open_penalty, __pyx_n_s_gap_extend_penalty, __pyx_n_s_match_score, __pyx_n_s_mismatch_score); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__22);
+  __Pyx_GIVEREF(__pyx_tuple__22);
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(7, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_my_special_dp_cython, 66, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -20182,16 +24459,28 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_pyx_unpickle_Enum, __pyx_t_7) < 0) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-  /* "savemoney/modules/cython_functions/alignment_functions.pyx":46
- * ctypedef long long LL
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":45
+ * ctypedef long long LL   # unsigned
  * ctypedef vector[LL] vec
- * cpdef k_mer_offset_analysis_(             # <<<<<<<<<<<<<<
+ * cpdef k_mer_offset_analysis_2(             # <<<<<<<<<<<<<<
  *         LL[:] ref_seq_v_repeated,
  *         LL[:] query_seq_v,
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_, 0, __pyx_n_s_k_mer_offset_analysis, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, 0, __pyx_n_s_k_mer_offset_analysis_2, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_k_mer_offset_analysis, __pyx_t_7) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_k_mer_offset_analysis_2, __pyx_t_7) < 0) __PYX_ERR(0, 45, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+
+  /* "savemoney/modules/cython_functions/alignment_functions.pyx":66
+ * 
+ * from libcpp.string cimport string
+ * cpdef my_special_dp_cython(             # <<<<<<<<<<<<<<
+ *         string query_seq_1,
+ *         string query_seq_2,
+ */
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, 0, __pyx_n_s_my_special_dp_cython, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__23)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 66, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_my_special_dp_cython, __pyx_t_7) < 0) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
   /* "savemoney/modules/cython_functions/alignment_functions.pyx":1
@@ -26215,6 +30504,279 @@ raise_neg_overflow:
 }
 
 /* CIntFromPy */
+  static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const size_t neg_one = (size_t) -1, const_zero = (size_t) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+#if PY_MAJOR_VERSION < 3
+    if (likely(PyInt_Check(x))) {
+        if ((sizeof(size_t) < sizeof(long))) {
+            __PYX_VERIFY_RETURN_INT(size_t, long, PyInt_AS_LONG(x))
+        } else {
+            long val = PyInt_AS_LONG(x);
+            if (is_unsigned && unlikely(val < 0)) {
+                goto raise_neg_overflow;
+            }
+            return (size_t) val;
+        }
+    } else
+#endif
+    if (likely(PyLong_Check(x))) {
+        if (is_unsigned) {
+#if CYTHON_USE_PYLONG_INTERNALS
+            if (unlikely(__Pyx_PyLong_IsNeg(x))) {
+                goto raise_neg_overflow;
+            } else if (__Pyx_PyLong_IsCompact(x)) {
+                __PYX_VERIFY_RETURN_INT(size_t, __Pyx_compact_upylong, __Pyx_PyLong_CompactValueUnsigned(x))
+            } else {
+                const digit* digits = __Pyx_PyLong_Digits(x);
+                assert(__Pyx_PyLong_DigitCount(x) > 1);
+                switch (__Pyx_PyLong_DigitCount(x)) {
+                    case 2:
+                        if ((8 * sizeof(size_t) > 1 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 2 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) >= 2 * PyLong_SHIFT)) {
+                                return (size_t) (((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                            }
+                        }
+                        break;
+                    case 3:
+                        if ((8 * sizeof(size_t) > 2 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 3 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) >= 3 * PyLong_SHIFT)) {
+                                return (size_t) (((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                            }
+                        }
+                        break;
+                    case 4:
+                        if ((8 * sizeof(size_t) > 3 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 4 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) >= 4 * PyLong_SHIFT)) {
+                                return (size_t) (((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                            }
+                        }
+                        break;
+                }
+            }
+#endif
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX < 0x030C00A7
+            if (unlikely(Py_SIZE(x) < 0)) {
+                goto raise_neg_overflow;
+            }
+#else
+            {
+                int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
+                if (unlikely(result < 0))
+                    return (size_t) -1;
+                if (unlikely(result == 1))
+                    goto raise_neg_overflow;
+            }
+#endif
+            if ((sizeof(size_t) <= sizeof(unsigned long))) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned long, PyLong_AsUnsignedLong(x))
+#ifdef HAVE_LONG_LONG
+            } else if ((sizeof(size_t) <= sizeof(unsigned PY_LONG_LONG))) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong(x))
+#endif
+            }
+        } else {
+#if CYTHON_USE_PYLONG_INTERNALS
+            if (__Pyx_PyLong_IsCompact(x)) {
+                __PYX_VERIFY_RETURN_INT(size_t, __Pyx_compact_pylong, __Pyx_PyLong_CompactValue(x))
+            } else {
+                const digit* digits = __Pyx_PyLong_Digits(x);
+                assert(__Pyx_PyLong_DigitCount(x) > 1);
+                switch (__Pyx_PyLong_SignedDigitCount(x)) {
+                    case -2:
+                        if ((8 * sizeof(size_t) - 1 > 1 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 2 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT)) {
+                                return (size_t) (((size_t)-1)*(((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                    case 2:
+                        if ((8 * sizeof(size_t) > 1 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 2 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT)) {
+                                return (size_t) ((((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                    case -3:
+                        if ((8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 3 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT)) {
+                                return (size_t) (((size_t)-1)*(((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                    case 3:
+                        if ((8 * sizeof(size_t) > 2 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 3 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT)) {
+                                return (size_t) ((((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                    case -4:
+                        if ((8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 4 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT)) {
+                                return (size_t) (((size_t)-1)*(((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                    case 4:
+                        if ((8 * sizeof(size_t) > 3 * PyLong_SHIFT)) {
+                            if ((8 * sizeof(unsigned long) > 4 * PyLong_SHIFT)) {
+                                __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                            } else if ((8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT)) {
+                                return (size_t) ((((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                            }
+                        }
+                        break;
+                }
+            }
+#endif
+            if ((sizeof(size_t) <= sizeof(long))) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, long, PyLong_AsLong(x))
+#ifdef HAVE_LONG_LONG
+            } else if ((sizeof(size_t) <= sizeof(PY_LONG_LONG))) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, PY_LONG_LONG, PyLong_AsLongLong(x))
+#endif
+            }
+        }
+        {
+            size_t val;
+            PyObject *v = __Pyx_PyNumber_IntOrLong(x);
+#if PY_MAJOR_VERSION < 3
+            if (likely(v) && !PyLong_Check(v)) {
+                PyObject *tmp = v;
+                v = PyNumber_Long(tmp);
+                Py_DECREF(tmp);
+            }
+#endif
+            if (likely(v)) {
+                int ret = -1;
+#if PY_VERSION_HEX < 0x030d0000 && !(CYTHON_COMPILING_IN_PYPY || CYTHON_COMPILING_IN_LIMITED_API) || defined(_PyLong_AsByteArray)
+                int one = 1; int is_little = (int)*(unsigned char *)&one;
+                unsigned char *bytes = (unsigned char *)&val;
+                ret = _PyLong_AsByteArray((PyLongObject *)v,
+                                           bytes, sizeof(val),
+                                           is_little, !is_unsigned);
+#else
+                PyObject *stepval = NULL, *mask = NULL, *shift = NULL;
+                int bits, remaining_bits, is_negative = 0;
+                long idigit;
+                int chunk_size = (sizeof(long) < 8) ? 30 : 62;
+                if (unlikely(!PyLong_CheckExact(v))) {
+                    PyObject *tmp = v;
+                    v = PyNumber_Long(v);
+                    assert(PyLong_CheckExact(v));
+                    Py_DECREF(tmp);
+                    if (unlikely(!v)) return (size_t) -1;
+                }
+#if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000
+                if (Py_SIZE(x) == 0)
+                    return (size_t) 0;
+                is_negative = Py_SIZE(x) < 0;
+#else
+                {
+                    int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
+                    if (unlikely(result < 0))
+                        return (size_t) -1;
+                    is_negative = result == 1;
+                }
+#endif
+                if (is_unsigned && unlikely(is_negative)) {
+                    goto raise_neg_overflow;
+                } else if (is_negative) {
+                    stepval = PyNumber_Invert(v);
+                    if (unlikely(!stepval))
+                        return (size_t) -1;
+                } else {
+                    stepval = __Pyx_NewRef(v);
+                }
+                val = (size_t) 0;
+                mask = PyLong_FromLong((1L << chunk_size) - 1); if (unlikely(!mask)) goto done;
+                shift = PyLong_FromLong(chunk_size); if (unlikely(!shift)) goto done;
+                for (bits = 0; bits < (int) sizeof(size_t) * 8 - chunk_size; bits += chunk_size) {
+                    PyObject *tmp, *digit;
+                    digit = PyNumber_And(stepval, mask);
+                    if (unlikely(!digit)) goto done;
+                    idigit = PyLong_AsLong(digit);
+                    Py_DECREF(digit);
+                    if (unlikely(idigit < 0)) goto done;
+                    tmp = PyNumber_Rshift(stepval, shift);
+                    if (unlikely(!tmp)) goto done;
+                    Py_DECREF(stepval); stepval = tmp;
+                    val |= ((size_t) idigit) << bits;
+                    #if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000
+                    if (Py_SIZE(stepval) == 0)
+                        goto unpacking_done;
+                    #endif
+                }
+                idigit = PyLong_AsLong(stepval);
+                if (unlikely(idigit < 0)) goto done;
+                remaining_bits = ((int) sizeof(size_t) * 8) - bits - (is_unsigned ? 0 : 1);
+                if (unlikely(idigit >= (1L << remaining_bits)))
+                    goto raise_overflow;
+                val |= ((size_t) idigit) << bits;
+            #if CYTHON_COMPILING_IN_LIMITED_API && PY_VERSION_HEX < 0x030B0000
+            unpacking_done:
+            #endif
+                if (!is_unsigned) {
+                    if (unlikely(val & (((size_t) 1) << (sizeof(size_t) * 8 - 1))))
+                        goto raise_overflow;
+                    if (is_negative)
+                        val = ~val;
+                }
+                ret = 0;
+            done:
+                Py_XDECREF(shift);
+                Py_XDECREF(mask);
+                Py_XDECREF(stepval);
+#endif
+                Py_DECREF(v);
+                if (likely(!ret))
+                    return val;
+            }
+            return (size_t) -1;
+        }
+    } else {
+        size_t val;
+        PyObject *tmp = __Pyx_PyNumber_IntOrLong(x);
+        if (!tmp) return (size_t) -1;
+        val = __Pyx_PyInt_As_size_t(tmp);
+        Py_DECREF(tmp);
+        return val;
+    }
+raise_overflow:
+    PyErr_SetString(PyExc_OverflowError,
+        "value too large to convert to size_t");
+    return (size_t) -1;
+raise_neg_overflow:
+    PyErr_SetString(PyExc_OverflowError,
+        "can't convert negative value to size_t");
+    return (size_t) -1;
+}
+
+/* CIntFromPy */
   static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
@@ -27171,7 +31733,7 @@ __Pyx_PyType_GetName(PyTypeObject* tp)
     if (unlikely(name == NULL) || unlikely(!PyUnicode_Check(name))) {
         PyErr_Clear();
         Py_XDECREF(name);
-        name = __Pyx_NewRef(__pyx_n_s__22);
+        name = __Pyx_NewRef(__pyx_n_s__24);
     }
     return name;
 }

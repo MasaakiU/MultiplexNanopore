@@ -242,7 +242,7 @@ class QueryAssignment():
         rows = columns = self.N_ref_seq_list + 1
         hspace_unit = wspace_unit = 0.1
         left_margin_unit = 0.0
-        top_margin_unit = 0.0
+        top_margin_unit = 0.2
         right_margin_unit = 0.2
         bottom_margin_unit = 0.5
         figsize_unit = 2.0
@@ -395,7 +395,7 @@ class QueryAssignment():
         bottom_margin_unit = 0.8
         figsize_unit = 1.8
         left_header_unit = 1.0
-        top_header_unit = 1.0
+        top_header_unit = 1.5
         fig_width_unit = (figsize_unit + wspace_unit) * (columns - 1) + left_header_unit + left_margin_unit + right_margin_unit
         fig_height_unit = (figsize_unit + hspace_unit) * (rows - 1) + top_header_unit + top_margin_unit + bottom_margin_unit
         left = left_margin_unit / fig_width_unit
@@ -627,6 +627,9 @@ class MyMSAligner(mc.AlignmentBase):
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # my_msa.print_alignment()
         my_msa.calculate_consensus(param_dict)
+
+        # 2nd MSA
+
         return my_msa
 
 class SequenceBasecallQscorePDF():
@@ -689,7 +692,7 @@ class SequenceBasecallQscorePDF():
         return 1 - 1 / bunbo_bunshi_sum
 
 class MyMSA(mc.MyCigarBase):
-    file_format_version = "ff_0.1.0"
+    file_format_version = "ff_0.2.0"
     algorithm_version = "al_0.1.0"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
@@ -701,6 +704,7 @@ class MyMSA(mc.MyCigarBase):
     query_seq_related_save_order = [
         ("add_sequence", "query_seq_list_aligned"), 
         ("add_q_scores", "q_scores_list_aligned"), 
+        ("add_clipping_info", "clipping_info_list"),  # add "SEO" from my_cigar
     ]
     bases = "ATCG-"
     assert bases[-1] == "-"
@@ -780,14 +784,39 @@ class MyMSA(mc.MyCigarBase):
                 raise Exception(f"unknown cigar: {L}")
             previous_idx += N
         return q_scores
+    @property
+    def clipping_info_list(self):   # ['start_idx-end_idx:cigar', ...] (it's cigar, not my_cigar)
+        return [
+            ",".join(
+                f"{m.start()}-{m.end() - 1}:{''.join(f'{len(LLL)}{L}' for LLL, L in self.generate_cigar_iter(m.group(0)))}"
+                for m in re.finditer(r"[SHOE]+", my_cigar)
+            ) for my_cigar in self.my_cigar_list_aligned
+        ]
+    @clipping_info_list.setter
+    def clipping_info_list(self, clipping_info_list: List[str]):
+        self.regenerate_cigar()
+        assert len(clipping_info_list) == len(self.query_seq_list_aligned)
+        for query_idx, clipping_info in enumerate(clipping_info_list):
+            my_cigar = self.my_cigar_list_aligned[query_idx]
+            for ci in clipping_info.split(","):
+                if ci == "":
+                    continue
+                idx_info, cigar = ci.split(":")
+                m = re.match(r"([0-9]+)-([0-9]+)", idx_info)
+                my_cigar = my_cigar[:int(m.group(1))] + self.cigar_to_my_cigar(cigar) + my_cigar[int(m.group(2)) + 1:]
+            self.my_cigar_list_aligned[query_idx] = my_cigar
     @staticmethod
     def generate_msa(ref_seq: mc.MyRefSeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str]):
-        # 最後が必ず同時に終わるように、特殊シーケンスを追加 (こうしないと、query_seq_list のどれか一つのの最後が "I" である場合に正常終了しない)
+        """
+        最後が必ず同時に終わるように、特殊シーケンスを追加 (こうしないと、query_seq_list のどれか一つのの最後が "I" である場合に正常終了しない)
+        また、`elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HSE":` の部分で idx=-1 が生じる可能性がある。
+        それを考慮するために、my_cigar_list のみ、idx=-1 の要素を更に最後に追加しておく。
+        """
         assert len(query_seq_list) == len(q_scores_list) == len(my_cigar_list)
         ref_seq += "Z"
         query_seq_list = [query_seq + "Z" for query_seq in query_seq_list]
         q_scores_list = [q_scores + [-2] for q_scores in q_scores_list]
-        my_cigar_list = [my_cigar + "Z" for my_cigar in my_cigar_list]
+        my_cigar_list = [my_cigar + "Z" + my_cigar[-1] for my_cigar in my_cigar_list]
 
         # 実行準備
         ref_seq_idx = 0
@@ -801,38 +830,44 @@ class MyMSA(mc.MyCigarBase):
         # 実行
         while True:
             L_list = [my_cigar_list[i][my_cigar_idx] for i, my_cigar_idx in enumerate(my_cigar_idx_list)]
-            if "I" not in L_list:
+            I_not_in_L_list = "I" not in L_list
+            E_not_in_L_list = "E" not in L_list
+            # when ref_seq exists (not "I" nor "E")
+            if I_not_in_L_list and E_not_in_L_list:
                 R = ref_seq[ref_seq_idx]
-                if R == "Z":    # 全て終了していることを確認する
-                    assert [query_seq_list[i][query_seq_idx_list[i]] == "Z" for i in range(len(L_list))]
-                    assert [q_scores_list[i][query_seq_idx_list[i]] == -2 for i in range(len(L_list))]
-                    assert all(L == "Z" for L in L_list)
+                if R == "Z":    # 全て終了している (もしくはそもそも割り当てられたリードがない) ことを確認する
+                    assert all(query_seq_list[i][query_seq_idx_list[i]] == "Z" for i in range(len(L_list))) or (len(query_seq_idx_list) == 0)
+                    assert all(q_scores_list[i][query_seq_idx_list[i]] == -2 for i in range(len(L_list))) or (len(query_seq_idx_list) == 0)
+                    assert all(L == "Z" for L in L_list) or (len(L_list) == 0)
                     break
                 for i, L in enumerate(L_list):
-                    """
-                    ハード/ソフトクリッピング はない (環状 DNA で読めてない部分は deletion として扱う)
-                    行うとしたら ref_query_alignmeent.MyOptimizedAligner.execute_circular_alignment_using_conserved_regions だけど、ちょっとだけ面倒だし、そもそもハードクリッピングを行うのが正しいのかもわからない
-                    シーケンスがうまく行ってれば、ハード/ソフトクリッピングを行わなくても出てくる影響はごくわずかだし、うまく行ってないなら行ってないで、それがきちんと示されることが大切かなと。
-                    """
                     my_cigar_list_aligned[i] += L
                     my_cigar_idx_list[i]     += 1
-                    if L in "D":
+                    if L == "D":
                         query_seq_list_aligned[i] += "-"
                         q_scores_list_aligned[i]  += [-1]
-                    elif L == "=":
+                    elif L in "=XS":
                         query_seq_list_aligned[i] += query_seq_list[i][query_seq_idx_list[i]]
                         q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
                         query_seq_idx_list[i]     += 1
-                    elif L == "X":
-                        query_seq_list_aligned[i] += query_seq_list[i][query_seq_idx_list[i]]
-                        q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
-                        query_seq_idx_list[i]     += 1
+                    elif L == "H":
+                        query_seq_list_aligned[i] += " "
+                        q_scores_list_aligned[i]  += [-1]
                     else:
-                        print(L)
-                        raise Exception("error!")
+
+
+                        print(i)
+                        for i, (mci, mc) in enumerate(zip(my_cigar_idx_list, my_cigar_list)):
+                            print(i, mci, len(mc), mci == len(mc))
+                        print(my_cigar_list[18])
+                        print(len(ref_seq))
+
+
+                        raise Exception(f"error!: {L}, {i}")
                 ref_seq_aligned += R
                 ref_seq_idx += 1
-            else:
+            # contains "I" but not "E"
+            elif E_not_in_L_list:
                 for i, L in enumerate(L_list):
                     if L == "I":
                         my_cigar_list_aligned[i]  += "I"
@@ -840,19 +875,40 @@ class MyMSA(mc.MyCigarBase):
                         q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
                         my_cigar_idx_list[i]      += 1
                         query_seq_idx_list[i]     += 1
+                    elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HSE":
+                        my_cigar_list_aligned[i]  += "O"    # inside H, S, or E region but skipped
+                        query_seq_list_aligned[i] += " "
+                        q_scores_list_aligned[i]  += [-1]
+                    else:
+                        my_cigar_list_aligned[i]  += "N"    # skipped
+                        query_seq_list_aligned[i] += "-"
+                        q_scores_list_aligned[i]  += [-1]
+                ref_seq_aligned += "-"
+            # contains "E"
+            else:
+                for i, L in enumerate(L_list):
+                    if L == "E":
+                        my_cigar_list_aligned[i]  += "E"
+                        query_seq_list_aligned[i] += query_seq_list[i][query_seq_idx_list[i]]
+                        q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
+                        my_cigar_idx_list[i]      += 1
+                        query_seq_idx_list[i]     += 1
+                    elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HS":
+                        my_cigar_list_aligned[i]  += "O"    # inside H, S, or E region but skipped
+                        query_seq_list_aligned[i] += " "
+                        q_scores_list_aligned[i]  += [-1]
                     else:
                         my_cigar_list_aligned[i]  += "N"
                         query_seq_list_aligned[i] += "-"
                         q_scores_list_aligned[i]  += [-1]
                 ref_seq_aligned += "-"
-
         # 最初に追加した余計なものを除く
         del ref_seq[-1]
             # query_seq_list = [query_seq[:-1] for query_seq in query_seq_list] # view ではないので、元に戻す必要はない
             # q_scores_list = [q_scores[:-1] for q_scores in q_scores_list]     # view ではないので、元に戻す必要はない
             # my_cigar_list = [my_cigar[:-1] for my_cigar in my_cigar_list]     # view ではないので、元に戻す必要はない
         return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned)
-    def print_alignment(self, print_options={}):
+    def print_alignment(self, **print_options):
         center = print_options.get("center", self.default_print_options["center"])
         seq_range = print_options.get("seq_range", self.default_print_options["seq_range"])
         offset = print_options.get("offset", self.default_print_options["offset"])
@@ -887,17 +943,21 @@ class MyMSA(mc.MyCigarBase):
 
         # positional string # 10毎にポジションを表示
         cur_pos = s_idx_in_ref_seq
-        position_string = " " * (10 - (cur_pos + 1)%10)
+        position_string = " " * ((10 - (cur_pos + 1))%10)
         assert self.ref_seq_aligned[s_idx] != "-"
         for ref in self.ref_seq_aligned[s_idx:e_idx+1]:
+            # 10毎以外の場所は文字は加えない
             if cur_pos%10 != 9:
-                pass
+                if ref != "-":
+                    cur_pos += 1
+                else:
+                    position_string += " "
+            # 10毎以外の場所でも、"-" ならまだスルー
+            elif ref == "-":
+                position_string += " "
             else:
                 position_string += f"{cur_pos + 1:<10}"
-            if ref != "-":
                 cur_pos += 1
-            else:
-                position_string += " "
         if len(position_string) > e_idx - s_idx + 1:
             if (position_string[e_idx - s_idx] != position_string[e_idx - s_idx + 1] != " "):
                 position_string = position_string[:e_idx - s_idx + 1]
@@ -955,10 +1015,14 @@ class MyMSA(mc.MyCigarBase):
     def my_cigar_color_string(seq, my_cigar, make_it_bold: int):
         stdout_txt = ""
         for i, (s, c) in enumerate(zip([s for s in seq], [c for c in my_cigar])):
-            if c in "=N":
+            if c in "=NH":
                 L = f"{s}"
-            else:
+            elif c in "SO":
+                L = f" "
+            elif c in "XID":
                 L = f"\033[48;2;255;176;176m{s}\033[0m"
+            else:
+                raise Exception(f"error: {c}")
             if i == make_it_bold:
                 L = f"\033[1m{L}\033[0m"
             stdout_txt += L
@@ -988,7 +1052,7 @@ class MyMSA(mc.MyCigarBase):
             query_list = [i[consensus_idx] for i in self.query_seq_list_aligned]
             q_score_list = [i[consensus_idx] for i in self.q_scores_list_aligned]
             L_list = [i[consensus_idx] for i in self.my_cigar_list_aligned]
-            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list)]
+            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HSO"]
 
             if len(event_list) > 0:
                 P_N_dict = P_N_dict_dict[ref.upper()]
@@ -1095,7 +1159,7 @@ class MyMSA(mc.MyCigarBase):
     def export_gif(self, save_dir, ref_seq_name: str):
         save_path = save_dir / f"{ref_seq_name}.gif"
         # prepare
-        N_array = np.empty((5, len(self.ref_seq_aligned)), int)
+        N_array = np.empty((6, len(self.ref_seq_aligned)), int)
         tick_pos_list = []
         tick_label_list = []
         cur_ref_pos = 0
@@ -1107,24 +1171,26 @@ class MyMSA(mc.MyCigarBase):
                     tick_pos_list.append(ref_idx)
                     tick_label_list.append(cur_ref_pos)
 
-            N_match = 0     # =
-            N_mismatch = 0  # X
-            N_insertion = 0 # I
-            N_deletion = 0  # D
-            N_omitted = 0   # N, H, S
+            N_match = 0         # =
+            N_mismatch = 0      # X
+            N_insertion = 0     # I
+            N_deletion = 0      # D
+            N_skipped = 0       # N
+            N_not_covered = 0   # H, S
             for my_cigar in self.my_cigar_list_aligned:
                 L = my_cigar[ref_idx]
                 if L == "=":    N_match += 1
                 elif L == "X":  N_mismatch += 1
                 elif L == "I":  N_insertion += 1
                 elif L == "D":  N_deletion += 1
-                elif L in "NHS":    N_omitted += 1
+                elif L in "N":  N_skipped += 1
+                elif L in "HSO": N_not_covered += 1
                 else:   raise Exception(f"unknown cigar string {L}")
-            N_array[:, ref_idx] = [N_match, N_omitted, N_mismatch, N_insertion, N_deletion]
+            N_array[:, ref_idx] = [N_match, N_skipped, N_mismatch, N_insertion, N_deletion, N_not_covered]
         # 描画していく！
         bar_graph_img = MyGIF(N_array, tick_pos_list, tick_label_list)
         bar_graph_img.generate_bar_graph_ndarray()
-        bar_graph_img.set_legend(legend_list=["match", "omitted", "mismatch", "insertion", "deletion"])
+        bar_graph_img.set_legend(legend_list=["match", "skipped", "mismatch", "insertion", "deletion", "not_covered"])
         bar_graph_img.set_legend_description(f"TOTAL READS: {len(self.query_id_list)}")
         bar_graph_img.export_as_img(save_path=save_path)
     def export_consensus_alignment(self, save_dir: Path, ref_seq_name: str):
@@ -1191,38 +1257,39 @@ class MyMSA(mc.MyCigarBase):
             setattr(self, attr_name, content)
 
         # query/fastq related
-        format_txt = "".join(re.match(r"^add_(?=sequence|q_scores)(s|q).+$", func_name).group(1).upper() * N_query for func_name, attr_name in self.query_seq_related_save_order)
+        format_txt = "".join(re.match(r"^add_(?=sequence|q_scores|clipping_info)(s|q|c).+$", func_name).group(1).upper() * N_query for func_name, attr_name in self.query_seq_related_save_order)
         query_related_contents = MyByteStr.read_byte_seq_q_scores(query_related, format_txt)
         for i, (func_name, attr_name) in enumerate(self.query_seq_related_save_order):
             setattr(self, attr_name, query_related_contents[i * N_query: (i + 1) * N_query])
 
-        # cigar セット
-        self.regenerate_cigar()
+        # # cigar セット    # self.clipping_info_list の setattr で行われる
+        # self.regenerate_cigar()
     def regenerate_cigar(self):
         assert all(len(query_seq) == len(self.ref_seq_aligned) for query_seq in self.query_seq_list_aligned) and (len(self.with_prior_consensus_seq) == len(self.without_prior_consensus_seq) == len(self.ref_seq_aligned))
-        def gen_cigar(ref, query):
-            if query == ref != "-":
-                return "="
-            elif query != ref == "-":
-                return "I"
-            elif "-" == query != ref:
-                return "D"
-            elif "-" != query != ref != "-":
-                return "X"
-            elif query == ref == "-":
-                return "N"
-            else:
-                raise Exception(f"error: {ref} {query}")
         self.my_cigar_list_aligned = ["" for query_id in self.query_id_list]
         self.with_prior_consensus_my_cigar = ""
         self.without_prior_consensus_my_cigar = ""
         for query_idx, query_seq in enumerate(self.query_seq_list_aligned):
             for ref, query in zip(self.ref_seq_aligned, query_seq):
-                self.my_cigar_list_aligned[query_idx] += gen_cigar(ref, query)
+                self.my_cigar_list_aligned[query_idx] += self.gen_basic_cigar(ref, query)
         for ref, consensus in zip(self.ref_seq_aligned, self.with_prior_consensus_seq):
-            self.with_prior_consensus_my_cigar += gen_cigar(ref, consensus)
+            self.with_prior_consensus_my_cigar += self.gen_basic_cigar(ref, consensus)
         for ref, consensus in zip(self.ref_seq_aligned, self.without_prior_consensus_seq):
-            self.without_prior_consensus_my_cigar += gen_cigar(ref, consensus)
+            self.without_prior_consensus_my_cigar += self.gen_basic_cigar(ref, consensus)
+    @staticmethod
+    def gen_basic_cigar(ref, query):
+        if query == ref != "-":     # 空白文字 " " の場合は本来 query 上で "HO" の場合だが、後で @clipping_info_list.setter で処理される
+            return "="
+        elif query != ref == "-":
+            return "I"
+        elif "-" == query != ref:
+            return "D"
+        elif "-" != query != ref != "-":
+            return "X"
+        elif query == ref == "-":
+            return "N"
+        else:
+            raise Exception(f"error: {ref} {query}")
     def assert_data(self):
         for i, ref in enumerate([ref for ref in self.ref_seq_aligned]):
             for query_seq, q_scores, my_cigar in zip(self.query_seq_list_aligned, self.q_scores_list_aligned, self.my_cigar_list_aligned):
@@ -1321,12 +1388,13 @@ class MyByteStr():
 
             str -> replace -> seq_64 (64引く)
             "-"(45) -> "~"(126) -> 62
+            " "(32) -> "|"(124) -> 60
             """
             # 文字を数値に変換
-            seq_64 = [ord(s) - cls.seq_offset for s in seq.replace("-", "~")]
+            seq_64 = [ord(s) - cls.seq_offset for s in seq.replace("-", "~").replace(" ", "|")]
             return cls.value2byte_core(seq_64)
         @classmethod
-        def q_score2byte(cls, seq_64: list):
+        def score2byte(cls, seq_64: List[int]):
             """
             value -> seq_64
             -1 -> 62
@@ -1334,7 +1402,7 @@ class MyByteStr():
             return cls.value2byte_core([s if s != -1 else 62 for s in seq_64])
         @classmethod
         def value2byte_core(cls, seq_64: list):
-            """
+            """ パディング用の文字
             "DEL"->127 -> 63 -> (127 "DEL")
             """
             # DEL 文字 (63) は使えないので注意
@@ -1352,11 +1420,11 @@ class MyByteStr():
         @classmethod
         def byte2seq(cls, b: bytes):
             seq_64 = "".join(chr(v) for v in cls.byte2value_core(b) + cls.seq_offset)
-            return seq_64.replace(chr(127), "").replace("~", "-")   # バッファー用の削除文字を削除, "~" を置換
+            return seq_64.replace(chr(127), "").replace("~", "-").replace("|", " ")   # バッファー用の削除文字を削除, "~" を置換, "|" を空白文字を置換
         @classmethod
         def byte2q_score(cls, b: bytes):
             q_scores = cls.byte2value_core(b)
-            while q_scores[-1] == 63:
+            while (len(q_scores) > 0) and (q_scores[-1] == 63):
                 q_scores = np.delete(q_scores, -1)
             assert not (q_scores == 63).any()
             q_scores[q_scores == 62] = -1
@@ -1376,16 +1444,55 @@ class MyByteStr():
     size_format = f"{MyBIT.edian}I"
     def __init__(self) -> None:
         self.my_byte_str = b""
-    def add_byte_str(self, byte_str):
-        self.my_byte_str += struct.pack(self.size_format, len(byte_str)) + byte_str
-    def add_sequence(self, seq):
-        byte_seq = self.MyBIT.seq2byte(seq)
-        self.add_byte_str(byte_seq)
-    def add_q_scores(self, q_scores):
-        byte_q_scores = self.MyBIT.q_score2byte(q_scores)
-        self.add_byte_str(byte_q_scores)
     def __str__(self) -> str:
         return str(self.my_byte_str)
+    def add_byte_str(self, byte_str):
+        self.my_byte_str += struct.pack(self.size_format, len(byte_str)) + byte_str
+    def add_sequence(self, seq: str):
+        byte_seq = self.MyBIT.seq2byte(seq)
+        self.add_byte_str(byte_seq)
+    def add_q_scores(self, q_scores: List[int]):
+        byte_q_scores = self.MyBIT.score2byte(q_scores)
+        self.add_byte_str(byte_q_scores)
+    clipping_info_dict = {
+        "S":"#", 
+        "H":"$", 
+        "O":"%", 
+        "E":"&", 
+    }
+    def add_clipping_info(self, clipping_info: str):
+        """ reserved characters
+        ASCII code  symbol
+        35          #   (S)
+        36          $   (H)
+        37          %   (O)
+        38          &   (E)
+        45          -
+        48          0
+        49          1
+        50          2
+        51          3
+        52          4
+        53          5
+        54          6
+        55          7
+        56          8
+        57          9
+        58          :
+        Do NOT use 62 (reserved for -1)
+        """
+        for k, v in self.clipping_info_dict.items():
+            clipping_info = clipping_info.replace(k, v)
+        clipping_info_ord = [ord(c) for c in clipping_info]
+        byte_clipping_info_ord = self.MyBIT.score2byte(clipping_info_ord)
+        self.add_byte_str(byte_clipping_info_ord)
+    @classmethod
+    def revert_byte_clipping_info_ord(cls, byte_clipping_info_ord: bytes):
+        int_clipping_info_ord = cls.MyBIT.byte2q_score(byte_clipping_info_ord)
+        clipping_info = "".join(chr(c) for c in int_clipping_info_ord)
+        for k, v in cls.clipping_info_dict.items():
+            clipping_info = clipping_info.replace(v, k)
+        return clipping_info
     @classmethod
     def read_buffer(cls, f: io.BufferedReader):
         size = struct.unpack(cls.size_format, f.read(cls.size_indicator_bytes))
@@ -1417,10 +1524,14 @@ class MyByteStr():
                 r.append(cls.MyBIT.byte2seq(content))
             elif fmt == "Q":
                 r.append(cls.MyBIT.byte2q_score(content))
+            elif fmt == "C":
+                r.append(cls.revert_byte_clipping_info_ord(content))
+            else:
+                raise Exception(f"unknown format: {fmt}")
         return r
 class MyGIF():
     # color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color'] # list of hex color "#ffffff" or tuple
-    color_cycle = [(255, 252, 245), (255, 243, 220), (110, 110, 255), (110, 255, 110), (255, 110, 110)]
+    color_cycle = [(255, 252, 245), (255, 243, 220), (110, 110, 255), (110, 255, 110), (255, 110, 110), (255, 230, 230)]
     tick_color = (200, 200, 200)
     # numbers
     class MyCharacters(object):
@@ -1603,12 +1714,40 @@ class MyGIF():
             [1,0,1,0], 
             [1,0,0,1]
         ])
+        V = np.array([
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [0,1,0,1,0], 
+            [0,0,1,0,0]
+        ])
+        K = np.array([
+            [1,0,0,1], 
+            [1,0,1,0], 
+            [1,1,0,0], 
+            [1,0,1,0], 
+            [1,0,0,1]
+        ])
+        P = np.array([
+            [1,1,1,0], 
+            [1,0,0,1], 
+            [1,1,1,0], 
+            [1,0,0,0], 
+            [1,0,0,0]
+        ])
         vs = np.array([ # vertical space
             [0], 
             [0], 
             [0], 
             [0], 
             [0], 
+        ])
+        us = np.array([ # under score
+            [0,0,0,0], 
+            [0,0,0,0], 
+            [0,0,0,0], 
+            [0,0,0,0], 
+            [1,1,1,1]
         ])
         colon = np.array([ # vertical space
             [0, 0, 0], 
@@ -1633,8 +1772,9 @@ class MyGIF():
         }  # string to key
         insertion = np.hstack((I,vs,N,vs,S,vs,E,vs,R,vs,T,vs,I,vs,O,vs,N))
         deletion = np.hstack((D,vs,E,vs,L,vs,E,vs,T,vs,I,vs,O,vs,N))
+        not_covered = np.hstack((N,vs,O,vs,T,us,vs,C,vs,O,vs,V,vs,E,vs,R,vs,E,vs,D))
         mismatch = np.hstack((M,vs,I,vs,S,vs,M,vs,A,vs,T,vs,C,vs,H))
-        omitted = np.hstack((O,vs,M,vs,I,vs,T,vs,T,vs,E,vs,D))
+        skipped = np.hstack((S,vs,K,vs,I,vs,P,vs,P,vs,E,vs,D))
         match = np.hstack((M,vs,A,vs,T,vs,C,vs,H))
         @classmethod
         def get_string_array(cls, keys):
@@ -1653,8 +1793,9 @@ class MyGIF():
     b_margin = 40       # pixel
     minimum_margin = 20 # pixel
     def __init__(self, N_array, tick_pos_list, tick_label_list) -> None:
-        self.N_array = N_array
-        assert (self.N_array.sum(axis=0) == self.N_array[:, 0].sum()).all()
+        self.N_array = N_array  # shape=(6, len(ref_seq_aligned))
+        self.N_reads = self.N_array[:, 0].sum()
+        assert (self.N_array.sum(axis=0) == self.N_reads).all()
         self.tick_pos_list = tick_pos_list
         self.tick_label_list = tick_label_list
         self.N_rows = np.ceil(self.N_array.shape[1] / self.wrap).astype(int)
@@ -1674,14 +1815,36 @@ class MyGIF():
         except:
             return self.color_cycle # already rgb
     def generate_bar_graph_ndarray(self):
+        # リードが割り当てられていない場合に warning を回避するために必要
+        if (self.N_array.sum(axis=0) == 0).any():
+            self.N_array[-2, self.N_array.sum(axis=0) == 0] += 1    # 全て deletion (idx=-2) とする
 
-        # if (self.N_array.sum(axis=0) == 0).any():
-        #     self.N_array[-1, self.N_array.sum(axis=0) == 0] += 1
-
-        N_array_compositional = (self.N_array / self.N_array.sum(axis=0) * self.bar_sum_h).astype(int)
+        # 最終的には 0 でないものは最低限 1 ピクセルは確保できるようにするが、とりま round (銀行丸めだが、まあいいや) する
+        N_array_compositional = np.round(self.N_array / self.N_array.sum(axis=0) * self.bar_sum_h).astype(int)
         rounding_error = np.ones(N_array_compositional.shape[1], dtype=int) * self.bar_sum_h - N_array_compositional.sum(axis=0)
-        # omitted に追加する
-        N_array_compositional[-1, :] += rounding_error
+        # 誤差がもっとも少なくなるように、マジョリティなグループでバッファーする
+        for c, e in enumerate(rounding_error):
+            # 0 でないものは最低限 1 ピクセルは確保
+            for r, v in enumerate(self.N_array[:, c]):
+                if (v > 0) and (N_array_compositional[r, c] == 0):
+                    N_array_compositional[r, c] = 1
+                    e -= 1
+            # マジョリティなグループでバッファーする
+            if e == 0:
+                continue
+            else:
+                e_len = np.absolute(e)
+                e_unit = e // e_len
+                composition = np.copy(N_array_compositional[:, c]).astype(float)
+                denominator = np.ones_like(composition, dtype=float)
+                while e_len > 0:
+                    r = np.argmax(composition)
+                    N_array_compositional[r, c] += e_unit
+                    # アプデ
+                    composition[r] *= denominator[r] / (denominator[r] + 1)
+                    denominator[r] += 1
+                    e_len -= 1
+        assert (np.ones(N_array_compositional.shape[1], dtype=int) * self.bar_sum_h == N_array_compositional.sum(axis=0)).all()
         # 画像に追加していく
         ax_loc = [0, 0]
         bar_pos_x = 0

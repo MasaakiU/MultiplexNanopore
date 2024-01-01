@@ -16,6 +16,12 @@ $ python setup.py sdist
 $ python setup.py bdist_wheel
 -> `build` directory will be created.
 $ twine upload --repository testpypi dist/*
+
+To install parasail, 
+$ brew install libtool
+$ brew install automake
+might be required beforehand.
+
 """
 
 import re
@@ -39,7 +45,7 @@ except ImportError:
 #############################################################
 #############################################################
 
-test_version = "b1"
+test_version = "b2"
 root_dir = Path(__file__).parent.resolve()
 package_name = "savemoney"
 sub_package_names = [f"{package_name}.{sub_package_name}" for sub_package_name in find_packages(package_name)]
@@ -81,7 +87,7 @@ with open('README.md', encoding='utf-8') as f:
 
 INSTALL_REQUIREMENTS = [
     "pandas>=2.1.4", 
-    "parasail==1.1.11",     # newest version failed to install
+    "parasail>=1.3.4", 
     "Pillow>=10.1.0", 
     "PuLP>=2.7.0", 
     "scipy>=1.11.4", 

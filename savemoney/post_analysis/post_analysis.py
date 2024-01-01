@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import List
 from pathlib import Path
 from itertools import chain
 
@@ -7,7 +8,7 @@ from itertools import chain
 from ..modules import my_classes as mc
 from . import post_analysis_core as pac
 
-__all__ = ["post_analysis", "default_post_analysis_param_dict"]
+__all__ = ["post_analysis", "default_post_analysis_param_dict", "post_analysis_separate_paths_input"]
 
 error_rate = 0.0001
 default_post_analysis_param_dict = {
@@ -22,14 +23,18 @@ default_post_analysis_param_dict = {
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
+    # 1. Set params
     for k in param_dict.keys():
         if k not in default_post_analysis_param_dict.keys():
             raise Exception(f"unknown key in `param_dict`: {k}\nallowed keys are: {', '.join(default_post_analysis_param_dict.keys())}")
-    # 0. Prepare files
+    # 2. Prepare file paths
     plasmid_map_paths = []
     for ext in mc.MyRefSeq.allowed_plasmid_map_extensions:
         plasmid_map_paths = chain(plasmid_map_paths, Path(sequence_dir_path).glob(f"*{ext}"))
     fastq_paths = Path(sequence_dir_path).glob(f"*.fastq")
+    post_analysis_separate_paths_input(plasmid_map_paths, fastq_paths, save_dir_base, **param_dict)
+
+def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths:List[Path], save_dir_base: str, **param_dict:dict):
     # 1. Prepare objects
     ref_seq_list = [mc.MyRefSeq(plasmid_map_path) for plasmid_map_path in plasmid_map_paths]
     my_fastq = mc.MyFastQ.combine([mc.MyFastQ(fastq_path) for fastq_path in fastq_paths])

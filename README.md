@@ -6,7 +6,7 @@
 
 SAVEMONEY guides researchers to mix multiple plasmids for submission as a single sample to a commercial long-read sequencing service (e.g., Oxford Nanopore Technology), reducing overall sequencing costs while maintaining fidelity of sequencing results. Following is the outline of the procedure:
 
-- **Step 1. pre-survey** takes plasmid maps as inputs and guide users which groupings of plasmids is optimal.
+- **Step 1. pre-survey** takes plasmid maps as inputs and guides users which groupings of plasmids is optimal.
 - **Step 2. submit samples** according to the output of pre-survey.
 - **Step 3. post-analysis** execute computational deconvolution of the obtained results, and generate a consensus sequence for each plasmid constituent within the sample mixture. This step must be run separately for each sample mixture.
 - An optional third step, **Step 4. visualization of results (optional)** provides a platform for the detailed examination of the alignments and consensus generated in the post-analysis.
@@ -45,13 +45,13 @@ Verified on macOS, Linux, and Windows10
 
 ## Installation
 
-Available via pip.
+SAVEMONEY is available via pip.
 
 ```shell
 pip install savemoney
 ```
 
-If installation via pip fails, please check the requirements above. If any of the packages conflict with those already present in your environment, Irecommend creating a new virtual environment. 
+If installation via pip fails, please check the requirements above. If any of the package conflicts with those already present in your environment, I recommend creating a new virtual environment. 
 
 If C++ compiler does not exist, install Xcode Command Line Tools using the following command (for macOS):
 
@@ -67,11 +67,11 @@ SAVEMONEY can be executed either in the python script or via command line.
 
 ### Execute SAVEMONEY in python script
 
-To import and execute SAVEMONEY in the python script, follow the example below:
+To import and execute SAVEMONEY in the python script. Follow the example below:
 
 ```python
 import savemoney
-savemoney.pre_survey("path_to_sequence_directory",	"save_directory", **kwargs)
+savemoney.pre_survey("path_to_sequence_directory", "save_directory", **kwargs)
 savemoney.post_analysis("path_to_sequence_directory", "save_directory", **kwargs)
 ```
 
@@ -179,7 +179,7 @@ options:
   --offset OFFSET       offset, optional, default_value = 0
 ```
 
-## Reference
+# Reference
 
 Masaaki U and Jeremy M B, Barcode-free multiplex plasmid sequencing using Bayesian analysis and nanopore sequencing
 
