@@ -63,7 +63,7 @@ def execute_alignment_core(ref_seq_list, my_fastq, param_dict):
         # calc scores for each ref_seq
         query_seq = mc.MySeq(query_seq)
         query_seq_rc = query_seq.reverse_complement()
-        for i, my_optimized_aligner in enumerate(my_optimized_aligner_list):
+        for my_optimized_aligner in my_optimized_aligner_list:
             conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq)
             conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc)
             if conserved_regions is not None:

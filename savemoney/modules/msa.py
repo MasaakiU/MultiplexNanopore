@@ -623,13 +623,14 @@ class MyMSAligner(mc.AlignmentBase):
 
         # 1st MSA
         my_msa = MyMSA.generate_msa(self.ref_seq, query_seq_list, q_scores_list, my_cigar_list)
+        # # 2nd MSA
+        # my_msa.optimize_insertions()
+
+        # calc consensus
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # my_msa.print_alignment()
         my_msa.calculate_consensus(param_dict)
-
-        # 2nd MSA
-
         return my_msa
 
 class SequenceBasecallQscorePDF():
@@ -692,7 +693,7 @@ class SequenceBasecallQscorePDF():
         return 1 - 1 / bunbo_bunshi_sum
 
 class MyMSA(mc.MyCigarBase):
-    file_format_version = "ff_0.2.0"
+    file_format_version = "ff_0.2.1"
     algorithm_version = "al_0.1.0"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
@@ -704,7 +705,8 @@ class MyMSA(mc.MyCigarBase):
     query_seq_related_save_order = [
         ("add_sequence", "query_seq_list_aligned"), 
         ("add_q_scores", "q_scores_list_aligned"), 
-        ("add_clipping_info", "clipping_info_list"),  # add "SEO" from my_cigar
+        ("add_clipping_info", "clipping_info_list"),  # add "S" from my_cigar そして S は連続している
+        # clipping info なしでも、S と I 以外は識別可能: なので S の情報のみを格納: 詳しくは self.gen_basic_cigar を参照
     ]
     bases = "ATCG-"
     assert bases[-1] == "-"
@@ -785,11 +787,10 @@ class MyMSA(mc.MyCigarBase):
             previous_idx += N
         return q_scores
     @property
-    def clipping_info_list(self):   # ['start_idx-end_idx:cigar', ...] (it's cigar, not my_cigar)
+    def clipping_info_list(self):   # ['start_idx-end_idx', ...] (only contains "S" info)
         return [
             ",".join(
-                f"{m.start()}-{m.end() - 1}:{''.join(f'{len(LLL)}{L}' for LLL, L in self.generate_cigar_iter(m.group(0)))}"
-                for m in re.finditer(r"[SHOE]+", my_cigar)
+                f"{m.start()}-{m.end() - 1}" for m in re.finditer(r"[S]+", my_cigar)
             ) for my_cigar in self.my_cigar_list_aligned
         ]
     @clipping_info_list.setter
@@ -801,15 +802,19 @@ class MyMSA(mc.MyCigarBase):
             for ci in clipping_info.split(","):
                 if ci == "":
                     continue
-                idx_info, cigar = ci.split(":")
-                m = re.match(r"([0-9]+)-([0-9]+)", idx_info)
-                my_cigar = my_cigar[:int(m.group(1))] + self.cigar_to_my_cigar(cigar) + my_cigar[int(m.group(2)) + 1:]
+                start_S, end_S = ci.split("-")
+                start_S = int(start_S)
+                end_S = int(end_S)
+                my_cigar = my_cigar[:start_S] + "S" * (end_S - start_S + 1) + my_cigar[end_S + 1:]
             self.my_cigar_list_aligned[query_idx] = my_cigar
+    ###########
+    # 1st MSA #
+    ###########
     @staticmethod
     def generate_msa(ref_seq: mc.MyRefSeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str]):
         """
         最後が必ず同時に終わるように、特殊シーケンスを追加 (こうしないと、query_seq_list のどれか一つのの最後が "I" である場合に正常終了しない)
-        また、`elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HSE":` の部分で idx=-1 が生じる可能性がある。
+        また、`elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "H":` の部分で idx=-1 が生じる可能性がある。
         それを考慮するために、my_cigar_list のみ、idx=-1 の要素を更に最後に追加しておく。
         """
         assert len(query_seq_list) == len(q_scores_list) == len(my_cigar_list)
@@ -831,9 +836,9 @@ class MyMSA(mc.MyCigarBase):
         while True:
             L_list = [my_cigar_list[i][my_cigar_idx] for i, my_cigar_idx in enumerate(my_cigar_idx_list)]
             I_not_in_L_list = "I" not in L_list
-            E_not_in_L_list = "E" not in L_list
-            # when ref_seq exists (not "I" nor "E")
-            if I_not_in_L_list and E_not_in_L_list:
+            S_not_in_L_list = "S" not in L_list
+            # when ref_seq exists (not "I" nor "S")
+            if I_not_in_L_list and S_not_in_L_list:
                 R = ref_seq[ref_seq_idx]
                 if R == "Z":    # 全て終了している (もしくはそもそも割り当てられたリードがない) ことを確認する
                     assert all(query_seq_list[i][query_seq_idx_list[i]] == "Z" for i in range(len(L_list))) or (len(query_seq_idx_list) == 0)
@@ -846,7 +851,7 @@ class MyMSA(mc.MyCigarBase):
                     if L == "D":
                         query_seq_list_aligned[i] += "-"
                         q_scores_list_aligned[i]  += [-1]
-                    elif L in "=XS":
+                    elif L in "=X":
                         query_seq_list_aligned[i] += query_seq_list[i][query_seq_idx_list[i]]
                         q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
                         query_seq_idx_list[i]     += 1
@@ -854,20 +859,11 @@ class MyMSA(mc.MyCigarBase):
                         query_seq_list_aligned[i] += " "
                         q_scores_list_aligned[i]  += [-1]
                     else:
-
-
-                        print(i)
-                        for i, (mci, mc) in enumerate(zip(my_cigar_idx_list, my_cigar_list)):
-                            print(i, mci, len(mc), mci == len(mc))
-                        print(my_cigar_list[18])
-                        print(len(ref_seq))
-
-
                         raise Exception(f"error!: {L}, {i}")
                 ref_seq_aligned += R
                 ref_seq_idx += 1
-            # contains "I" but not "E"
-            elif E_not_in_L_list:
+            # contains "I" but not "S"
+            elif S_not_in_L_list:
                 for i, L in enumerate(L_list):
                     if L == "I":
                         my_cigar_list_aligned[i]  += "I"
@@ -875,8 +871,12 @@ class MyMSA(mc.MyCigarBase):
                         q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
                         my_cigar_idx_list[i]      += 1
                         query_seq_idx_list[i]     += 1
-                    elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HSE":
-                        my_cigar_list_aligned[i]  += "O"    # inside H, S, or E region but skipped
+                    elif (
+                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or 
+                        (my_cigar_list[i][my_cigar_idx_list[i] + 1] == "H") or 
+                        ((my_cigar_list[i][my_cigar_idx_list[i] + 1] == "Z") and (my_cigar_list[i][0] == "H"))
+                    ):
+                        my_cigar_list_aligned[i]  += "O"    # inside or adjascent to H region but skipped
                         query_seq_list_aligned[i] += " "
                         q_scores_list_aligned[i]  += [-1]
                     else:
@@ -884,17 +884,21 @@ class MyMSA(mc.MyCigarBase):
                         query_seq_list_aligned[i] += "-"
                         q_scores_list_aligned[i]  += [-1]
                 ref_seq_aligned += "-"
-            # contains "E"
+            # contains "S": S と I が混在して存在するときもが常に連続するようになっている
             else:
                 for i, L in enumerate(L_list):
-                    if L == "E":
-                        my_cigar_list_aligned[i]  += "E"
+                    if L == "S":
+                        my_cigar_list_aligned[i]  += "S"
                         query_seq_list_aligned[i] += query_seq_list[i][query_seq_idx_list[i]]
                         q_scores_list_aligned[i]  += [q_scores_list[i][query_seq_idx_list[i]]]
                         my_cigar_idx_list[i]      += 1
                         query_seq_idx_list[i]     += 1
-                    elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "HS":
-                        my_cigar_list_aligned[i]  += "O"    # inside H, S, or E region but skipped
+                    elif (
+                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or 
+                        (my_cigar_list[i][my_cigar_idx_list[i] + 1] == "H") or 
+                        ((my_cigar_list[i][my_cigar_idx_list[i] + 1] == "Z") and (my_cigar_list[i][0] == "H"))
+                    ):
+                        my_cigar_list_aligned[i]  += "O"    # inside or adjascent to H region but skipped
                         query_seq_list_aligned[i] += " "
                         q_scores_list_aligned[i]  += [-1]
                     else:
@@ -908,6 +912,89 @@ class MyMSA(mc.MyCigarBase):
             # q_scores_list = [q_scores[:-1] for q_scores in q_scores_list]     # view ではないので、元に戻す必要はない
             # my_cigar_list = [my_cigar[:-1] for my_cigar in my_cigar_list]     # view ではないので、元に戻す必要はない
         return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned)
+    ###########
+    # 2nd MSA #
+    ###########
+    insertion_detection_limit = 0.2     # 二割 (十分条件であれば適当で大丈夫) 以上のリードが "I" であるという感じで検出
+    def optimize_insertions(self):
+        self.optimize_S_regions()
+
+    def optimize_S_regions(self):
+        N_my_cigar = len(self.my_cigar_list_aligned[0])
+        N_read = len(self.my_cigar_list_aligned)
+        ### detect soft clipping "S" 
+        SI_count_list = []
+        for i in range(N_my_cigar):
+            L_list = [my_cigar[i] for my_cigar in self.my_cigar_list_aligned]
+            N_S = L_list.count("S")
+            N_I = L_list.count("I")
+            if N_S != 0:
+                assert N_I == 0
+                SI_count_list.append(N_S)   # positive values for "S"
+            elif N_I != 0:
+                assert N_S == 0
+                SI_count_list.append(-N_I)  # negative values for "I"
+            else:
+                SI_count_list.append(0)
+        SI_count_list = np.array(SI_count_list)
+        # S の領域をを大きい順に取得
+        cur_max_S_start_idx = 0
+        cur_max_S_len = 0
+        tmp_S_start_idx = None
+        tmp_S_len = 0
+        for i, SI_count in enumerate(SI_count_list):
+            # S region starts or continues
+            if SI_count > 0:
+                if tmp_S_start_idx is None:
+                    tmp_S_start_idx = i
+                tmp_S_len += 1
+                continue
+            # S region ends or other regions
+            else:
+                # other regions
+                if tmp_S_start_idx is None:
+                    continue
+                # S region ends and update
+                else:
+                    # アプデ
+                    if tmp_S_len > cur_max_S_len:
+                        cur_max_S_start_idx = tmp_S_start_idx
+                        cur_max_S_len = tmp_S_len
+                    tmp_S_start_idx = None
+                    tmp_S_len = 0
+        print(cur_max_S_start_idx)
+        print(cur_max_S_len)
+
+
+
+
+        quit()
+
+
+        # detect insert region
+        insertion_ratio_list = []
+        for i in range(N_my_cigar):
+            L_list = [my_cigar[i] for my_cigar in self.my_cigar_list_aligned]
+            N_I = L_list.count("I")
+            if N_I == 0:
+                insertion_ratio_list.append(0)
+            else:
+                N_N = L_list.count("N")
+                N_O = L_list.count("O")
+                N_total = N_I + N_N
+                assert N_total + N_O == N_read
+                insertion_ratio_list.append(N_I / N_total)
+        print(insertion_ratio_list)
+        insertion_ratio_list = np.array(insertion_ratio_list)
+        print(insertion_ratio_list)
+        quit()
+
+
+        # 領域位の長さが大きい順に処理する
+
+    ###################
+    # print functions #
+    ###################
     def print_alignment(self, **print_options):
         center = print_options.get("center", self.default_print_options["center"])
         seq_range = print_options.get("seq_range", self.default_print_options["seq_range"])
@@ -1015,11 +1102,9 @@ class MyMSA(mc.MyCigarBase):
     def my_cigar_color_string(seq, my_cigar, make_it_bold: int):
         stdout_txt = ""
         for i, (s, c) in enumerate(zip([s for s in seq], [c for c in my_cigar])):
-            if c in "=NH":
+            if c in "=NHO":
                 L = f"{s}"
-            elif c in "SO":
-                L = f" "
-            elif c in "XID":
+            elif c in "XIDS":
                 L = f"\033[48;2;255;176;176m{s}\033[0m"
             else:
                 raise Exception(f"error: {c}")
@@ -1038,6 +1123,9 @@ class MyMSA(mc.MyCigarBase):
             return f"  {q_score_txt}\033[48;2;{color}m\033[38;2;{color}m{'*' * q_score}"
         else:
             return f"  {q_score_txt}\033[48;2;{color}m{'*' * q_score}"
+    ########################
+    # consensus calculator #
+    ########################
     def calculate_consensus(self, param_dict):
         # params
         P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(param_dict)
@@ -1052,7 +1140,7 @@ class MyMSA(mc.MyCigarBase):
             query_list = [i[consensus_idx] for i in self.query_seq_list_aligned]
             q_score_list = [i[consensus_idx] for i in self.q_scores_list_aligned]
             L_list = [i[consensus_idx] for i in self.my_cigar_list_aligned]
-            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HSO"]
+            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HO"]
 
             if len(event_list) > 0:
                 P_N_dict = P_N_dict_dict[ref.upper()]
@@ -1141,7 +1229,7 @@ class MyMSA(mc.MyCigarBase):
             return r_matrix
         return gen_matrix_from_dict_dict(P_N_dict_dict_with_prior), gen_matrix_from_dict_dict(P_N_dict_dict_without_prior)
     #######################
-    # EXPORT/LOAD RESULTS #
+    # export/load results #
     #######################
     def export_consensus_fastq(self, save_dir, ref_seq_name: str):
         # with prior
@@ -1173,18 +1261,18 @@ class MyMSA(mc.MyCigarBase):
 
             N_match = 0         # =
             N_mismatch = 0      # X
-            N_insertion = 0     # I
+            N_insertion = 0     # I, S
             N_deletion = 0      # D
             N_skipped = 0       # N
-            N_not_covered = 0   # H, S
+            N_not_covered = 0   # H, O
             for my_cigar in self.my_cigar_list_aligned:
                 L = my_cigar[ref_idx]
                 if L == "=":    N_match += 1
                 elif L == "X":  N_mismatch += 1
-                elif L == "I":  N_insertion += 1
+                elif L in "IS": N_insertion += 1
                 elif L == "D":  N_deletion += 1
                 elif L in "N":  N_skipped += 1
-                elif L in "HSO": N_not_covered += 1
+                elif L in "HO": N_not_covered += 1
                 else:   raise Exception(f"unknown cigar string {L}")
             N_array[:, ref_idx] = [N_match, N_skipped, N_mismatch, N_insertion, N_deletion, N_not_covered]
         # 描画していく！
@@ -1278,18 +1366,37 @@ class MyMSA(mc.MyCigarBase):
             self.without_prior_consensus_my_cigar += self.gen_basic_cigar(ref, consensus)
     @staticmethod
     def gen_basic_cigar(ref, query):
-        if query == ref != "-":     # 空白文字 " " の場合は本来 query 上で "HO" の場合だが、後で @clipping_info_list.setter で処理される
-            return "="
-        elif query != ref == "-":
-            return "I"
-        elif "-" == query != ref:
-            return "D"
-        elif "-" != query != ref != "-":
-            return "X"
-        elif query == ref == "-":
-            return "N"
+        # (r, q) = ("A", "A") -> "="  # (ref, query) -> cigar
+        # (r, q) = ("-", "-") -> "N"
+        # (r, q) = ("-", "T") -> "I"
+        # (r, q) = ("-", "T") -> "S"
+        # (r, q) = ("-", " ") -> "O"
+
+        # (r, q) = ("A", "T") -> "X"
+
+        # (r, q) = ("A", "-") -> "D"
+        # (r, q) = ("A", " ") -> "H"
+        # self.generate_msa も参照
+        if query == ref:
+            if ref != "-":
+                return "="
+            else:
+                assert ref != " "
+                return "N"
         else:
-            raise Exception(f"error: {ref} {query}")
+            if ref == "-":
+                if query == " ":
+                    return "O"
+                else:
+                    return "I"  # or S -> fixed in @clipping_info_list.setter
+            else:
+                assert ref != " "
+                if query == "-":
+                    return "D"
+                elif query == " ":
+                    return "H"
+                else:
+                    return "X"
     def assert_data(self):
         for i, ref in enumerate([ref for ref in self.ref_seq_aligned]):
             for query_seq, q_scores, my_cigar in zip(self.query_seq_list_aligned, self.q_scores_list_aligned, self.my_cigar_list_aligned):
@@ -1454,19 +1561,9 @@ class MyByteStr():
     def add_q_scores(self, q_scores: List[int]):
         byte_q_scores = self.MyBIT.score2byte(q_scores)
         self.add_byte_str(byte_q_scores)
-    clipping_info_dict = {
-        "S":"#", 
-        "H":"$", 
-        "O":"%", 
-        "E":"&", 
-    }
     def add_clipping_info(self, clipping_info: str):
         """ reserved characters
         ASCII code  symbol
-        35          #   (S)
-        36          $   (H)
-        37          %   (O)
-        38          &   (E)
         45          -
         48          0
         49          1
@@ -1478,21 +1575,15 @@ class MyByteStr():
         55          7
         56          8
         57          9
-        58          :
         Do NOT use 62 (reserved for -1)
         """
-        for k, v in self.clipping_info_dict.items():
-            clipping_info = clipping_info.replace(k, v)
         clipping_info_ord = [ord(c) for c in clipping_info]
         byte_clipping_info_ord = self.MyBIT.score2byte(clipping_info_ord)
         self.add_byte_str(byte_clipping_info_ord)
     @classmethod
     def revert_byte_clipping_info_ord(cls, byte_clipping_info_ord: bytes):
         int_clipping_info_ord = cls.MyBIT.byte2q_score(byte_clipping_info_ord)
-        clipping_info = "".join(chr(c) for c in int_clipping_info_ord)
-        for k, v in cls.clipping_info_dict.items():
-            clipping_info = clipping_info.replace(v, k)
-        return clipping_info
+        return "".join(chr(c) for c in int_clipping_info_ord)
     @classmethod
     def read_buffer(cls, f: io.BufferedReader):
         size = struct.unpack(cls.size_format, f.read(cls.size_indicator_bytes))

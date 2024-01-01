@@ -293,15 +293,13 @@ class MyAlignerBase():
             result_1 = parasail.sg_de_trace(query_seq_1, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
             my_result_1 = MyResult(result_1)
             assert my_result_1.end_query == len(query_seq_1) - 1
-            len_H_1_tmp = my_result_1.organize_end()
-            assert my_result_1.end_ref + 1 + len_H_1_tmp == len(ref_seq)
+            len_endD = my_result_1.organize_end()
+            assert my_result_1.end_ref + 1 + len_endD == len(ref_seq)
             # ソフトクリッピング
             my_result_1.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="beg")
-            len_H_1 = my_result_1.my_cigar.count("H")
         else:
-            len_H_1 = len(ref_seq)
             my_result_1 = MyResult()
-            my_result_1.my_cigar = "H" * len_H_1
+            my_result_1.my_cigar = "H" * len(ref_seq)
             my_result_1.beg_ref = -1
             my_result_1.end_ref = -1
         if len(query_seq_2) > 0:
@@ -309,50 +307,30 @@ class MyAlignerBase():
             my_result_2 = MyResult(result_2)
             assert my_result_2.end_ref == len(ref_seq) - 1
             assert my_result_2.end_query == len(query_seq_2) - 1
-            len_H_2_tmp = my_result_2.organize_beg()
+            len_begD = my_result_2.organize_beg()
             # ソフトクリッピング
             my_result_2.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="end")
-            len_H_2 = my_result_2.my_cigar.count("H")
         else:
-            len_H_2 = len(ref_seq)
             my_result_2 = MyResult()
-            my_result_2.my_cigar = "H" * len_H_2
+            my_result_2.my_cigar = "H" * len(ref_seq)
             my_result_2.beg_ref = len(ref_seq)
             my_result_2.end_ref = len(ref_seq)
         ########
         # 結合 #
         ########
-        # =====ALIGNED-SEQ=====SSSSSSHHHHHHSSSSSS=====ALIGNED-SEQ=====
-        if my_result_2.beg_ref - my_result_1.end_ref > 0:
+        """
+        ref         ?????????????????????     ??????         ?????????????????????
+        my_cigar_1  =====ALIGNED-SEQ=====SSSSSHHHHHH         HHHHHHHHHHHHHHHHHHHHH
+        my_cigar_2  HHHHHHHHHHHHHHHHHHHHH     HHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
+        combined    =====ALIGNED-SEQ=====SSSSSHHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
+        """
+        if my_result_2.beg_ref - my_result_1.end_ref - 1 > 0:
+            len_H = my_result_2.beg_ref - my_result_1.end_ref - 1
             my_result = MyResult()
             my_result.my_cigar = (
-                my_result_1.my_cigar[:len(my_result_1.my_cigar) - len_H_1] + 
-                "H" * (my_result_2.beg_ref - my_result_1.end_ref - 1) + 
-                my_result_2.my_cigar[len_H_2:]
-            )
-        # =====ALIGNED-SEQ=====SSEEEEE(EEEEE)                   Replace "S" with "E (Excess sequence)"
-        #                        SSSSSSSS=====ALIGNED-SEQ=====
-        elif my_result_2.beg_ref - (my_result_1.end_ref - my_result_1.my_cigar.count("S")) - 1 > 0:
-            E_len = my_result_1.end_ref - my_result_2.beg_ref + 1
-            my_result = MyResult()
-            my_result.my_cigar = (
-                my_result_1.my_cigar[:len(my_result_1.my_cigar) - my_result_1.my_cigar.count("H") - my_result_1.my_cigar.count("S")] + 
-                "S" * (my_result_1.my_cigar.count("S") - E_len) + 
-                "E" * E_len + 
-                "S" * my_result_2.my_cigar.count("S") +
-                my_result_2.my_cigar[my_result_2.my_cigar.count("H") + my_result_2.my_cigar.count("S"):]
-            )
-        # =====ALIGNED-SEQ=====EEEEEEE(EEEEE)                    Replace "S" with "E (Excess sequence)"
-        #                   FFFSSSSSSSSSSS=====ALIGNED-SEQ=====  Replace "S" with "E (Excess sequence)"     # Replace "S" with "F (next to E)"
-        elif (my_result_2.beg_ref + my_result_2.my_cigar.count("S")) - (my_result_1.end_ref - my_result_1.my_cigar.count("S")) - 1 > 0:
-            E_len_2 = (my_result_1.end_ref - my_result_1.my_cigar.count("S")) - my_result_2.beg_ref + 1
-            my_result = MyResult()
-            my_result.my_cigar = (
-                my_result_1.my_cigar[:len(my_result_1.my_cigar) - my_result_1.my_cigar.count("H") - my_result_1.my_cigar.count("S")] + 
-                "E" * my_result_1.my_cigar.count("S") + 
-                "E" * E_len_2 + 
-                "S" * (my_result_2.my_cigar.count("S") - E_len_2) + 
-                my_result_2.my_cigar[my_result_2.my_cigar.count("H") + my_result_2.my_cigar.count("S"):]
+                my_result_1.my_cigar[:len(my_result_1.my_cigar) - my_result_1.my_cigar.count("H")] + 
+                "H" * len_H + 
+                my_result_2.my_cigar[my_result_2.my_cigar.count("H"):]
             )
         # =====ALIGNED-SEQ=====SSSSSS
         #              SSSSSS=====ALIGNED-SEQ=====  Redo alignment
@@ -481,28 +459,24 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
                 # non_conserved_ref の長さが 0 の場合
                 if non_conserved_ref_start == self.N_ref:
                     result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("I" * (N_query - non_conserved_query_start))
+                    result_master.append_my_cigar("S" * (N_query - non_conserved_query_start))  # ソフトクリップ
                     continue
                 # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
                 elif non_conserved_query_start == N_query:
                     result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("H" * (self.N_ref - non_conserved_ref_start))
+                    result_master.append_my_cigar("H" * (self.N_ref - non_conserved_ref_start)) # ハードクリップ
                     continue
                 else:
                     ref_seq_extracted = self.ref_seq[non_conserved_ref_start:]
                     query_seq_extracted = query_seq[non_conserved_query_start:]
-                    # execute alignment: query の方が長い場合は、そのままグローバルアラインメントで ok
-                    if (len(query_seq_extracted) >= len(ref_seq_extracted)):
-                        result = parasail.nw_trace(query_seq_extracted, ref_seq_extracted, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-                        my_result = MyResult(result)
-                    else:
-                        query_seq_extracted_1 = query_seq[non_conserved_query_start:query_end_idx_after_offset + 1]
-                        query_seq_extracted_2 = query_seq[query_end_idx_after_offset + 1:]
-                        my_result = self.my_special_dp(
-                            query_seq_extracted_1, 
-                            query_seq_extracted_2, 
-                            ref_seq_extracted, 
-                        )
+                    # execute alignment
+                    query_seq_extracted_1 = query_seq[non_conserved_query_start:query_end_idx_after_offset + 1]
+                    query_seq_extracted_2 = query_seq[query_end_idx_after_offset + 1:]
+                    my_result = self.my_special_dp(
+                        query_seq_extracted_1, 
+                        query_seq_extracted_2, 
+                        ref_seq_extracted, 
+                    )
 
             # 結果を追加
             result_master.append_my_cigar("=" * length_of_previous_conserved_region)
@@ -655,11 +629,11 @@ class MyResult(mc.MyCigarBase):
         assert ref_seq_offset > 0
         aligned_ref_seq_offset = ref_seq_offset
         previous_N_ins = 0
-        N_ins = self.my_cigar[-aligned_ref_seq_offset:].count("I") + self.my_cigar[-aligned_ref_seq_offset:].count("E")
+        N_ins = self.my_cigar[-aligned_ref_seq_offset:].count("I") + self.my_cigar[-aligned_ref_seq_offset:].count("S")
         while ref_seq_offset != aligned_ref_seq_offset - N_ins:
             aligned_ref_seq_offset += N_ins - previous_N_ins
             previous_N_ins = N_ins
-            N_ins = self.my_cigar[-aligned_ref_seq_offset:].count("I") + self.my_cigar[-aligned_ref_seq_offset:].count("E")
+            N_ins = self.my_cigar[-aligned_ref_seq_offset:].count("I") + self.my_cigar[-aligned_ref_seq_offset:].count("S")
         return aligned_ref_seq_offset
     def get_aligned_query_seq_offset(self, query_seq_offset):
         if query_seq_offset == 0:
@@ -695,20 +669,20 @@ class MyResult(mc.MyCigarBase):
     def organize_end(self):
         m = re.search(r"^[=XDI]+?(D*)$", self.my_cigar)
         assert self.beg_ref == self.beg_query == 0
-        len_D = len(m.group(1))
-        alignment_len = len(self.my_cigar) - len_D
+        len_endD = len(m.group(1))
+        alignment_len = len(self.my_cigar) - len_endD
         self.end_ref = alignment_len - self.my_cigar[:alignment_len].count("I") - 1
         self.end_query = alignment_len - self.my_cigar[:alignment_len].count("D") - 1
         assert self.end_ref >= 0
         assert self.end_query >= 0
-        self.my_cigar = self.my_cigar[:alignment_len] + "H" * len_D
-        return len_D    # = len_H
+        self.my_cigar = self.my_cigar[:alignment_len] + "H" * len_endD
+        return len_endD
     def organize_beg(self):
         assert self.beg_ref == self.beg_query == 0
         m = re.search(r"^(D*)[=XDI]+?$", self.my_cigar)
         self.beg_ref = len(m.group(1))
         self.my_cigar = "H" * self.beg_ref + self.my_cigar[self.beg_ref:]
-        return self.beg_ref # = len_H
+        return self.beg_ref # = len_begD
     def set_soft_clipping(self, gap_open_penalty, gap_extend_penalty, match_score, mismatch_score, side):
         if side == "end":
             my_cigar = self.my_cigar[::-1]
@@ -725,6 +699,17 @@ class MyResult(mc.MyCigarBase):
             self.end_ref = len_aligned_ref - 1
     @staticmethod
     def set_soft_clipping_core(my_cigar, gap_open_penalty, gap_extend_penalty, match_score, mismatch_score):
+        """ 下記のようなイメージにする
+        ### PRE ###
+        cigar   ==I=DX===XXXXXDDD
+        ref     AA-AAAAAATTTTTTTT
+        query   AAAA-TAAACCCCC
+
+        ### POST ###
+        cigar   ==I=DX===SSSSSHHHHHHHH
+        ref     AA-AAAAAA     TTTTTTTT
+        query   AAAA-TAAACCCCC
+        """
         score_list = []
         cur_score = 0
         previous_L = ""
@@ -745,21 +730,19 @@ class MyResult(mc.MyCigarBase):
             score_list.append(cur_score)
             previous_L = L
         max_score_idx = np.argmax(score_list)
-        len_non_SH = max_score_idx + 1
-        len_non_H = len(score_list)
-        len_my_cigar = len(my_cigar)
+        len_aligned = max_score_idx + 1
+        len_aligned_and_preS = len(score_list)
+        len_aligned_and_preH = len(my_cigar)
         if score_list[max_score_idx] < 0:
-            len_query = len_non_H - my_cigar[:len_non_H].count("D")
-            len_ref = len_my_cigar - my_cigar.count("I")
-            assert len_ref >= len_query
-            new_my_cigar = "S" * len_query  + "H" * (len_ref - len_query)
-            len_aligned_ref = len_query
+            len_query = len_aligned_and_preS - my_cigar[:len_aligned_and_preS].count("D")
+            len_ref = len_aligned_and_preH - my_cigar.count("I")
+            new_my_cigar = "S" * len_query  + "H" * len_ref
+            len_aligned_ref = 0
         else:
-            len_query_S = len_non_H - len_non_SH - my_cigar[len_non_SH:len_non_H].count("D")
-            len_ref_SH = len_my_cigar - len_non_SH - my_cigar[len_non_SH:len_non_H].count("I")
-            assert len_ref_SH >= len_query_S    # len_query_S の方が長い場合でも、
-            new_my_cigar = my_cigar[:len_non_SH] + "S" * len_query_S + "H" * (len_ref_SH - len_query_S)
-            len_aligned_ref = len_non_SH - my_cigar[:len_non_SH].count("I") + len_query_S   # 159
+            len_query_S = len_aligned_and_preS - len_aligned - my_cigar[len_aligned:len_aligned_and_preS].count("D")
+            len_ref_H = len_aligned_and_preH - len_aligned - my_cigar[len_aligned:].count("I")
+            new_my_cigar = my_cigar[:len_aligned] + "S" * len_query_S + "H" * len_ref_H
+            len_aligned_ref = len_aligned - my_cigar[:len_aligned].count("I")
         return new_my_cigar, len_aligned_ref
 class ConnectionMatrix():
     def __init__(self, connection_matrix, initial_node_idx=0, initial_node_score=0) -> None:

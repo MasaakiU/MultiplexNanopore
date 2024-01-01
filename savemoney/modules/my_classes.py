@@ -329,39 +329,45 @@ class MyRefSeq(MySeq):
 class AlignmentBase():
     @staticmethod
     def print_alignment(ref_seq, query_seq, my_cigar):
-        ref = ""
-        query = ""
-        r_idx = 0
-        q_idx = 0
-        for i, c in enumerate(my_cigar):
-            if c in "=X":
-                if c == "=":
-                    assert ref_seq[r_idx] == query_seq[q_idx]
-                elif c == "X":
-                    assert ref_seq[r_idx] != query_seq[q_idx]
-                ref += ref_seq[r_idx]
-                query += query_seq[q_idx]
-                r_idx += 1
-                q_idx += 1
-            elif c in "I":
-                ref += "-"
-                query += query_seq[q_idx]
-                q_idx += 1
-            elif c in "D":
-                ref += ref_seq[r_idx]
-                query += "-"
-                r_idx += 1
-            elif c in "S":
-                ref += ref_seq[r_idx]
-                query += "S"
-                r_idx += 1
-                q_idx += 1
-            elif c in "H":
-                ref += ref_seq[r_idx]
-                query += " "
-                r_idx += 1
-            else:
-                raise Exception(f"unknown cigar {c}")
+        try:
+            ref = ""
+            query = ""
+            r_idx = 0
+            q_idx = 0
+            for i, c in enumerate(my_cigar):
+                if c in "=X":
+                    if c == "=":
+                        assert ref_seq[r_idx] == query_seq[q_idx]
+                    elif c == "X":
+                        assert ref_seq[r_idx] != query_seq[q_idx]
+                    ref += ref_seq[r_idx]
+                    query += query_seq[q_idx]
+                    r_idx += 1
+                    q_idx += 1
+                elif c in "I":
+                    ref += "-"
+                    query += query_seq[q_idx]
+                    q_idx += 1
+                elif c in "S":
+                    ref += " "
+                    query += query_seq[q_idx]
+                    q_idx += 1
+                elif c in "D":
+                    ref += ref_seq[r_idx]
+                    query += "-"
+                    r_idx += 1
+                elif c in "H":
+                    ref += ref_seq[r_idx]
+                    query += " "
+                    r_idx += 1
+                else:
+                    raise Exception(f"unknown cigar {c}")
+        except:
+            print("ERROR")
+            print(ref_seq)
+            print(query_seq)
+            print(my_cigar)
+            quit()
         print(ref)
         print(query)
         print(my_cigar)
@@ -370,14 +376,14 @@ class AlignmentBase():
         r_idx = 0
         q_idx = 0
         for i, c in enumerate(my_cigar):
-            if c in "=XS":
+            if c in "=X":
                 if c == "=":
                     assert ref_seq[r_idx] == query_seq[q_idx]
                 elif c == "X":
                     assert ref_seq[r_idx] != query_seq[q_idx]
                 r_idx += 1
                 q_idx += 1
-            elif c in "IE":
+            elif c in "IS":
                 q_idx += 1
             elif c in "DH":
                 r_idx += 1
