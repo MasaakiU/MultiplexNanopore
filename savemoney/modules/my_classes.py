@@ -4,11 +4,14 @@ import io
 import re
 import json
 import copy
+import shutil
 import hashlib
 import zipfile
+import tempfile
 import contextlib
 import numpy as np
 import pandas as pd
+from typing import List
 from pathlib import Path
 from Bio.Seq import Seq
 from pathlib import PosixPath   # 必要！
@@ -156,8 +159,8 @@ class MyFastQ(dict):
     maximum_q_score_allowed = 41
     def __init__(self, path=None):
         super().__init__()
-        self.path = [path]
-        if self.path[0] is not None: # for deep copy
+        if path is not None: # for deep copy
+            self.path = [Path(path)]
             with open(self.path[0].as_posix(), "r") as f:
                 fastq_txt = f.readlines()
             # check
@@ -174,13 +177,10 @@ class MyFastQ(dict):
                 assert len(seq) == len(q_scores)
                 self[fastq_id] = [seq, q_scores]
         else:
-            pass
+            self.path = None
     @property
     def combined_name_stem(self):
-        if isinstance(self.path, list):
-            return "_".join(p.stem for p in self.path)
-        else:
-            return self.path.stem
+        return "_".join(p.stem for p in self.path)
     def get_read_lengths(self):
         return np.array([len(v[0]) for v in self.values()])
     def get_q_scores(self):
@@ -216,9 +216,12 @@ class MyFastQ(dict):
     def combine(fastq_list: list):
         assert len(fastq_list) > 0
         combined_fastq = copy.deepcopy(fastq_list[0])
+        path = fastq_list[0].path
         if len(fastq_list) > 1:
             for fastq in fastq_list[1:]:
                 combined_fastq.append(fastq)
+                path.extend(fastq.path)
+        combined_fastq.path = path
         return combined_fastq
     @property
     def my_hash(self):
@@ -228,6 +231,12 @@ class MyFastQ(dict):
         for fastq_id, (seq, q_scores) in self.items():
             txt += f"{fastq_id}\n{seq}\n+\n{''.join(map(lambda x: chr(x + 33), q_scores))}\n"
         return txt#.strip()
+    def export(self, save_path, overwrite=False):
+        if not overwrite:
+            save_path = new_file_path_wo_overlap(file_path=save_path)
+        with open(save_path, "w") as f:
+            f.write(self.to_string())
+
     def __getitem__(self, k):
         if not isinstance(k, slice):
             return OrderedDict.__getitem__(self, k)
@@ -297,7 +306,7 @@ class MyRefSeq(MySeq):
         allowed_plasmid_map_extensions.extend(cls.allowed_fasta_extensions) 
         return allowed_plasmid_map_extensions
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
         if self.path.suffix in self.allowed_snapgene_extensions:
             snapgene_dict = snapgene_file_to_dict(self.path.as_posix())
             # seqrecord = snapgene_file_to_seqrecord(self.path.as_posix())
@@ -325,6 +334,10 @@ class MyRefSeq(MySeq):
     @property
     def my_hash(self):
         return hashlib.sha256(self.seq.encode("utf-8")).hexdigest()
+    def save_as(self, save_path: Path):
+        assert save_path.suffix in self.allowed_fasta_extensions
+        with open(save_path, "w") as f:
+            f.write(f">{self.path.name}\n{self.seq}")
 
 class AlignmentBase():
     @staticmethod
@@ -397,6 +410,57 @@ class MyCigarBase():
     @staticmethod
     def generate_cigar_iter(my_cigar):
         return re.findall(r"((.)\2*)", my_cigar)
+
+class MyTempFiles():
+    def __init__(self, suffix_list: List[str]=[]) -> None:
+        assert all(suffix.startswith(".") for suffix in suffix_list)
+        self.suffix_list = suffix_list
+        # 一時ファイルを作成、ベースのファイルパスを取得
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            self.temp_file_path_base = Path(temp_file.name)
+        self.temp_file_paths = []
+        # 一時ファイルが削除されるタイミングを制御可能: self.KEEP == True なら self.__del__ で、False なら self.__exit__ で制御される
+        self.KEEP = False
+        # atribute への登録、一時ファイルの作成
+        for suffix in self.suffix_list:
+            temp_file_path = self.temp_file_path_base.with_suffix(suffix)
+            setattr(self, f'temp{suffix.replace(".", "_")}_file_path', temp_file_path)
+            self.temp_file_paths.append(temp_file_path)
+            # 空ファイル作成
+            with open(temp_file_path, "wb") as f:
+                pass
+    # 指定したパスへの保存 (self.suffix_list を添付した形でファイルが保存される)
+    def save(self, save_path_base):
+        """
+        example:
+            self.suffix_list = [".ab", ".cd"]
+            save_path_base = "/path/your_file_name.ext"
+        then
+            "/path/your_file_name.ext.ab"
+            "/path/your_file_name.ext.cd"
+        will be saved.
+        """
+        save_path_base = Path(save_path_base).as_posix()
+        for temp_file_path in self.temp_file_paths:
+            shutil.copy(temp_file_path, save_path_base + re.match(fr"{self.temp_file_path_base}(\..+)", temp_file_path.as_posix()).group(1))
+    # True の場合、インスタンスが削除される (by self.__del__) まで一時ファイルが削除されない
+    def keep(self, keep):
+        self.KEEP = keep
+    def delete_temp_files(self):
+        # 一時的なファイルたちを削除
+        self.temp_file_path_base.unlink()
+        for temp_file_path in self.temp_file_paths:
+            temp_file_path.unlink()
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, traceback):
+        if not self.KEEP:
+            self.delete_temp_files()
+        # Trueを返すと例外が抑制され、Falseを返すと例外が再発生
+        return False
+    def __del__(self):
+        if self.KEEP:
+            self.delete_temp_files()
 
 #####################
 # GENERAL FUNCTIONS #

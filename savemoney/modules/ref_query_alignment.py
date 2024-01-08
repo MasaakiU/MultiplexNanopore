@@ -29,8 +29,12 @@ class MyAlignerBase():
     @property
     def my_custom_matrix(self):
         return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
-    def test(self, ref_seq, query_seq):
-        return parasail.nw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+    def nw_trace(self, ref_seq, query_seq):
+        result = parasail.nw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        return MyResult(result)
+    def sg_de_trace(self, ref_seq, query_seq):
+        result = parasail.sg_de_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        return MyResult(result)
     # query の間はギャップペナルティを与えないアラインメント
     def __my_special_dp_python(self, query_seq_1, query_seq_2, ref_seq):
         gap_open_penalty = self.gap_open_penalty
@@ -397,6 +401,17 @@ class MyAlignerBase():
             )
         """
         return my_result
+    def __start_end_alignment(self, ref_seq, query_seq):
+        # result_1  =====ALIGNED-SEQ=====DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+        result_1 = parasail.sg_de_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        my_result_1 = MyResult(result_1)
+        # result_2  DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=====ALIGNED-SEQ=====
+        result_2 = parasail.sg_db_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        my_result_2 = MyResult(result_2)
+
+        mc.AlignmentBase.print_alignment(ref_seq, query_seq, my_result_1.my_cigar)
+        mc.AlignmentBase.print_alignment(ref_seq, query_seq, my_result_2.my_cigar)
+        quit()
 
 class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
     default_repeat_max = 5
@@ -744,6 +759,32 @@ class MyResult(mc.MyCigarBase):
             new_my_cigar = my_cigar[:len_aligned] + "S" * len_query_S + "H" * len_ref_H
             len_aligned_ref = len_aligned - my_cigar[:len_aligned].count("I")
         return new_my_cigar, len_aligned_ref
+    ##############################
+    # Used for polishing process #
+    ##############################
+    def get_mutated_regions(self):
+        return [(m.group(0), m.start(), m.end() - 1, self.my_cigar[:m.start()].count("I"), self.my_cigar[:m.start()].count("D")) for m in re.finditer(r"([IDX]+)", self.my_cigar)]
+    def get_corresponding_query_idx(self, ref_idx):
+        cur_query_idx = -1
+        cur_ref_idx = -1
+        for c in self.my_cigar:
+            if c in "=X":
+                cur_ref_idx += 1
+                cur_query_idx += 1
+            elif c == "I":
+                cur_query_idx += 1
+            elif c == "D":
+                cur_ref_idx += 1
+            else:
+                raise Exception(f"error: {c}")
+            if cur_ref_idx == ref_idx:
+                if c == "I":
+                    raise Exception(f"error {c}")
+                else:
+                    return cur_query_idx
+        print(cur_ref_idx, cur_query_idx)
+        raise Exception("error")
+
 class ConnectionMatrix():
     def __init__(self, connection_matrix, initial_node_idx=0, initial_node_score=0) -> None:
         self.connection_matrix = np.copy(connection_matrix)

@@ -2,22 +2,27 @@
 
 import re
 import io
+import pysam
 import struct
 import zipfile
+import subprocess
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import List
 from PIL import Image as PilImage
+from spoa import poa
 from tqdm import tqdm
+from typing import List
 from pathlib import Path
 from itertools import product
 from collections import defaultdict
 from numpy.core.memmap import uint8
-from matplotlib import rc
 from matplotlib.patches import Patch
 
 from . import my_classes as mc
+from . import ref_query_alignment as rqa
+
+from matplotlib import rc
 rc('font', **{'family':'sans-serif','sans-serif':[mc.sans_serif_font_master]})
 
 class QueryAssignment():
@@ -611,7 +616,7 @@ class MyMSAligner(mc.AlignmentBase):
         self.my_fastq_subset = my_fastq_subset
         self.result_list = result_list
         assert len(self.my_fastq_subset) == len(self.result_list)
-    def execute(self, param_dict):
+    def execute(self, param_dict: dict):
         # set offset for queries
         query_seq_list = []
         q_scores_list = []
@@ -621,17 +626,24 @@ class MyMSAligner(mc.AlignmentBase):
             q_scores_list.append(mc.MySeq.set_offset_core(list(q_scores), result.new_query_seq_offset))
             my_cigar_list.append(result.my_cigar)
 
-        # 1st MSA
-        my_msa = MyMSA.generate_msa(self.ref_seq, query_seq_list, q_scores_list, my_cigar_list)
-        # # 2nd MSA
-        # my_msa.optimize_insertions()
-
-        # calc consensus
+        # MSA 1st step
+        my_msa = MyMSA.generate_msa(self.ref_seq, query_seq_list, q_scores_list, my_cigar_list, param_dict)
+        hci = my_msa.get_hard_clipping_info()
+        # MSA 2nd step: 4回 polish する (4回目の offset は最初の offet と同じ)
+        N_polish = 4
+        actual_window = param_dict["window"] * (N_polish - 1) // (N_polish - 2) + 1     # 1 nt ずつずらしながら polish するわけではないので、window を拡張する必要がある
+        for offset in np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1) + 1):# np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1) + 1):
+            my_msa = my_msa.polish(offset=offset, window=actual_window)
+        my_msa.post_polish_process()
+        my_msa.apply_hard_clipping_info(hci)
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
+        # calc consensus
+        my_msa.calculate_consensus()
         # my_msa.print_alignment()
-        my_msa.calculate_consensus(param_dict)
         return my_msa
+    def get_racon_path(self):
+        return Path(__file__).parents[1] / "racon/build/bin/racon"
 
 class SequenceBasecallQscorePDF():
     def __init__(self, df_csv_path=None) -> None:
@@ -692,9 +704,9 @@ class SequenceBasecallQscorePDF():
             bunbo_bunshi_sum += val
         return 1 - 1 / bunbo_bunshi_sum
 
-class MyMSA(mc.MyCigarBase):
+class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     file_format_version = "ff_0.2.1"
-    algorithm_version = "al_0.1.0"
+    algorithm_version = "al_0.2.0"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
         ("add_sequence", "with_prior_consensus_seq"), 
@@ -734,7 +746,7 @@ class MyMSA(mc.MyCigarBase):
         "seq_range": 50, 
         "offset": 0
     }
-    def __init__(self, ref_seq_aligned=None, query_seq_list_aligned=None, q_scores_list_aligned=None, my_cigar_list_aligned=None) -> None:
+    def __init__(self, ref_seq_aligned=None, query_seq_list_aligned=None, q_scores_list_aligned=None, my_cigar_list_aligned=None, param_dict=None) -> None:
         self.ref_seq_name = None
         self.query_id_list = None
         self.ref_seq_aligned = ref_seq_aligned                  # ref_related
@@ -747,6 +759,8 @@ class MyMSA(mc.MyCigarBase):
         self.without_prior_consensus_seq = ""       # consensus_related
         self.without_prior_consensus_q_scores = []  # consensus_related
         self.without_prior_consensus_my_cigar = ""    # consensus_related
+        if param_dict is not None:
+            super().__init__(param_dict)
     @property
     def ref_seq_NoDEL(self):
         return self.ref_seq_aligned.replace("-", "")
@@ -807,11 +821,11 @@ class MyMSA(mc.MyCigarBase):
                 end_S = int(end_S)
                 my_cigar = my_cigar[:start_S] + "S" * (end_S - start_S + 1) + my_cigar[end_S + 1:]
             self.my_cigar_list_aligned[query_idx] = my_cigar
-    ###########
-    # 1st MSA #
-    ###########
+    ################
+    # MSA 1st step #
+    ################
     @staticmethod
-    def generate_msa(ref_seq: mc.MyRefSeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str]):
+    def generate_msa(ref_seq: mc.MyRefSeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str], param_dict:dict):
         """
         最後が必ず同時に終わるように、特殊シーケンスを追加 (こうしないと、query_seq_list のどれか一つのの最後が "I" である場合に正常終了しない)
         また、`elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "H":` の部分で idx=-1 が生じる可能性がある。
@@ -872,9 +886,9 @@ class MyMSA(mc.MyCigarBase):
                         my_cigar_idx_list[i]      += 1
                         query_seq_idx_list[i]     += 1
                     elif (
-                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or 
-                        (my_cigar_list[i][my_cigar_idx_list[i] + 1] == "H") or 
-                        ((my_cigar_list[i][my_cigar_idx_list[i] + 1] == "Z") and (my_cigar_list[i][0] == "H"))
+                        (my_cigar_list[i][my_cigar_idx_list[i]] == "H") or          # my_cigar_idx_list[i] は次回評価される idx: H の手前に O が追加される
+                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or      # my_cigar_idx_list[i] が H でなくても、一つ前が H なら、現在の idx の手前 (一つ前の H の後) に O が追加される
+                        ((my_cigar_list[i][my_cigar_idx_list[i]] == "Z") and (my_cigar_list[i][0] == "H"))
                     ):
                         my_cigar_list_aligned[i]  += "O"    # inside or adjascent to H region but skipped
                         query_seq_list_aligned[i] += " "
@@ -894,9 +908,9 @@ class MyMSA(mc.MyCigarBase):
                         my_cigar_idx_list[i]      += 1
                         query_seq_idx_list[i]     += 1
                     elif (
-                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or 
-                        (my_cigar_list[i][my_cigar_idx_list[i] + 1] == "H") or 
-                        ((my_cigar_list[i][my_cigar_idx_list[i] + 1] == "Z") and (my_cigar_list[i][0] == "H"))
+                        (my_cigar_list[i][my_cigar_idx_list[i]] == "H") or          # my_cigar_idx_list[i] は次回評価される idx: H の手前に O が追加される
+                        (my_cigar_list[i][my_cigar_idx_list[i] - 1] == "H") or      # my_cigar_idx_list[i] が H でなくても、一つ前が H なら、現在の idx の手前 (一つ前の H の後) に O が追加される
+                        ((my_cigar_list[i][my_cigar_idx_list[i]] == "Z") and (my_cigar_list[i][0] == "H"))
                     ):
                         my_cigar_list_aligned[i]  += "O"    # inside or adjascent to H region but skipped
                         query_seq_list_aligned[i] += " "
@@ -911,17 +925,432 @@ class MyMSA(mc.MyCigarBase):
             # query_seq_list = [query_seq[:-1] for query_seq in query_seq_list] # view ではないので、元に戻す必要はない
             # q_scores_list = [q_scores[:-1] for q_scores in q_scores_list]     # view ではないので、元に戻す必要はない
             # my_cigar_list = [my_cigar[:-1] for my_cigar in my_cigar_list]     # view ではないので、元に戻す必要はない
-        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned)
-    ###########
-    # 2nd MSA #
-    ###########
-    insertion_detection_limit = 0.2     # 二割 (十分条件であれば適当で大丈夫) 以上のリードが "I" であるという感じで検出
-    def optimize_insertions(self):
-        self.optimize_S_regions()
+        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, param_dict)
+    def get_hard_clipping_info(self):
+        """
+        returns the following info set
+            hard_clipping_info = [[p, p, ...], ... ]
+        where
+            len(hard_clipping_info): len(self.query_seq_list_aligned)
+            p: (previous)               NUMBER of position immediately before the hard clipping
+            n: (next: not recoreded)    NUMBER of position immediately after the hard clipping
+            NOTE: n == p+1
+            NOTE: do not consider D, N when counting NUMBER
+        example
+                  *      *  (p, n) = (6, 7)
+            01-2345------6789-10
+            ==D==SSOOHHHOS==IN=
+        """
+        hci = []
+        for my_cigar_aligned in self.my_cigar_list_aligned:
+            hard_clipping_loc = []
+            for m in re.finditer(r"[HO]+", my_cigar_aligned):
+                my_cigar_before = my_cigar_aligned[:m.start()]
+                hard_clipping_loc.append(
+                    my_cigar_before.count("=")
+                    + my_cigar_before.count("X")
+                    + my_cigar_before.count("I")
+                    + my_cigar_before.count("S")
+                )
+            hci.append(hard_clipping_loc)
+        return hci
+    def apply_hard_clipping_info(self, hci):
+        for query_idx, (hard_clipping_loc, my_cigar_aligned, query_seq_aligned) in enumerate(zip(hci, self.my_cigar_list_aligned, self.query_seq_list_aligned)):
+            len_NoDEL = 0
+            hard_clipping_se_idx_list_aligned = []  # [(s,e), ...]
+            currently_within_hard_clipping_region = False
+            for i, c in enumerate(my_cigar_aligned):
+                if c in "=XIS":
+                    len_NoDEL += 1
+                    # H-region から出た直後の場合
+                    if currently_within_hard_clipping_region:
+                        currently_within_hard_clipping_region = False
+                        hard_clipping_se_idx_list_aligned[-1].append(i-1)   # add end idx
+                elif c == "D":
+                    # H-region に入った直後
+                    if (len_NoDEL in hard_clipping_loc) and (not currently_within_hard_clipping_region):
+                        hard_clipping_se_idx_list_aligned.append([i])   # add start_idx
+                        currently_within_hard_clipping_region = True
+                elif c in "N":
+                    continue
+                else:
+                    raise Exception(f"error: {c}")
+            else:
+                if currently_within_hard_clipping_region:
+                    hard_clipping_se_idx_list_aligned[-1].append(i) # add end idx
+            # アプデ
+            for s, e in hard_clipping_se_idx_list_aligned:
+                my_cigar_in_between = ""
+                for i in range(s, e+1):
+                    if self.ref_seq_aligned[i] == "N":
+                        my_cigar_in_between += "O"
+                    else:
+                        my_cigar_in_between += "H"
+                query_seq_aligned = query_seq_aligned[:s] + " " * (e+1-s) + query_seq_aligned[e+1:]
+                my_cigar_aligned = my_cigar_aligned[:s] + my_cigar_in_between + my_cigar_aligned[e+1:]
+            self.query_seq_list_aligned[query_idx] = query_seq_aligned
+            self.my_cigar_list_aligned[query_idx] = my_cigar_aligned
+    ################
+    # MSA 2nd step #
+    ################
+    def polish(self, offset, window):
+        chunk_idx_start_aligned_list = []
+        cur_chunk_len = 0
+        target_chunk_len = offset   # 最初はオフセット
+        for i, s in enumerate(self.ref_seq_aligned):
+            # 新規 chunk 開始
+            if cur_chunk_len == target_chunk_len:
+                chunk_idx_start_aligned_list.append(i)
+                cur_chunk_len = 0
+                target_chunk_len = window
+            if s != "-":
+                cur_chunk_len += 1
+        # 最後の chunk が短ければ、一つ前のものと連結
+        if len(self.ref_seq_aligned[chunk_idx_start_aligned_list[-1]:].replace("-", "")) + offset < window:
+            del chunk_idx_start_aligned_list[-1]
+        # POA 実行
+        msa_set = []
+        for s, e in zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:]):
+            ref_seq_chunk = self.ref_seq_aligned[s:e].replace("-", "")
+            query_seq_chunk_list = [query_seq_aligned[s:e].replace(" ", "").replace("-", "") for query_seq_aligned in self.query_seq_list_aligned]
+            # 実行
+            msa = self.exec_chunk_poa([ref_seq_chunk] + query_seq_chunk_list)
+            # 格納
+            msa_set.append(msa)
+        else:
+            # 最終 chunk
+            s = chunk_idx_start_aligned_list[-1]
+            e = chunk_idx_start_aligned_list[0]
+            ref_seq_chunk = (self.ref_seq_aligned[s:] + self.ref_seq_aligned[:e]).replace("-", "")
+            query_seq_chunk_list = [(query_seq_aligned[s:] + query_seq_aligned[:e]).replace(" ", "").replace("-", "") for query_seq_aligned in self.query_seq_list_aligned]
+            # 実行
+            msa = self.exec_chunk_poa([ref_seq_chunk] + query_seq_chunk_list)
+            # 格納
+            msa_set.append(msa)
+        # 後処理
+        msa_list = ["".join(msa_chunks) for msa_chunks in zip(*msa_set)]
+        cur_len = 0
+        for i, s in enumerate(msa_list[0][::-1]):
+            if cur_len == offset:
+                offset_after_msa = i
+                break
+            if s != "-":
+                cur_len += 1
+        msa_list = [aligned_seq[-offset_after_msa:] + aligned_seq[:-offset_after_msa] for aligned_seq in msa_list]
+        # MyMSA 再生性
+        ref_seq_aligned = msa_list[0]
+        query_seq_list_aligned = msa_list[1:]
+        q_scores_list = [[q for q in q_scores_aligned if q != -1] for q_scores_aligned in self.q_scores_list_aligned]
+        my_cigar_list = [(my_cigar_aligned).replace("D", "").replace("N", "").replace("H", "").replace("O", "") for my_cigar_aligned in self.my_cigar_list_aligned]
+        q_scores_list_aligned = [list(self.custom_fill(query_seq_aligned, q_scores, empty_value=-1)) for query_seq_aligned, q_scores in zip(query_seq_list_aligned, q_scores_list)]
+        my_cigar_list_aligned = ["".join(self.custom_fill(query_seq_aligned, list(my_cigar), empty_value="N")) for query_seq_aligned, my_cigar in zip(query_seq_list_aligned, my_cigar_list)]
+        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, self.param_dict)
+    def exec_chunk_poa(self, seq_list) -> list:
+        # 両端処理 (適当な共通配列を付加することで、端のアラインメントが崩れることを防ぐ)
+        seq_list = ["Z" + seq + "Z" for seq in seq_list]
+        # 実行
+        consensus, msa = poa(
+            seq_list, 
+            algorithm = 1, 
+            m = self.param_dict["match_score"], 
+            n = self.param_dict["mismatch_score"], 
+            g = -self.param_dict["gap_open_penalty"], 
+            e = -self.param_dict["gap_extend_penalty"]
+        )
+        # 後処理
+        msa = [aligned_seq[1:-1] for aligned_seq in msa]
+        for i, s in enumerate(seq_list):
+            if len(s) == 0:
+                msa.insert(i, "-" * len(msa[0]))
+        return msa
+    @staticmethod
+    def custom_fill(seq_aligned, some_list, empty_value):
+        r = np.full(len(seq_aligned), fill_value=empty_value, dtype=type(some_list[0]))
+        r[np.where(np.array(list(seq_aligned)) != "-")[0]] = some_list
+        return r
+    def post_polish_process(self):
+        """
+        my_cigar を整理する (現在は N と S の位置のみ合っていることが保証されている状態)
+        """
+        for query_idx, (query_seq_aligned, my_cigar_aligned_original) in enumerate(zip(self.query_seq_list_aligned, self.my_cigar_list_aligned)):
+            my_cigar_aligned = ""
+            for r, q, c in zip(self.ref_seq_aligned, query_seq_aligned, my_cigar_aligned_original):
+                if c == "S":
+                    my_cigar_aligned += "S"
+                elif c in "=XIN":
+                    if q == r:  # =N
+                        if r != "-":
+                            my_cigar_aligned += "="
+                        else:
+                            my_cigar_aligned += "N"
+                    else:       # IDX
+                        if r != "-":    # XD
+                            if q != "-":
+                                my_cigar_aligned += "X"
+                            else:
+                                my_cigar_aligned += "D"
+                        else:   # r == "-"
+                            my_cigar_aligned += "I"
+                else:   # HO
+                    raise Exception(f"error: {c}")
+            self.my_cigar_list_aligned[query_idx] = my_cigar_aligned
 
-    def optimize_S_regions(self):
+    def __polish(self, racon_path: Path, fasta_file_path: Path):
+        # 入力用 sam, fastq を準備 / 出力用のパスを準備
+        mbs = self.convert_to_bam(save_dir=None, replace_S_with_I=True) # save_dir=None なので、一時ファイルは mbs が __del__ されるまで削除されない
+        with mc.MyTempFiles(suffix_list=[".polished.fasta"]) as mtf:
+            # racon 実行
+            with open(mtf.temp_polished_fasta_file_path, "w") as f:
+                command = [
+                    racon_path.as_posix(), #"-m", "3", "-x", "-5", "-g", "-4" // #"-m", "1", "-x", "-2", "-g", "-3",
+                    mbs.temp_bam_fastq_file_path.as_posix(), 
+                    mbs.temp_sorted_sam_file_path.as_posix(), 
+                    fasta_file_path.as_posix(), 
+                ]
+                subprocess.run(command, stdout=f, text=True)
+            # シーケンス取得
+            ref_seq_polished = mc.MyRefSeq(path=mtf.temp_polished_fasta_file_path)
+            ref_seq_polished.path = None    # 一時ファイルから読み込んだだけなので、念のため path を消しておこう
+        self.remap(ref_seq_polished.seq)
+    def __remap(self, ref_seq_polished):
+        # とりまアラインメント
+        my_aligner_base = rqa.MyAlignerBase(self.param_dict)
+        ref_seq = self.ref_seq_NoDEL
+        my_result = my_aligner_base.nw_trace(ref_seq, ref_seq_polished)
+        # 不一致領域の情報を抽出 / 結合
+        remap_info_list = []
+        for my_cigar_extracted, region_s, region_e, I_count, D_count in my_result.get_mutated_regions():
+            ref_seq_extracted_start = region_s - I_count
+            ref_seq_extracted_end = region_e - I_count - my_cigar_extracted.count("I")
+            ref_seq_extracted = ref_seq[ref_seq_extracted_start:ref_seq_extracted_end + 1]
+            polished_extracted = ref_seq_polished[region_s - D_count:region_e - D_count + 1 - my_cigar_extracted.count("D")]
+
+            if all(c == my_cigar_extracted[0] for c in my_cigar_extracted):
+                if my_cigar_extracted[0] == "I":
+                    """
+                    ref         ATCG  CCCCC ATCG
+                    polished    ATCG CCCCCC ATCG
+                                    *              target_seq
+                                    *****         similar_neighborhood_post
+                                    ******         region_to_remap
+                    """
+                    target_seq = polished_extracted
+                elif my_cigar_extracted[0] == "D":
+                    """
+                    ref         ATCG CCCCCC ATCG
+                    polished    ATCG C  CCC ATCG
+                                    **            target_seq
+                                    *              similar_neighborhood_pre
+                                        ***         similar_neighborhood_post
+                                    ******         region_to_remap
+                    """
+                    target_seq = ref_seq_extracted
+                else:
+                    raise Exception(my_cigar_extracted)
+
+                # region より前の部分を上流に遡りながら探す
+                similar_neighborhood_pre = self.find_similr_neighborhood_from_beginning(
+                    ref_seq[:ref_seq_extracted_start][::-1], 
+                    target_seq = target_seq[::-1], 
+                )[::-1]
+                # region より後ろの部分を探す
+                similar_neighborhood_post = self.find_similr_neighborhood_from_beginning(
+                    ref_seq[ref_seq_extracted_end + 1:], 
+                    target_seq = target_seq
+                )
+                print(ref_seq_extracted_start, ref_seq_extracted_end)
+                region_to_remap_aligned_start = self.obtain_aligned_idx(self.ref_seq_aligned, ref_seq_extracted_start - len(similar_neighborhood_pre) - 1) + 1
+                region_to_remap_aligned_end = self.obtain_aligned_idx(self.ref_seq_aligned, ref_seq_extracted_end + len(similar_neighborhood_post) + 1) - 1
+                remap_info_list.append((region_to_remap_aligned_start, region_to_remap_aligned_end))
+            else:
+                raise Exception(my_cigar_extracted)
+        print(remap_info_list)
+        # 不一致領域毎に再アラインメント
+        remap_info_list = self.tidy_remap_info(remap_info_list)
+        for region_to_remap_aligned_start, region_to_remap_aligned_end in remap_info_list[::-1]:
+            # レファレンス準備: 対応する polished_seq を取得
+            region_to_remap_on_ref_seq_NoDEL_start = region_to_remap_aligned_start - self.ref_seq_aligned[:region_to_remap_aligned_start].count("-")
+            region_to_remap_on_ref_seq_NoDEL_end   = region_to_remap_aligned_end - self.ref_seq_aligned[:region_to_remap_aligned_end].count("-")
+            region_to_remap_on_polished_start = my_result.get_corresponding_query_idx(ref_idx=region_to_remap_on_ref_seq_NoDEL_start - 1) + 1
+            region_to_remap_on_polished_end = my_result.get_corresponding_query_idx(ref_idx=region_to_remap_on_ref_seq_NoDEL_end + 1) - 1
+            polished_extracted_new = ref_seq_polished[region_to_remap_on_polished_start:region_to_remap_on_polished_end + 1]
+            # ミニ MSA 実行
+            new_slice = slice(region_to_remap_aligned_start, region_to_remap_aligned_end + 1)
+            for query_seq_aligned, q_scores_aligned in zip(self.query_seq_list_aligned, self.q_scores_list_aligned):
+                query_seq_extracted_new = query_seq_aligned[new_slice].replace("-", "").replace(" ", "")
+                q_scores_extracted_new = [q for q in q_scores_aligned[new_slice] if q != -1]
+                # my_result_extracted_new = my_aligner_base.nw_trace(polished_extracted_new, query_seq_extracted_new)
+
+                print(polished_extracted_new, "#", query_seq_extracted_new)
+                # print()
+                # print(my_result_extracted_new.my_cigar)
+                # quit()
+
+            quit()
+    @staticmethod
+    def __find_similr_neighborhood_from_beginning(ref_seq, target_seq):
+        if len(target_seq) == 1:
+            return re.match(fr"^({target_seq}*)", ref_seq).group(1)
+        else:
+            return ""
+            # raise Exception("error")
+    @staticmethod
+    def __obtain_aligned_idx(seq_aligned, idx_in_NoDEL):
+        """
+        idx_in_NoDEL    0123 4567    8 (args, count_up)
+        seq_aligned     atcg-tcgg----g
+        idx_aligned     0123456789 11 (return)
+                                  10 12
+        """
+        count_up = -1
+        for i, s in enumerate(seq_aligned):
+            if s != "-":
+                count_up += 1
+                if count_up == idx_in_NoDEL:
+                    return i
+            else:
+                continue
+        else:
+            raise Exception("error")
+    @classmethod
+    def __tidy_remap_info(cls, remap_info_list):
+        if len(remap_info_list) <= 1:
+            return remap_info_list
+        else:
+            for i in range(len(remap_info_list) - 1):
+                if remap_info_list[i][1] >= remap_info_list[i+1][0]:
+                    break
+            else:
+                return remap_info_list
+            # combine [i] and [i+1] and redo tidy_remap_info
+            remap_info_list = remap_info_list[:i] + [(min(remap_info_list[i][0], remap_info_list[i+1][0]), max(remap_info_list[i][1], remap_info_list[i+1][1]))] + remap_info_list[i+2:]
+            return cls.tidy_remap_info(remap_info_list)
+    def __optimize_insertions(self):
+        """
+        全ての I/S (insertion, soft-clipping) について、下記を実行
+        # PRE                       ************    exec alignment without gap penalty at the end
+            ref     atcg-tcgg------g-----gaaaaaa
+            query   atcgatcggccaccggcaccggaaaaaa
+        # POST1              *******
+            ref     atcg-tcgg------g----g-aaaaaa
+            query   atcgatcggccaccggcaccggaaaaaa
+        # POST2         *****                       no change because any change will decrease the score
+            ref     atcg-tcgg-----g-----g-aaaaaa
+            query   atcgatcggccaccggcaccggaaaaaa
+        # POST3
+            ref     atcg-tcgg-----g-----g-aaaaaa
+            query   atcgatcggccaccggcaccggaaaaaa
+
+        """
+        
+
+        self.trim_S_regions()
+        self.optimize_I_regions()
+    def __trim_S_regions(self):
+        assert self.ref_seq_aligned[0] != "-"
         N_my_cigar = len(self.my_cigar_list_aligned[0])
         N_read = len(self.my_cigar_list_aligned)
+        # iter "S" region
+        S_info_list_to_remove = []
+        for read_idx, my_cigar in enumerate(self.my_cigar_list_aligned):
+            m_list = list(re.finditer(r"[S]+", my_cigar))
+            assert len(m_list) <= 2
+            print(len(m_list))
+            for m in m_list:
+                S_start = int(m.start())
+                S_len = int(m.end()) - S_start
+                query_seq_aligned = self.query_seq_list_aligned[read_idx]
+                S_region_seq = query_seq_aligned[S_start:S_start + S_len]
+                # S の手前が hard clip の場合は、S の後でマッチを試みる
+                if query_seq_aligned[S_start-1] == " ":
+                    query_seq_adjascent, ref_seq_adjascent, ref_seq_further_after = self.get_ref_seq_from_aligned_idx(S_start + S_len, size=S_len, query_seq_aligned=query_seq_aligned)
+                    side = "post"
+                else:
+                    query_seq_adjascent, ref_seq_adjascent, ref_seq_further_after = self.get_ref_seq_from_aligned_idx(S_start - 1, size=-S_len, query_seq_aligned=query_seq_aligned)
+                    side = "pre"
+                # self.start_end_alignment(adjascent_S_region_ref, S_region_seq)
+
+                print("AAA", side)
+                print(query_seq_adjascent)
+                print(ref_seq_adjascent)
+                print(ref_seq_further_after)
+            if read_idx > 3:
+                quit()
+    def __get_ref_seq_from_aligned_idx(self, idx_start, size, query_seq_aligned):
+        """ 数字は適当な長さの配列の塊
+        PATTERN1                   seq      sequence_further_after
+        ref     ==12132       ->   1_2      12     (アラインされてない 3 は無視する)
+        query   ==  1 2132    ->      132     1 2
+                  **          further_after
+                    ***       adjascent
+                       ***    size
+        PATTERN2
+        ref     ==1321 2      ->   1 2      132
+        query   ==   13212    ->      12       132
+        PATTERN1
+        ref         1 2132==  ->     1 2       132
+        query     12132   ==  ->   12       132
+        PATTERN2
+        ref         13212==   ->      1_2      12   (アラインされてない 3 は無視する)
+        query    1321 2  ==   ->   132      1 2
+        """
+        # accept size < 0
+        assert idx_start >= 0
+        idx_end = idx_start - size
+        if size > 0:
+            increment = 1
+        elif size < 0:
+            increment = -1
+            size = -size
+        else:
+            raise Exception(f"error: {size}")
+        # idx をカウントしていく
+        aligned_seq_size = len(self.ref_seq_aligned)
+        size_adjascent = size
+        size_further_after = 0
+        idx = idx_start
+        while size_adjascent > 0:
+            if idx == idx_end:
+                return None, None, None
+            r = self.ref_seq_aligned[idx]
+            q = query_seq_aligned[idx]
+            idx += increment
+            idx %= aligned_seq_size
+            if r == "-":    # 詳しくは rqa.start_end_alignment のパターンを参照
+                if q != "-":
+                    size_further_after += 1
+                continue
+            elif q == "-":  # 詳しくは rqa.start_end_alignment のパターンを参照
+                size_adjascent -= 1
+                continue
+            else:
+                size_further_after += 1
+                size_adjascent -= 1
+        idx_midpoint = idx  # 範囲を一つ超えた箇所のインデックス
+        # その後のシーケンス用のカウント
+        while size_further_after > 0:
+            if idx == idx_end:
+                return None, None, None
+            r = self.ref_seq_aligned[idx]
+            idx += increment
+            idx %= aligned_seq_size
+            if r != "-":
+                size_further_after -= 1
+
+        # 後処理
+        if increment == 1:
+            query_seq_adjascent = query_seq_aligned[idx_start:idx_midpoint].replace("-", "")
+            ref_seq_adjascent = self.ref_seq_aligned[idx_start:idx_midpoint].replace("-", "")
+            ref_seq_further_after = self.ref_seq_aligned[idx_midpoint:idx].replace("-", "")
+        else:
+            query_seq_adjascent = query_seq_aligned[idx_midpoint + 1:idx_start + 1].replace("-", "")
+            ref_seq_adjascent = self.ref_seq_aligned[idx_midpoint + 1:idx_start + 1].replace("-", "")
+            ref_seq_further_after = self.ref_seq_aligned[idx + 1:idx_midpoint + 1].replace("-", "")
+        return query_seq_adjascent, ref_seq_adjascent, ref_seq_further_after
+    def __optimize_I_regions(self):
+        """
+        一番頻度が高い insertion をとこを仮の insertion として、そこにアラインメントできるか、一本ずつ攻めていくか？
+        """
         ### detect soft clipping "S" 
         SI_count_list = []
         for i in range(N_my_cigar):
@@ -937,9 +1366,10 @@ class MyMSA(mc.MyCigarBase):
             else:
                 SI_count_list.append(0)
         SI_count_list = np.array(SI_count_list)
+
         # S の領域をを大きい順に取得
-        cur_max_S_start_idx = 0
-        cur_max_S_len = 0
+        max_S_start_idx = 0
+        max_S_len = 0
         tmp_S_start_idx = None
         tmp_S_len = 0
         for i, SI_count in enumerate(SI_count_list):
@@ -957,13 +1387,16 @@ class MyMSA(mc.MyCigarBase):
                 # S region ends and update
                 else:
                     # アプデ
-                    if tmp_S_len > cur_max_S_len:
-                        cur_max_S_start_idx = tmp_S_start_idx
-                        cur_max_S_len = tmp_S_len
+                    if tmp_S_len > max_S_len:
+                        max_S_start_idx = tmp_S_start_idx
+                        max_S_len = tmp_S_len
                     tmp_S_start_idx = None
                     tmp_S_len = 0
-        print(cur_max_S_start_idx)
-        print(cur_max_S_len)
+
+        # 領域周りを検索
+        max_S_end_idx = max_S_start_idx + max_S_len - 1
+        print(max_S_start_idx)
+        print(max_S_len)
 
 
 
@@ -1126,9 +1559,9 @@ class MyMSA(mc.MyCigarBase):
     ########################
     # consensus calculator #
     ########################
-    def calculate_consensus(self, param_dict):
+    def calculate_consensus(self):
         # params
-        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(param_dict)
+        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(self.param_dict)
         # execute
         self.with_prior_consensus_seq, self.with_prior_consensus_q_scores, self.with_prior_consensus_my_cigar = self.calculate_consensus_core(P_N_dict_dict_with_prior)
         self.without_prior_consensus_seq, self.without_prior_consensus_q_scores, self.without_prior_consensus_my_cigar = self.calculate_consensus_core(P_N_dict_dict_without_prior)
@@ -1231,21 +1664,24 @@ class MyMSA(mc.MyCigarBase):
     #######################
     # export/load results #
     #######################
-    def export_consensus_fastq(self, save_dir, ref_seq_name: str):
+    def export_consensus_fastq(self, save_dir):
         # with prior
-        save_path = save_dir / f"{ref_seq_name}.consensus_with_prior.fastq"
+        save_path = save_dir / f"{self.ref_seq_name}.consensus_with_prior.fastq"
         consensus_q_score_string = "".join([chr(q + 33) for q in self.with_prior_consensus_q_scores_NoDEL])
-        consensus_fastq_txt = f"@{ref_seq_name}.with_prior:\n{self.with_prior_consensus_seq_NoDEL.upper()}\n+\n{consensus_q_score_string}"
+        consensus_fastq_txt = f"@{self.ref_seq_name}.with_prior:\n{self.with_prior_consensus_seq_NoDEL.upper()}\n+\n{consensus_q_score_string}"
         with open(save_path, "w") as f:
             f.write(consensus_fastq_txt)
         # without prior
-        save_path = save_dir / f"{ref_seq_name}.consensus_without_prior.fastq"
+        save_path = save_dir / f"{self.ref_seq_name}.consensus_without_prior.fastq"
         consensus_q_score_string = "".join([chr(q + 33) for q in self.without_prior_consensus_q_scores_NoDEL])
-        consensus_fastq_txt = f"@{ref_seq_name}.without_prior:\n{self.without_prior_consensus_seq_NoDEL.upper()}\n+\n{consensus_q_score_string}"
+        consensus_fastq_txt = f"@{self.ref_seq_name}.without_prior:\n{self.without_prior_consensus_seq_NoDEL.upper()}\n+\n{consensus_q_score_string}"
         with open(save_path, "w") as f:
             f.write(consensus_fastq_txt)
-    def export_gif(self, save_dir, ref_seq_name: str):
-        save_path = save_dir / f"{ref_seq_name}.gif"
+    def export_gif(self, save_dir):
+        save_path = save_dir / f"{self.ref_seq_name}.gif"
+        my_msa = self.execute_soft_clipping()
+        my_msa.export_gif_core(save_path)
+    def export_gif_core(self, save_path):
         # prepare
         N_array = np.empty((6, len(self.ref_seq_aligned)), int)
         tick_pos_list = []
@@ -1281,8 +1717,8 @@ class MyMSA(mc.MyCigarBase):
         bar_graph_img.set_legend(legend_list=["match", "skipped", "mismatch", "insertion", "deletion", "not_covered"])
         bar_graph_img.set_legend_description(f"TOTAL READS: {len(self.query_id_list)}")
         bar_graph_img.export_as_img(save_path=save_path)
-    def export_consensus_alignment(self, save_dir: Path, ref_seq_name: str):
-        save_path = save_dir / f"{ref_seq_name}.ca"
+    def export_consensus_alignment(self, save_dir: Path):
+        save_path = save_dir / f"{self.ref_seq_name}.ca"
         my_byte_str = self.to_binary()
         with zipfile.ZipFile(save_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
             z.writestr(save_path.with_suffix(".b").name, my_byte_str.my_byte_str)
@@ -1453,6 +1889,130 @@ class MyMSA(mc.MyCigarBase):
             else:
                 raise Exception(f"unknown cigar: {L}")
         return True
+    def convert_to_bam(self, save_dir=None, replace_S_with_I=False, ext_not_exported=[".sorted.sam", ".bam.fastq"]):
+        S_replacement = "I" if replace_S_with_I else "S"
+        # Create a BAM file
+        ref_len = len(self.ref_seq_NoDEL)
+        header_text = f"@HD\tVN:1.6\tSO:unsorted\n@SQ\tSN:{self.ref_seq_name}\tLN:{ref_len}"
+        header = pysam.AlignmentHeader.from_text(header_text)
+        ref_id = header.get_tid(self.ref_seq_name)
+        # =XDISHO
+        m_re_A = re.compile(r"^([^HO].*?)[HO]+(.*?[^HO])$") # ====HHH====
+        m_re_B = re.compile(r"^([HO]*)(.+?)[HO]*$")         # HHH=====HHH, HHH========, ========HHH, ===========
+        # 一時的なファイルを作成
+        with MyBamSet(ext_not_exported=ext_not_exported) as mbs:
+            ### ファイルを作成
+            with pysam.AlignmentFile(mbs.temp_bam_file_path.as_posix(), "wb", header=header) as bam_file:
+                temp_my_fastq = mc.MyFastQ()
+                for query_id, query_seq, q_scores_list_aligned, my_cigar in zip(self.query_id_list, self.query_seq_list_aligned, self.q_scores_list_aligned, self.my_cigar_list_aligned):
+                    assert my_cigar[0] in "=XDSH"    # =XDISHO
+                    query_name = query_id.split(" ")[0].strip("@")
+                    # Create an alignment entry
+                    m = m_re_A.match(my_cigar)
+                    if m is not None:
+                        # 準備
+                        my_cigar_1 = m.group(1)
+                        my_cigar_2 = m.group(2)
+                        len_my_cigar_2 = len(my_cigar_2)
+                        my_cigar_2_start = len(my_cigar) - len_my_cigar_2
+                        query_2_start = my_cigar_2_start - my_cigar[:my_cigar_2_start].count("I") - my_cigar[:my_cigar_2_start].count("N") - my_cigar[:my_cigar_2_start].count("S") - my_cigar[:my_cigar_2_start].count("O")
+                        # read 1 追加
+                        read = pysam.AlignedSegment()
+                        read.query_name = query_name + ".1"                                 # 1.QNAME
+                        read.flag = 1 + 2 + 64                                              # 2.FLAG    paired, mapped properly, first in pair
+                        read.reference_id = ref_id                                          # 3.RNAME
+                        read.reference_start = 0                                            # 4.POS
+                        read.mapping_quality = 40                                           # 5.MAPQ
+                        read.cigarstring = "".join(f"{len(LLL)}{L}" for LLL, L in self.generate_cigar_iter(my_cigar_1.replace("N", "").replace("S", S_replacement)))         # 6.CIGAR
+                        read.next_reference_id = ref_id                                     # 7.RNEXT
+                        read.next_reference_start = query_2_start                           # 8.PNEXT
+                        read.template_length = ref_len                                      # 9.TLEN
+                        read.query_sequence = query_seq[:len(my_cigar_1)].replace("-", "")  # 10.SEQ
+                        read.query_qualities = [q for q in q_scores_list_aligned[:len(my_cigar_1)] if q != -1]      # 11.QUAL
+                        bam_file.write(read)
+                        # fastq に追加
+                        temp_my_fastq["@" + read.query_name] = [read.query_sequence, read.query_qualities]
+                        # read 2 追加
+                        read = pysam.AlignedSegment()
+                        read.query_name = query_name + ".2"                                 # 1.QNAME
+                        read.flag = 1 + 2 + 128                                             # 2.FLAG    paired, mapped properly, first in pair
+                        read.reference_id = ref_id                                          # 3.RNAME
+                        read.reference_start = query_2_start                                # 4.POS
+                        read.mapping_quality = 40                                           # 5.MAPQ
+                        read.cigarstring = "".join(f"{len(LLL)}{L}" for LLL, L in self.generate_cigar_iter(my_cigar_2.replace("N", "").replace("S", S_replacement)))         # 6.CIGAR
+                        read.next_reference_id = ref_id                                     # 7.RNEXT
+                        read.next_reference_start = 0                                       # 8.PNEXT
+                        read.template_length = ref_len                                      # 9.TLEN
+                        read.query_sequence = query_seq[-len_my_cigar_2:].replace("-", "")  # 10.SEQ
+                        read.query_qualities = [q for q in q_scores_list_aligned[-len_my_cigar_2:] if q != -1]      # 11.QUAL
+                        bam_file.write(read)
+                        # fastq に追加
+                        temp_my_fastq["@" + read.query_name] = [read.query_sequence, read.query_qualities]
+                    else:
+                        # 準備
+                        m = m_re_B.match(my_cigar)
+                        my_cigar_1 = m.group(1)
+                        my_cigar_2 = m.group(2)
+                        len_my_cigar_1 = len(my_cigar_1)
+                        len_my_cigar_2 = len(my_cigar_2)
+                        # read 1 追加
+                        read = pysam.AlignedSegment()
+                        read.query_name = query_name + ".0"                                 # 1.QNAME
+                        read.flag = 1*0 + 2 + 64*0                                          # 2.FLAG    not paired, mapped properly, first in pair
+                        read.reference_id = ref_id                                          # 3.RNAME
+                        read.reference_start = len_my_cigar_1 - my_cigar_1.count("O")       # 4.POS
+                        read.mapping_quality = 40                                           # 5.MAPQ
+                        read.cigarstring = "".join(f"{len(LLL)}{L}" for LLL, L in self.generate_cigar_iter(my_cigar_2.replace("N", "").replace("S", S_replacement)))         # 6.CIGAR
+                        read.next_reference_id = -1                                         # 7.RNEXT
+                        read.next_reference_start = 0                                       # 8.PNEXT
+                        read.template_length = len_my_cigar_2 - query_seq[len_my_cigar_1:len_my_cigar_1 + len_my_cigar_2].count("-")                        # 9.TLEN
+                        read.query_sequence = query_seq[len_my_cigar_1:len_my_cigar_1 + len_my_cigar_2].replace("-", "")                                    # 10.SEQ
+                        read.query_qualities = [q for q in q_scores_list_aligned[len_my_cigar_1:len_my_cigar_1 + len_my_cigar_2] if q != -1]                # 11.QUAL
+                        bam_file.write(read)
+                        # fastq に追加
+                        temp_my_fastq["@" + read.query_name] = [read.query_sequence, read.query_qualities]
+
+            ### ソート アンド インデックス
+            temp_my_fastq.export(mbs.temp_bam_fastq_file_path.as_posix(), overwrite=True)
+            pysam.sort("-o", mbs.temp_sorted_bam_file_path.as_posix(), mbs.temp_bam_file_path.as_posix())  # -o FILE    Write final output to FILE rather than standard output
+            pysam.index(mbs.temp_sorted_bam_file_path.as_posix())
+
+            ### sam 生成
+            with pysam.AlignmentFile(mbs.temp_sorted_bam_file_path, "rb") as bam_file:
+                with pysam.AlignmentFile(mbs.temp_sorted_sam_file_path, "wh", header=bam_file.header) as sam_file:
+                    for read in bam_file:
+                        sam_file.write(read)
+
+            if save_dir is not None:
+                mbs.save(Path(save_dir) / self.ref_seq_name)
+            else:
+                mbs.keep(True)
+        return mbs
+
+class MyBamSet(mc.MyTempFiles):
+    """
+    一時的なファイルが作られるので、
+    with MyBamSet() as mbs:
+        mbs.save()
+    みたいな感じで使う。
+    作業が終了したら一時ファイルは削除される。
+    """
+    def __init__(self, ext_not_exported) -> None:
+        default_ext_list = [".bam", ".sorted.bam", ".sorted.bam.bai", ".sorted.sam", ".bam.fastq"]
+        self.ext_not_exported = ext_not_exported
+        assert all(ext in default_ext_list for ext in self.ext_not_exported)
+        # 初期化
+        super().__init__(default_ext_list)
+    def save(self, save_path_base):
+        removed_temp_file_paths = []
+        for ext in self.ext_not_exported:
+            temp_file_path = self.temp_file_path_base.with_suffix(ext)
+            self.temp_file_paths.remove(temp_file_path)
+            removed_temp_file_paths.append(temp_file_path)
+        # 保存
+        super().save(save_path_base)
+        # もとに戻す (self.__exit__ や self.__del__ に備える)
+        self.temp_file_paths += removed_temp_file_paths
 
 class MyByteStr():
     class MyBIT():

@@ -20,6 +20,7 @@ default_post_analysis_param_dict = {
     'error_rate': error_rate, 
     'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
     'ins_rate': 0.0001, 
+    'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
@@ -47,8 +48,8 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
     query_assignment = pac.normalize_scores_and_apply_threshold(ref_seq_list, my_fastq, result_dict, param_dict)
     pac.draw_and_save_query_assignment(query_assignment, save_dir, display_plot=False)
     # 4. MSA/consensus
-    my_msa_dict = pac.execute_msa(result_dict, query_assignment, param_dict)
+    my_msa_list = pac.execute_msa(result_dict, query_assignment, param_dict)
     # 5. EXPORT
-    pac.export_results(my_msa_dict, save_dir)
+    pac.export_results(my_msa_list, save_dir)
     pac.export_log(ref_seq_list, my_fastq, param_dict, query_assignment, save_dir)
 

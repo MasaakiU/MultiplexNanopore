@@ -5,7 +5,7 @@ import gc
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path
-from typing import Dict
+from typing import List
 from collections import defaultdict
 
 # my modules
@@ -194,23 +194,23 @@ def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_di
 #################
 def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict):
     print("executing MSA...")
-    my_msa_dict = {}
+    my_msa_list = []
     for i, (ref_seq, my_fastq_subset, result_list) in enumerate(query_assignment.iter_assignment_info(result_dict)):
         print(f"processing {ref_seq.path.name}...")
         my_msa_aligner = msa.MyMSAligner(ref_seq, my_fastq_subset, result_list)
-        my_msa_dict[ref_seq.path.name] = my_msa_aligner.execute(param_dict)
+        my_msa_list.append(my_msa_aligner.execute(param_dict))
     print("MSA: DONE\n")
-    return my_msa_dict
+    return my_msa_list
 
 #############
 # CONSENSUS #
 #############
-def export_results(my_msa_dict: Dict[str, msa.MyMSA], save_dir):
+def export_results(my_msa_list: List[msa.MyMSA], save_dir):
     print("exporting results...")
-    for ref_seq_name, my_msa in my_msa_dict.items():
-        my_msa.export_consensus_fastq(save_dir, ref_seq_name)
-        my_msa.export_gif(save_dir, ref_seq_name)
-        my_msa.export_consensus_alignment(save_dir, ref_seq_name)
+    for my_msa in my_msa_list:
+        my_msa.export_consensus_fastq(save_dir)
+        my_msa.export_gif(save_dir)
+        my_msa.export_consensus_alignment(save_dir,)
     print("export: DONE")
 
 def export_log(ref_seq_list:list, my_fastq:mc.MyFastQ, param_dict, query_assignment: msa.QueryAssignment, save_dir:Path):
