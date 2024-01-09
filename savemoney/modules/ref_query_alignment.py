@@ -29,11 +29,25 @@ class MyAlignerBase():
     @property
     def my_custom_matrix(self):
         return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
+    def sw_trace(self, ref_seq, query_seq):
+        result = parasail.sw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        return MyResult(result)
     def nw_trace(self, ref_seq, query_seq):
         result = parasail.nw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
         return MyResult(result)
     def sg_de_trace(self, ref_seq, query_seq):
+        """
+        ATCGATCGATCGATCG
+        ATCGATCG--------
+        """
         result = parasail.sg_de_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        return MyResult(result)
+    def sg_db_trace(self, ref_seq, query_seq):
+        """
+        ATCGATCGATCGATCG
+        --------ATCGATCG
+        """
+        result = parasail.sg_db_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
         return MyResult(result)
     # query の間はギャップペナルティを与えないアラインメント
     def my_special_dp(self, query_seq_1: str, query_seq_2: str, ref_seq: str):
