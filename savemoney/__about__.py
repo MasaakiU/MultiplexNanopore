@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __copyright__    = 'Copyright (C) 2023 Masaaki Uematsu'
-__version__      = 'ver_0.2.6'
+__version__      = 'ver_0.2.7'
 __license__      = 'CC BY-NC-SA 4.0'
 __author__       = 'Masaaki Uematsu'
 __email__        = 'mu84@cornell.edu'

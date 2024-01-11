@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from typing import List
 from pathlib import Path
 from itertools import chain
 
 from ..modules import my_classes as mc
 from . import pre_survey_core as psc
 
-__all__ = ["pre_survey", "default_pre_survey_param_dict"]
+__all__ = ["pre_survey", "default_pre_survey_param_dict", "pre_survey_separate_paths_input"]
 
 default_pre_survey_param_dict = {
     'gap_open_penalty':     3, 
@@ -17,21 +18,27 @@ default_pre_survey_param_dict = {
     'number_of_groups':     1, 
 }
 
-def pre_survey(plasmid_map_dir_path: str, save_dir_base: str, **param_dict: dict):
+def pre_survey(plasmid_map_dir_path: str, save_dir_base: str, ref_seq_aliases: List[str]=None, **param_dict: dict):
+    plasmid_map_paths = [path for path in Path(plasmid_map_dir_path).glob("*.*") if path.suffix in mc.MyRefSeq.allowed_plasmid_map_extensions]
+    pre_survey_separate_paths_input(plasmid_map_paths, save_dir_base, ref_seq_aliases, **param_dict)
+
+def pre_survey_separate_paths_input(plasmid_map_paths:List[Path], save_dir_base: str, ref_seq_aliases: List[str]=None, **param_dict:dict):
     for k in param_dict.keys():
         if k not in default_pre_survey_param_dict.keys():
             raise Exception(f"unknown key in `param_dict`: {k}\nallowed keys are: {', '.join(default_pre_survey_param_dict.keys())}")
-    # 0. Prepare files
-    plasmid_map_path = []
-    for ext in mc.MyRefSeq.allowed_plasmid_map_extensions:
-        plasmid_map_path = chain(plasmid_map_path, Path(plasmid_map_dir_path).glob(f"*{ext}"))
+    param_dict = {key: param_dict.get(key, val) for key, val in default_pre_survey_param_dict.items()}
+    if param_dict["distance_threshold"] <= 0:
+        raise Exception(f"Error: `distance_threshold` must be greater than 0!")
+    if param_dict["number_of_groups"] <= 0:
+        raise Exception(f"Error: `number_of_groups` must be greater than 0!")
+    if param_dict["number_of_groups"] > len(plasmid_map_paths):
+        raise Exception(f"Error: `number_of_groups` cannot be greater than the number of plasmid maps ({len(ref_seq_list)})!")
+    # 1. Prepare objects
+    ref_seq_list = [mc.MyRefSeq(plasmid_map_path) for plasmid_map_path in plasmid_map_paths]
     save_dir = mc.new_dir_path_wo_overlap(Path(save_dir_base) / "recommended_grouping", spacing="_")
     save_dir.mkdir()
-    # 1. Prepare objects
-    ref_seq_list = [mc.MyRefSeq(plasmid_map_path) for plasmid_map_path in plasmid_map_path]
-    param_dict = {key: param_dict.get(key, val) for key, val in default_pre_survey_param_dict.items()}
     # 2. execute
-    recommended_grouping = psc.execute_grouping(ref_seq_list, param_dict, save_dir)
+    recommended_grouping = psc.execute_grouping(ref_seq_list, param_dict, save_dir, ref_seq_aliases)
     # 3. save results
     psc.export_results(recommended_grouping, save_dir)
     # 4. display recommended_grouping in the std output

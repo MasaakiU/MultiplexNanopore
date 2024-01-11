@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import textwrap
 import numpy as np
 import scipy.spatial.distance as distance
 from tqdm import tqdm
@@ -22,7 +23,7 @@ __all__ = ["execute_grouping"]
 
 def execute_grouping(ref_seq_list: List[mc.MyRefSeq], param_dict: dict, save_dir: Path, ref_seq_aliases: list=None):
     assert (ref_seq_aliases is None) or (len(ref_seq_list) == len(ref_seq_aliases))
-    recommended_grouping_path = save_dir / RecommendedGrouping.file_name
+    recommended_grouping_path = save_dir.parent / RecommendedGrouping.file_name
     # load if any previous score_matrix
     skip = False
     if recommended_grouping_path.exists():
@@ -32,6 +33,7 @@ def execute_grouping(ref_seq_list: List[mc.MyRefSeq], param_dict: dict, save_dir
             recommended_grouping.param_dict = param_dict
             print("calculation of distance matrix: SKIPPED")
             skip = True
+    recommended_grouping_path = save_dir / RecommendedGrouping.file_name
     if not skip:
         print("calculating distance matrix...")
         recommended_grouping = RecommendedGrouping(ref_seq_list, param_dict, ref_seq_aliases)
@@ -55,9 +57,10 @@ def execute_grouping(ref_seq_list: List[mc.MyRefSeq], param_dict: dict, save_dir
     return recommended_grouping
 
 class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
-    grouping_algorithm_version = "ga_0.2.0"
+    grouping_algorithm_version = "ga_0.2.1"
     linkage_method = "single"   # 最短距離法: クラスタ間で最も近いデータの距離
     file_name = "recommended_grouping.txt"
+    wrap_width = 100
     def __init__(self, ref_seq_list: List[mc.MyRefSeq]=None, param_dict: dict=None, ref_seq_aliases: list=None):
         super().__init__()
         self.header += (
@@ -118,6 +121,12 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
     @property
     def N_plasmids(self) -> int:
         return len(self.ref_seq_list)
+    @property
+    def notice_beg(self):
+        return f"{'=' * (self.wrap_width // 2 - 4)} NOTICE {'=' * (self.wrap_width // 2 - 4)}"
+    @property
+    def notice_end(self):
+        return f"{'=' * self.wrap_width}"
     """
     # 上下関係: 
         - self.cluster_list
@@ -177,11 +186,11 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
         の間にに矛盾がないかを確認
         """
         if len(recommended_grouping) == len(self.recommended_grouping) == 0:
-            print(f"\033[91m\n====== NOTICE ======\n`recommended_grouping` was not set either from `assignment_marix_txt` or `recommended_groupoing_txt`.\033[0m\n")
+            print(f"\033[91m\n{self.notice_beg}\n{textwrap.fill('`recommended_grouping` was not set either from `assignment_marix_txt` or `recommended_groupoing_txt`.', self.wrap_width)}\n{self.notice_end}\033[0m\n")
             self.adopted_number_of_groups = None
         elif not all(sorted(rg1) == sorted(rg2) for rg1, rg2 in zip(recommended_grouping, self.recommended_grouping)):
             self.recommended_grouping_from_txt = recommended_grouping
-            print(f"\033[91m\n====== WARNING ======\nConflicts were found between provided `assignment_marix_txt` and `recommended_groupoing_txt`. Constraints of `assignment_marix_txt` was ignored.\033[0m\n")
+            print(f"\033[91m\n{self.notice_beg}\n{textwrap.fill('Conflicts were found between provided `assignment_marix_txt` and `recommended_groupoing_txt`. Constraints of `assignment_marix_txt` was ignored.', self.wrap_width)}\n{self.notice_end}\033[0m\n")
             self.adopted_number_of_groups = len(group_match_list)
         else:
             self.adopted_number_of_groups = self.assignment_matrix.shape[1]
@@ -261,10 +270,9 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
         # print(self.linkage_result)
     def determine_number_of_groups(self):
         # 指定されたグループと distance_threshold の調整
-        assert 0 < self.param_dict["distance_threshold"] <= self.linkage_result[:, 2].max() + 1
-        assert 0 < self.param_dict["number_of_groups"] <= self.linkage_result[:, 3].max()
-        end_row_to_iter, adopted_distance_threshold, self.adopted_number_of_groups = self.determine_linkage_result_iter(self.param_dict["number_of_groups"])
+        end_row_to_iter_plus, adopted_distance_threshold, self.adopted_number_of_groups = self.investigate_linkage_result()
         assert self.param_dict["distance_threshold"] <= adopted_distance_threshold
+        assert self.param_dict["number_of_groups"] <= self.adopted_number_of_groups
 
         # メッセージ
         self.message = (
@@ -272,111 +280,124 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
             f"provided `number_of_groups`\t{self.param_dict['number_of_groups']}\n"
             f"adopted `distance_threshold`\t{adopted_distance_threshold}\n"
             f"adopted `number_of_groups`\t{self.adopted_number_of_groups}\n"
-            f"`end_row_to_iter`\t{end_row_to_iter}"
+            f"`end_row_to_iter_plus`\t{end_row_to_iter_plus}"
         )
-        # [CASE 1]
-        if (self.param_dict["distance_threshold"] == adopted_distance_threshold) and (self.param_dict["number_of_groups"] >= self.adopted_number_of_groups):
-            self.message += (
-                  f"====== NOTICE ======"
-                f"\n{self.message}"
-                f"\n===================="
-            )
-        # [CASE 2, 3]
-        elif (self.param_dict["distance_threshold"] < adopted_distance_threshold) and (self.param_dict["number_of_groups"] >= self.adopted_number_of_groups):
-            self.message += (
-                  f"====== NOTICE ======"
-                f"\n{self.message}"
-                f"\nHigher `distance_threshold` {adopted_distance_threshold} was used and the provided value {self.param_dict['distance_threshold']} was ignored."
+        # [CASE 5]
+        if (self.param_dict["distance_threshold"] == adopted_distance_threshold) and (self.param_dict["number_of_groups"] == self.adopted_number_of_groups):
+            core_message = ""
+        # [CASE 2, 3, 6]
+        elif (self.param_dict["distance_threshold"] < adopted_distance_threshold) and (self.param_dict["number_of_groups"] == self.adopted_number_of_groups):
+            core_message = "\n" + textwrap.fill(
+                f"Higher `distance_threshold` {adopted_distance_threshold} was used and the provided value {self.param_dict['distance_threshold']} was ignored."
                 f" This is because the use of higer `distance_threshold` returns safer pre-survey results, and `distance_threshold` was able to be increased without changing the provided `number_of_groups` {self.param_dict['number_of_groups']}."
-                f"\n===================="
+                , self.wrap_width
             )
         # [CASE 4]
-        elif (self.param_dict["number_of_groups"] < self.adopted_number_of_groups):
-            assert self.param_dict["distance_threshold"] <= adopted_distance_threshold
-            self.message += (
-                f"====== WARNING ======"
-                f"\n{self.message}"
-                f"\nProvided `number_of_groups` {self.param_dict['number_of_groups']} is to small to meet the `distance_threshold` {self.param_dict['distance_threshold']}."
+        elif self.param_dict["number_of_groups"] < self.adopted_number_of_groups:
+            core_message = (
+                f"Provided `number_of_groups` {self.param_dict['number_of_groups']} is to small to meet the `distance_threshold` {self.param_dict['distance_threshold']}."
                 f" The `number_of_groups` {self.adopted_number_of_groups} will be used instead."
-                f" To achieve number of groups {self.param_dict['number_of_groups']}, lower the `distance_threshold`."
             )
+            if self.param_dict["distance_threshold"] > 1:
+                core_message += f" To achieve number of groups {self.param_dict['number_of_groups']}, lower the `distance_threshold`."
+            else:
+                core_message += f" Number of groups lower than {self.param_dict['number_of_groups']} cannot be achieved as some plasmid maps share exactly the same sequences."
             if self.param_dict["distance_threshold"] < adopted_distance_threshold:
-                self.message += (
-                    f"\nIn addition, higher `distance_threshold` {adopted_distance_threshold} was used and the provided value {self.param_dict['distance_threshold']} was ignored."
-                    f" This is because the use of higer `distance_threshold` returns safer pre-survey results, and `distance_threshold` was able to be increased without changing the new `number_of_groups` {self.param_dict['number_of_groups']}."
+                core_message += (
+                    f" Apart from that, higher `distance_threshold` {adopted_distance_threshold} was used and the provided value {self.param_dict['distance_threshold']} was ignored."
+                    f" This is because the use of higer `distance_threshold` returns safer pre-survey results, "
+                    f"and `distance_threshold` was able to be increased without changing the new `number_of_groups` {self.adopted_number_of_groups}."
                 )
-            self.message += "\n====================="                
+            core_message = "\n" + textwrap.fill(core_message, self.wrap_width)
         else:
-            raise Exception(f"error:\n{self.message}\nend_row_to_iter:\t{end_row_to_iter}")
+            raise Exception(f"error:\n{self.message}\end_row_to_iter_plus:\t{end_row_to_iter_plus}")
+        self.message = f"{self.notice_beg}\n{self.message}{core_message}\n{self.notice_end}"
 
         # クラスタ形成
         self.cluster_list = [[i] for i in range(self.N_plasmids)]
-        for idx1, idx2, d, number_of_sub_cluster in self.linkage_result[:end_row_to_iter + 1, :]:
+        for idx1, idx2, d, number_of_sub_cluster in self.linkage_result[:end_row_to_iter_plus, :]:
             self.cluster_list.append(self.cluster_list[int(idx1)] + self.cluster_list[int(idx2)])
             self.cluster_list[int(idx1)] = None
             self.cluster_list[int(idx2)] = None
         self.cluster_list = [c for c in self.cluster_list if c is not None]
-    def determine_linkage_result_iter(self, number_of_groups):
+    def investigate_linkage_result(self):
         """
+        # about conditions
+            distance_threshold は大きい方が良い (安全)
+            number_of_groups は小さい方が良い (安い)
         # distance_threshold "未満" の距離のものは同じクラスターに含めなくてはいけないと定めている (前のバージョンのSAVEMONEYも同じ)。
-            distance_threshold が 6 の時は、距離が 6 のプラスミドペアは、同じクラスタに含めなくともよい
-            言い換えると、グループ内での最低距離が 6 "以上" になるようにいなるということ。
+            distance_threshold が 7 の時は、距離が 7 のプラスミドペアは、同じクラスタに含めなくともよい
+            言い換えると、グループ内での最低距離が 7 "以上" になるようにするということ。
+        # linkage results:
+            [[idx1, idx2, dist, N_gr], 
+             [idx1, idx2, dist, N_gr], 
+             ...
+             [idx1, idx2, dist, N_gr]]
         # Example of self.linkage_result (when distance_threshold=7, number_of_groups=3)
             実際に使われる数字は、 distance_threshold - 1 = 6 となる。
             この場合、distance <= 6 のペアは同じクラスタに入る -> グループ内の distance >=7 が保証される。
-            row  dist  N_gr   max_number_of_sub_cluster [CASE 1]
-            0       1     3   [3]
-            1       2     3   [3]
-            2       5     3   [3]
-            3      [6]    3   [3] **** (まず、number_of_groups を満たす max の row を参照: distance が ok なら ok)
-            4      [6]    4    4
-            5      10     4    4
-            row  dist  N_gr   max_number_of_sub_cluster [CASE 2]
-            0       1     3   [3]
-            1      [6]    3   [3]
-            2      [6]    3   [3]
-            3       7     3   [3] **** (distance が大きい分には問題なし)
-            4       7     4    4
-            5      10     4    4
-            row  dist  N_gr   max_number_of_sub_cluster [CASE 3]
-            0      [6]    2    2
-            1      [6]    3    3
-            2       7     3   [3]
-            3       7     3   [3]
-            4       7     4   [3] **** (distance が大きい分には問題なし)
-            5      10     4    4
-            row  dist  N_gr   max_number_of_sub_cluster [CASE 4]
-            0       1     3   [3]
-            1       1     3   [3]
-            2       1     3   [3]
-            3       1     3   [3] -> (distance が小さい場合は問題あり) add 1 to the number_of_groups and redo
-            4      [6]    4    4
-            5      [6]    4    4  *** eventually this row will be selected
-            6      [6]    4    5
-
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 1]
+            0      [1]   [2]
+            1      [2]   [3]
+            2      [5]   [3]
+            3      [6]   [3]
+            4      [6]    4 **** distance_threshold - 1 = 10 - 1, number_of_groups = max(4, 3)
+            5      10     4
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 2]
+            0      [1]   [2]
+            1      [6]   [3]
+            2      [6]   [3]
+            3       7    [3] **** distance_threshold - 1 = 8 - 1, number_of_groups = max(3, 3)
+            4       8     4
+            5      10     4
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 3]
+            0      [6]    2
+            1      [6]    3
+            2       7    [3]
+            3       7    [3]
+            4      10    [3] **** distance_threshold - 1 = 11 - 1, number_of_groups = max(3, 3)
+            5      11     4
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 4]
+            0      [1]   [2]
+            1      [1]   [3]
+            2      [1]   [3]
+            3      [1]   [3]
+            4      [6]    4
+            5      [6]    4  この行で止めてしまうと、違うクラスタ内のプラスミドペアで distance_threshold を満たさないペアができる可能性がある
+            6      [6]    5  **** distance_threshold = max(6+1, 7), number_of_groups = 5
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 5]
+            0      [1]   [2]
+            1      [1]   [3]
+            2      [1]   [3]
+            3      [1]   [3] **** distance_threshold - 1 = 7 - 1, number_of_groups = max(3, 3)
+            4       7     4
+            5       7     4
+            6       7     5
+            row  dist  N_gr/max_number_of_sub_cluster [CASE 6]
+            0       9    [2] **** distance_threshold - 1 = 9 - 1, number_of_groups = max(2, 3)
+            1       9     4
+            2       9     4
         """
         # self.linkage_result を上の行から見て行って、その行までに登場した最大の number_of_sub_cluster のリストを作る
+        assert self.linkage_result[0, 3] == 2
+        assert self.linkage_result[-1, 3] == self.linkage_result[:, 3].max() == self.N_plasmids
+        assert 0 < self.param_dict["distance_threshold"] #<= self.linkage_result[:, 2].max() + 1
+        assert 0 < self.param_dict["number_of_groups"] <= self.N_plasmids
+        # 事前準備
         max_n = 0
         max_number_of_sub_cluster = []
         for number_of_sub_cluster in self.linkage_result[:, 3]:
             if number_of_sub_cluster > max_n:
                 max_n = number_of_sub_cluster
             max_number_of_sub_cluster.append(max_n)
-        max_number_of_sub_cluster = np.array(max_number_of_sub_cluster)
-        # 与えられた number_of_groups 以下の値の number_of_sub_cluster を有する行のうちで最も大きいものを求める
-        end_of_iter_by_number_of_groups = np.argmax(max_number_of_sub_cluster > number_of_groups) - 1
-        if end_of_iter_by_number_of_groups != -1:
-            adopted_distance = self.linkage_result[end_of_iter_by_number_of_groups, 2].astype(int)
-            adopted_number_of_groups = max((self.linkage_result[end_of_iter_by_number_of_groups, 3]).astype(int), self.param_dict["number_of_groups"])  # max は必要
-        else:
-            adopted_distance = self.linkage_result[0, 2].astype(int) - 1
-            adopted_number_of_groups = self.param_dict["number_of_groups"]
-        # [CASE 1, 2, 3] その行の distance が distance_threshold - 1 "以上" であれば ok (distance_threshold 未満のものは同じクラスタになる -> グループ内ペアの距離は distance_threshold 以上になる)
-        if adopted_distance >= self.param_dict["distance_threshold"] - 1:
-            return end_of_iter_by_number_of_groups, adopted_distance + 1, adopted_number_of_groups
-        # [CASE 4] そうでない場合は、number_of_groups を上げてリトライ
-        else:
-            return self.determine_linkage_result_iter(number_of_groups + 1)
+        # 実行
+        for end_of_iter_plus, (dist, number_of_sub_cluster) in enumerate(zip(self.linkage_result[:, 2], max_number_of_sub_cluster)):
+            if (dist > self.param_dict["distance_threshold"] - 1) and (number_of_sub_cluster > self.param_dict["number_of_groups"]):
+                if end_of_iter_plus == 0:
+                    return end_of_iter_plus, dist, 1
+                else:
+                    return end_of_iter_plus, dist, max(max_number_of_sub_cluster[end_of_iter_plus-1], self.param_dict["number_of_groups"])
+        return self.linkage_result.shape[0], max(dist+1, self.param_dict["distance_threshold"]), number_of_sub_cluster
     def execute_knapsac(self):
         cluster_size_list = [len(cluster) for cluster in self.cluster_list]
         assert max(cluster_size_list) <= self.adopted_number_of_groups

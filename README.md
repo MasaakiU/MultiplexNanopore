@@ -181,12 +181,7 @@ options:
 
 # Reference
 
-Masaaki U and Jeremy M B, Barcode-free multiplex plasmid sequencing using Bayesian analysis and nanopore sequencing
+[Uematsu M., Baskin J. M., "Barcode-free multiplex plasmid sequencing using Bayesian analysis and nanopore sequencing." *eLife*. **2023**; 12: RP88794](https://doi.org/10.7554/eLife.88794.1)
 
-- [eLife (2023)](https://doi.org/10.7554/eLife.88794.1)
-- [bioRxiv (2023)](https://doi.org/10.1101/2023.04.12.536413)
-
-
-
-
+[Slide from Weill Institute Science Workshop, May 22, 2023](https://github.com/MasaakiU/MultiplexNanopore/blob/master/resources/slides/20230522_Weill-Institute-Science-Workshop.pdf)
 

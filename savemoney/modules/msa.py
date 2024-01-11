@@ -633,8 +633,13 @@ class MyMSAligner(mc.AlignmentBase):
         # MSA 2nd step: 4回 polish する (4回目の offset は最初の offet と同じ)
         N_polish = 4
         actual_window = np.ceil(param_dict["window"] / (N_polish - 2)).astype(int) * (N_polish - 1)    # 1 nt ずつずらしながら polish するわけではないので、window を拡張する必要がある
-        for offset in np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1)):# np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1) + 1):
-            my_msa = my_msa.polish(offset=offset, window=actual_window)
+        len_ref_seq_aligned = len(my_msa.ref_seq_aligned)
+        with mc.MyTQDM(total=len_ref_seq_aligned * N_polish, ncols=100, leave=True, bar_format='{l_bar}{bar}{r_bar}', desc=f"polishing reads #{len(self.my_fastq_subset)}{'.' * max(0, 6 - len(str(len(self.my_fastq_subset))))}") as my_pbar:
+            for i, offset in enumerate(np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1))):                        #"generating consensus..."
+                my_pbar.offset_value = len_ref_seq_aligned * i
+                my_msa = my_msa.polish(offset=offset, window=actual_window, my_pbar=my_pbar)
+            my_pbar.offset_value = 0
+            my_pbar.set_value(len_ref_seq_aligned * N_polish)
         # MSA 後処理
         my_msa.post_polish_process()
         my_msa.set_hard_clipping_info()
@@ -953,7 +958,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     ################
     # MSA 2nd step #
     ################
-    def polish(self, offset, window):
+    def polish(self, offset, window, my_pbar: mc.MyTQDM=None):
         chunk_idx_start_aligned_list = []
         cur_chunk_len = 0
         target_chunk_len = offset   # 最初はオフセット
@@ -975,6 +980,8 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         # POA 実行
         msa_set = []
         for s, e in zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:]):
+            if my_pbar is not None:
+                my_pbar.set_value(s)
             ref_seq_chunk_aligned = self.ref_seq_aligned[s:e]
             query_seq_chunk_list_aligned = [query_seq_aligned[s:e] for query_seq_aligned in self.query_seq_list_aligned]
             my_cigar_chunk_list_aligned = [my_cigar_aligned[s:e] for my_cigar_aligned in self.my_cigar_list_aligned]
@@ -986,6 +993,8 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             # 最終 chunk: 最初の offset 部分と連結
             s = chunk_idx_start_aligned_list[-1]
             e = chunk_idx_start_aligned_list[0]
+            if my_pbar is not None:
+                my_pbar.set_value(s)
             ref_seq_chunk_aligned = self.ref_seq_aligned[s:] + self.ref_seq_aligned[:e]
             query_seq_chunk_list_aligned = [query_seq_aligned[s:] + query_seq_aligned[:e] for query_seq_aligned in self.query_seq_list_aligned]
             my_cigar_chunk_list_aligned = [my_cigar_aligned[s:] + my_cigar_aligned[:e] for my_cigar_aligned in self.my_cigar_list_aligned]
@@ -1476,7 +1485,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         consensus_seq = ""
         consensus_q_scores = []
         consensus_my_cigar = ""
-        for consensus_idx, ref in tqdm(enumerate(self.ref_seq_aligned), ncols=100, mininterval=0.05, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=len(self.ref_seq_aligned)):
+        for consensus_idx, ref in tqdm(enumerate(self.ref_seq_aligned), ncols=100, mininterval=0.05, leave=True, bar_format='{l_bar}{bar}{r_bar}', desc="generating consensus...", total=len(self.ref_seq_aligned)):
             query_list = [i[consensus_idx] for i in self.query_seq_list_aligned]
             q_score_list = [i[consensus_idx] for i in self.q_scores_list_aligned]
             L_list = [i[consensus_idx] for i in self.my_cigar_list_aligned]

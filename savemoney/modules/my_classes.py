@@ -2,6 +2,7 @@
 
 import io
 import re
+import tqdm
 import json
 import copy
 import shutil
@@ -16,6 +17,7 @@ from pathlib import Path
 from Bio.Seq import Seq
 from pathlib import PosixPath   # 必要！
 from datetime import datetime
+from itertools import cycle
 from collections import OrderedDict
 from snapgene_reader import snapgene_file_to_dict
 
@@ -461,6 +463,15 @@ class MyTempFiles():
     def __del__(self):
         if self.KEEP:
             self.delete_temp_files()
+
+class MyTQDM(tqdm.tqdm):
+    def __init__(self, *keys, **kwargs):
+        super().__init__(*keys, **kwargs)
+        self.offset_value = 0
+    def set_value(self, value):
+        self.n = value + self.offset_value
+        self.last_print_n = value + self.offset_value
+        self.update(0)
 
 #####################
 # GENERAL FUNCTIONS #
