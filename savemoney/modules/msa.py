@@ -712,7 +712,7 @@ class SequenceBasecallQscorePDF():
         return 1 - 1 / bunbo_bunshi_sum
 
 class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
-    file_format_version = "ff_0.2.3"
+    file_format_version = "ff_0.2.4"
     algorithm_version = "al_0.2.0"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
@@ -1315,11 +1315,25 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 del my_cigar_aligned[idx]
             self.query_seq_list_aligned[query_idx] = "".join(query_seq_aligned)
             self.my_cigar_list_aligned[query_idx] = "".join(my_cigar_aligned)
-        # ref_seq からも削除
+        # ref_seq などからも削除
         ref_seq_aligned = list(self.ref_seq_aligned)
+        with_prior_consensus_seq = list(self.with_prior_consensus_seq)
+        with_prior_consensus_my_cigar = list(self.with_prior_consensus_my_cigar)
+        without_prior_consensus_seq = list(self.without_prior_consensus_seq)
+        without_prior_consensus_my_cigar = list(self.without_prior_consensus_my_cigar)
         for idx in idx_list_to_remove[::-1]:
             del ref_seq_aligned[idx]
+            del with_prior_consensus_seq[idx]
+            del with_prior_consensus_my_cigar[idx]
+            del without_prior_consensus_seq[idx]
+            del without_prior_consensus_my_cigar[idx]
+            del self.with_prior_consensus_q_scores[idx]
+            del self.without_prior_consensus_q_scores[idx]
         self.ref_seq_aligned = "".join(ref_seq_aligned)
+        self.with_prior_consensus_seq = "".join(with_prior_consensus_seq)
+        self.with_prior_consensus_my_cigar = "".join(with_prior_consensus_my_cigar)
+        self.without_prior_consensus_seq = "".join(without_prior_consensus_seq)
+        self.without_prior_consensus_my_cigar = "".join(without_prior_consensus_my_cigar)
 
     # @staticmethod
     # def __calc_entropy(seq_list):
@@ -1334,13 +1348,6 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     # print functions #
     ###################
     def print_alignment(self, **print_options):
-        trim_soft_clipping = print_options.get("trim_soft_clipping", self.default_print_options["trim_soft_clipping"])
-        if trim_soft_clipping:
-            my_msa = self.execute_soft_clipping()
-        else:
-            my_msa = self
-        my_msa.print_alignment_core(**print_options)
-    def print_alignment_core(self, **print_options):
         center = print_options.get("center", self.default_print_options["center"])
         seq_range = print_options.get("seq_range", self.default_print_options["seq_range"])
         offset = print_options.get("offset", self.default_print_options["offset"])
@@ -1595,9 +1602,6 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             f.write(consensus_fastq_txt)
     def export_gif(self, save_dir):
         save_path = save_dir / f"{self.ref_seq_name}.gif"
-        my_msa = self.execute_soft_clipping()
-        my_msa.export_gif_core(save_path)
-    def export_gif_core(self, save_path):
         # prepare
         N_array = np.empty((6, len(self.ref_seq_aligned)), int)
         tick_pos_list = []

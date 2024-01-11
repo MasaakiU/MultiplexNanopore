@@ -27,4 +27,4 @@ __all__ = [
 from .pre_survey import *
 from .post_analysis import *
 from .show_consensus import *
-
+from .ca2bam import *

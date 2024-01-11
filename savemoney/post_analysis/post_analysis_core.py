@@ -208,9 +208,10 @@ def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict):
 def export_results(my_msa_list: List[msa.MyMSA], save_dir):
     print("exporting results...")
     for my_msa in my_msa_list:
-        my_msa.export_consensus_fastq(save_dir)
-        my_msa.export_gif(save_dir)
-        my_msa.export_consensus_alignment(save_dir,)
+        new_my_msa = my_msa.execute_soft_clipping()
+        new_my_msa.export_consensus_fastq(save_dir)
+        new_my_msa.export_gif(save_dir)
+        new_my_msa.export_consensus_alignment(save_dir)
     print("export: DONE")
 
 def export_log(ref_seq_list:list, my_fastq:mc.MyFastQ, param_dict, query_assignment: msa.QueryAssignment, save_dir:Path):

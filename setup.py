@@ -100,6 +100,8 @@ INSTALL_REQUIREMENTS = [
     "matplotlib>=3.8.2", 
     "numpy>=1.26.2", 
     # "oauth2client>=4.1.3", 
+    "pysam>=0.22.0", 
+    "pyspoa>=0.2.1"
 ]
 
 PYTHON_REQUIRES = ">=3.10"
