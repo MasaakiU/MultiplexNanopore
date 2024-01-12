@@ -695,10 +695,7 @@ class SequenceBasecallQscorePDF():
     def calc_P_event_given_true_refseq(self, event, true_refseq):
         readseq, q_score = event
         key = f"{true_refseq}_{readseq}"
-        return (
-            self.P_base_calling_given_true_refseq_dict[key]
-            * self.pdf_core[key][q_score]
-        )
+        return self.P_base_calling_given_true_refseq_dict[key] * self.pdf_core[key][q_score]
     def calc_consensus_error_rate(self, event_list, true_refseq, P_N_dict, bases):
         bunbo_bunshi_sum = 0
         bunshi_list = [self.calc_P_event_given_true_refseq(event, true_refseq) for event in event_list]
@@ -1496,7 +1493,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             query_list = [i[consensus_idx] for i in self.query_seq_list_aligned]
             q_score_list = [i[consensus_idx] for i in self.q_scores_list_aligned]
             L_list = [i[consensus_idx] for i in self.my_cigar_list_aligned]
-            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HO"]
+            event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HO"]     # =XIDSN
 
             if len(event_list) > 0:
                 P_N_dict = P_N_dict_dict[ref.upper()]

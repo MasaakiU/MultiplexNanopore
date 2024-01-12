@@ -104,8 +104,8 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
         else:
             try:
                 self.ref_seq_list = [mc.MyRefSeq(ref_seq_path) for ref_seq_path in ref_seq_paths]
-            except: # 存在しないファイルが一つでもある場合
-                self.ref_seq_list = []
+            except: # 存在しないファイルが一つでもある場合: (ほぼ) path 情報だけ保存するシュードインスタンスを作成
+                self.ref_seq_list = [mc.MyRefSeq.Pseudo(ref_seq_path) for ref_seq_path in ref_seq_paths]
     @property
     def ref_seq_aliases(self):
         if (self._ref_seq_aliases is None) or (len(self._ref_seq_aliases) != self.N_plasmids):
@@ -433,9 +433,20 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
         linkage_method_tmp = self.linkage_method
         super().load(load_path)
         if ver_tmp != self.get_version("grouping_algorithm_version"):
-            print(f"\033[91m\n====== WARNING ======\nmismatch of file version in `{load_path}`\nexpected file version:\t{ver_tmp}\ndetected file version:\t{self.ver}\033[0m")
+            print(
+                f"\033[91m\n{self.notice_beg}\nmismatch of file version was found in `{load_path}`"
+                f"\nexpected file version:\t{ver_tmp}\ndetected file version:\t{self.get_version('grouping_algorithm_version')}\n{self.notice_end}\033[0m"
+            )
         if linkage_method_tmp != self.linkage_method:
-            print(f"\033[91m\n====== WARNING ======\nmismatch of `linkage_method` in `{load_path}`\nexpected file version:\t{linkage_method_tmp}\ndetected file version:\t{self.linkage_method}\033[0m")
+            print(
+                f"\033[91m\n{self.notice_beg}\nmismatch of `linkage_method` was found in `{load_path}`"
+                f"\nexpected `linkage_method`:\t{linkage_method_tmp}\ndetected `linkage_method`:\t{self.linkage_method}\n{self.notice_end}\033[0m"
+            )
+        if PlasmidAssignmentSolver.assignment_solver_version != self.get_version("assignment_solver_version"):
+            print(
+                f"\033[91m\n{self.notice_beg}\nmismatch of solver version was found in `{load_path}`"
+                f"\nexpected solver version:\t{ver_tmp}\ndetected solver version:\t{self.get_version('assignment_solver_version')}\n{self.notice_end}\033[0m"
+            )
         self.path = load_path
     def draw_heatmaps(self, save_dir=None, display_plot=None):
         # 複数 PDF 作成準備
@@ -535,9 +546,11 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
             y=bottom_title_y0_percentile/100, loc='left', weight='bold'
         )
         plt.subplots_adjust(left=left_margin_unit/fig_width, bottom=bottom_margin_unit/fig_height, right=1-right_margin_unit/fig_width, top=1-top_margin_unit/fig_height)
+    def get_ref_seq_path_list_in_group(self, group_idx):
+        return [self.ref_seq_paths[idx] for idx in self.recommended_grouping[group_idx]]
 
 class PlasmidAssignmentSolver():
-    assignment_solver_version = "0.1.0"
+    assignment_solver_version = "as_0.1.0"
     def __init__(self, adopted_number_of_groups, cluster_list, idx_pairs_in_order_of_distance) -> None:
         self.N_groups = adopted_number_of_groups
         self.cluster_list = cluster_list

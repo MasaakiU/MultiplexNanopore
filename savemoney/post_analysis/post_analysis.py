@@ -10,7 +10,7 @@ from . import post_analysis_core as pac
 
 __all__ = ["post_analysis", "default_post_analysis_param_dict", "post_analysis_separate_paths_input"]
 
-error_rate = 0.0001
+error_rate = 0.000001
 default_post_analysis_param_dict = {
     'gap_open_penalty': 3, 
     'gap_extend_penalty': 1, 
@@ -19,14 +19,14 @@ default_post_analysis_param_dict = {
     'score_threshold': 0.3, 
     'error_rate': error_rate, 
     'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
-    'ins_rate': 0.0001, 
+    'ins_rate': 0.000001, 
     'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
     plasmid_map_paths = [path for path in Path(sequence_dir_path).glob(f"*.*") if path.suffix in mc.MyRefSeq.allowed_plasmid_map_extensions]
     fastq_paths = Path(sequence_dir_path).glob(f"*.fastq")
-    post_analysis_separate_paths_input(plasmid_map_paths, fastq_paths, save_dir_base, **param_dict)
+    return post_analysis_separate_paths_input(plasmid_map_paths, fastq_paths, save_dir_base, **param_dict)
 
 def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths:List[Path], save_dir_base: str, **param_dict:dict):
     for k in param_dict.keys():
@@ -48,4 +48,4 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
     # 5. EXPORT
     pac.export_results(my_msa_list, save_dir)
     pac.export_log(ref_seq_list, my_fastq, param_dict, query_assignment, save_dir)
-
+    return save_dir

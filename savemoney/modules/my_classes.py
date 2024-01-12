@@ -300,6 +300,12 @@ class MySeq():
 class MyRefSeq(MySeq):
     allowed_snapgene_extensions = [".dna"]
     allowed_fasta_extensions = [".fa", ".fasta", ".fas"]
+    class Pseudo():
+        def __init__(self, path: Path):
+            self.path = path
+        @property
+        def my_hash(self):
+            return "unknown file location"
     @classmethod
     @property
     def allowed_plasmid_map_extensions(cls):
