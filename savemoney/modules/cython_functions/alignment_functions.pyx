@@ -39,6 +39,7 @@
 # python alignment_functions_setup.py build_ext --inplace
 # or 
 # cythonize -3 -a -i alignment_functions.pyx
+
 from libcpp.vector cimport vector #ここでcppのvectorを呼び出す
 ctypedef long long LL   # unsigned でも良いのか？
 ctypedef vector[LL] vec
@@ -62,7 +63,74 @@ cpdef k_mer_offset_analysis_2(
         s = 0
     return result_array
 
+from libcpp.map cimport map as c_map
 from libcpp.string cimport string
+from libcpp.algorithm cimport copy
+ctypedef long double LD
+ctypedef vector[char] char_vec
+ctypedef vector[LD] LD_vec
+ctypedef c_map[char, LD] chr_LD_map
+ctypedef c_map[string, LD] str_LD_map
+ctypedef c_map[string, LD_vec] str_LD_vec_map
+
+cdef class SequenceBasecallQscorePDF:
+    # default
+    cdef str_LD_map P_base_calling_given_true_refseq_dict
+    cdef str_LD_vec_map pdf_core
+    cdef char_vec bases
+    cdef LL N_bases
+    # additional
+    cdef string key
+    def __cinit__(self, str_LD_map P_base_calling_given_true_refseq_dict, str_LD_vec_map pdf_core, char_vec bases):
+        self.P_base_calling_given_true_refseq_dict = P_base_calling_given_true_refseq_dict
+        self.pdf_core = pdf_core
+        self.key.resize(3)
+        self.key[1] = b"_"
+        self.bases = bases
+        self.N_bases = self.bases.size()
+
+    def calc_consensus_error_rate(self, char_vec query_list, vec q_score_list, chr_LD_map P_N_dict):
+        cdef LL N_query_list
+        cdef LL base_idx
+        cdef LL idx
+        cdef LD_vec bunshi_list
+        cdef LD bunshi_P_N
+        cdef LD bunbo_bunshi_sum
+        cdef char base
+        cdef LD val
+        cdef LD_vec p_list
+
+        N_query_list = query_list.size()
+
+        for base_idx in range(self.N_bases):
+            # 初期化
+            B = self.bases[base_idx]
+            self.key[0] = B
+            bunshi_list.clear()
+
+            for idx in range(N_query_list):
+                self.key[2] = query_list[idx]
+                if q_score_list[idx] >= 0:
+                    bunshi_list.push_back(self.P_base_calling_given_true_refseq_dict[self.key] * self.pdf_core[self.key][q_score_list[idx]])
+                else:
+                    bunshi_list.push_back(self.P_base_calling_given_true_refseq_dict[self.key])
+            bunshi_P_N = P_N_dict[B]
+
+            # inside sum
+            bunbo_bunshi_sum = 0
+            for base in self.bases:
+                self.key[0] = base
+                val = P_N_dict[base] / bunshi_P_N
+                for idx in range(N_query_list):
+                    self.key[2] = query_list[idx]
+                    if q_score_list[idx] >= 0:
+                        val *= (self.P_base_calling_given_true_refseq_dict[self.key] * self.pdf_core[self.key][q_score_list[idx]]) / bunshi_list[idx]
+                    else:
+                        val *= (self.P_base_calling_given_true_refseq_dict[self.key]) / bunshi_list[idx]
+                bunbo_bunshi_sum += val
+            p_list.push_back(1 - 1 / bunbo_bunshi_sum)
+        return p_list
+
 cpdef my_special_dp_cython(
         string query_seq_1, 
         string query_seq_2, 

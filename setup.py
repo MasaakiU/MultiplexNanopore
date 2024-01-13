@@ -45,7 +45,7 @@ except ImportError:
 #############################################################
 #############################################################
 
-test_version = "b2"
+test_version = "b4"
 root_dir = Path(__file__).parent.resolve()
 package_name = "savemoney"
 sub_package_names = [f"{package_name}.{sub_package_name}" for sub_package_name in find_packages(package_name)]
@@ -86,9 +86,9 @@ with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
 INSTALL_REQUIREMENTS = [
-    "pandas>=2.1.4", 
+    "pandas>=1.5.3", 
     "parasail>=1.3.4", 
-    "Pillow>=10.2.0", 
+    "Pillow>=9.4.0", 
     "PuLP>=2.7.0", 
     "scipy>=1.11.4", 
     # "setuptools>=68.2.2", 
@@ -97,10 +97,10 @@ INSTALL_REQUIREMENTS = [
     # "Bio>=1.6.0",         # ?
     "biopython>=1.83", 
     "Cython>=3.0.7", 
-    "matplotlib>=3.8.2", 
-    "numpy>=1.26.2", 
+    "matplotlib>=3.7.1", 
+    "numpy>=1.23.5", 
     # "oauth2client>=4.1.3", 
-    "pysam>=0.22.0", 
+    # "pysam>=0.22.0", 
     "pyspoa>=0.2.1"
 ]
 

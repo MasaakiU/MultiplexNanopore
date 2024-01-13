@@ -30,6 +30,7 @@ if __name__ == "__main__":
     savemoney.pre_survey(sequence_dir_path, save_dir_base, **param_dict)
     savemoney.post_analysis(sequence_dir_path, save_dir_base)
     savemoney.show_consensus(consensus_alignment_path)
+    savemoney.ca2bam(consensus_alignment_path)
 
     #####################
     # WITH COMMAND LINE #
@@ -37,6 +38,7 @@ if __name__ == "__main__":
     subprocess.call(f"python -m savemoney.pre_survey {sequence_dir_path} {save_dir_base} -dt {param_dict['distance_threshold']} -nog {param_dict['number_of_groups']}", shell=True)
     subprocess.call(f"python -m savemoney.post_analysis {sequence_dir_path} {save_dir_base}", shell=True)
     subprocess.call(f"python -m savemoney.show_consensus {consensus_alignment_path}", shell=True)
+    subprocess.call(f"python -m savemoney.ca2bam {consensus_alignment_path}", shell=True)
 
 
 

@@ -3,7 +3,6 @@
 import re
 import io
 import copy
-import pysam
 import struct
 import zipfile
 import subprocess
@@ -22,6 +21,7 @@ from matplotlib.patches import Patch
 
 from . import my_classes as mc
 from . import ref_query_alignment as rqa
+from .cython_functions import alignment_functions as af
 
 from matplotlib import rc
 rc('font', **{'family':'sans-serif','sans-serif':[mc.sans_serif_font_master]})
@@ -646,6 +646,7 @@ class MyMSAligner(mc.AlignmentBase):
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # MSA calc consensus
+        my_msa = my_msa.execute_soft_clipping()
         my_msa.calculate_consensus()
         # my_msa.print_alignment()
         return my_msa
@@ -653,6 +654,8 @@ class MyMSAligner(mc.AlignmentBase):
         return Path(__file__).parents[1] / "racon/build/bin/racon"
 
 class SequenceBasecallQscorePDF():
+    bases = "ATCG-"
+    assert bases[-1] == "-"
     def __init__(self, df_csv_path=None) -> None:
         with open(df_csv_path, "r") as f:
             self.NanoporeStats_PDF_version = re.match(r"^# file_version: ([0-9]+\.[0-9]+\.[0-9]+)$", f.readline().strip()).group(1)
@@ -692,6 +695,18 @@ class SequenceBasecallQscorePDF():
             # マイナス1で最後のやつにアクセスできるようにする（さすがに50も間を開けてれば、q-scoreがかぶってくることは無いでしょう…）
             self.pdf_core[column_names] = list(values)[1:] + [0.0 for i in range(50)] + list(values)[:1]
 
+        # cythonize
+        self.cythonize()
+    def cythonize(self):
+        P_base_calling_given_true_refseq_dict_CYTHON = {
+            key.encode("utf-8") : val
+            for key, val in self.P_base_calling_given_true_refseq_dict.items()
+        }
+        pdf_core_CYTHON = {
+            key.encode("utf-8") : val
+            for key, val in self.pdf_core.items()
+        }
+        self.sbq_pdf_CYTHON = af.SequenceBasecallQscorePDF(P_base_calling_given_true_refseq_dict_CYTHON, pdf_core_CYTHON, self.bases.encode("utf-8"))
     def calc_P_event_given_true_refseq(self, event, true_refseq):
         readseq, q_score = event
         key = f"{true_refseq}_{readseq}"
@@ -726,8 +741,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         # clipping info なしでも、S と I 以外は識別可能: なので S の情報のみを格納: 詳しくは self.gen_basic_cigar を参照
         ("add_clipping_info", "aligned_offset_info_list")
     ]
-    bases = "ATCG-"
-    assert bases[-1] == "-"
+    bases = SequenceBasecallQscorePDF.bases
     letter_code_dict = {
         "ATCG":"N", # Any base
         "TCG":"B",  # Not A
@@ -1312,25 +1326,28 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 del my_cigar_aligned[idx]
             self.query_seq_list_aligned[query_idx] = "".join(query_seq_aligned)
             self.my_cigar_list_aligned[query_idx] = "".join(my_cigar_aligned)
-        # ref_seq などからも削除
+        # ref_seq からも削除
         ref_seq_aligned = list(self.ref_seq_aligned)
-        with_prior_consensus_seq = list(self.with_prior_consensus_seq)
-        with_prior_consensus_my_cigar = list(self.with_prior_consensus_my_cigar)
-        without_prior_consensus_seq = list(self.without_prior_consensus_seq)
-        without_prior_consensus_my_cigar = list(self.without_prior_consensus_my_cigar)
         for idx in idx_list_to_remove[::-1]:
             del ref_seq_aligned[idx]
-            del with_prior_consensus_seq[idx]
-            del with_prior_consensus_my_cigar[idx]
-            del without_prior_consensus_seq[idx]
-            del without_prior_consensus_my_cigar[idx]
-            del self.with_prior_consensus_q_scores[idx]
-            del self.without_prior_consensus_q_scores[idx]
         self.ref_seq_aligned = "".join(ref_seq_aligned)
-        self.with_prior_consensus_seq = "".join(with_prior_consensus_seq)
-        self.with_prior_consensus_my_cigar = "".join(with_prior_consensus_my_cigar)
-        self.without_prior_consensus_seq = "".join(without_prior_consensus_seq)
-        self.without_prior_consensus_my_cigar = "".join(without_prior_consensus_my_cigar)
+        # 既に計算されていたら、consensus_seq からも削除
+        if len(self.with_prior_consensus_seq) > 0:
+            with_prior_consensus_seq = list(self.with_prior_consensus_seq)
+            with_prior_consensus_my_cigar = list(self.with_prior_consensus_my_cigar)
+            without_prior_consensus_seq = list(self.without_prior_consensus_seq)
+            without_prior_consensus_my_cigar = list(self.without_prior_consensus_my_cigar)
+            for idx in idx_list_to_remove[::-1]:
+                del with_prior_consensus_seq[idx]
+                del with_prior_consensus_my_cigar[idx]
+                del without_prior_consensus_seq[idx]
+                del without_prior_consensus_my_cigar[idx]
+                del self.with_prior_consensus_q_scores[idx]
+                del self.without_prior_consensus_q_scores[idx]
+            self.with_prior_consensus_seq = "".join(with_prior_consensus_seq)
+            self.with_prior_consensus_my_cigar = "".join(with_prior_consensus_my_cigar)
+            self.without_prior_consensus_seq = "".join(without_prior_consensus_seq)
+            self.without_prior_consensus_my_cigar = "".join(without_prior_consensus_my_cigar)
 
     # @staticmethod
     # def __calc_entropy(seq_list):
@@ -1481,7 +1498,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     ########################
     def calculate_consensus(self):
         # params
-        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(self.param_dict)
+        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(self.param_dict, make_it_for_CYTHON=True)
         # execute
         self.with_prior_consensus_seq, self.with_prior_consensus_q_scores, self.with_prior_consensus_my_cigar = self.calculate_consensus_core(P_N_dict_dict_with_prior)
         self.without_prior_consensus_seq, self.without_prior_consensus_q_scores, self.without_prior_consensus_my_cigar = self.calculate_consensus_core(P_N_dict_dict_without_prior)
@@ -1495,12 +1512,25 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             L_list = [i[consensus_idx] for i in self.my_cigar_list_aligned]
             event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list) if k not in "HO"]     # =XIDSN
 
+            query_list = []
+            q_score_list = []
+            for query_idx, my_cigar_aligned in enumerate(self.my_cigar_list_aligned):
+                if my_cigar_aligned[consensus_idx] not in "HO":      # =XIDSN
+                    query_list.append(self.query_seq_list_aligned[query_idx][consensus_idx])
+                    q_score_list.append(self.q_scores_list_aligned[query_idx][consensus_idx])
+
             if len(event_list) > 0:
                 P_N_dict = P_N_dict_dict[ref.upper()]
-                p_list = [
-                    self.sbq_pdf.calc_consensus_error_rate(event_list, true_refseq=B, P_N_dict=P_N_dict, bases=self.bases)
-                    for B in self.bases
-                ]
+
+                ### PYTHON ###
+                # event_list = [(i.upper(), j) for i, j, k in zip(query_list, q_score_list, L_list)]
+                # p_list = [
+                #     self.sbq_pdf.calc_consensus_error_rate(event_list, true_refseq=B, P_N_dict=P_N_dict, bases=self.bases)
+                #     for B in self.bases
+                # ]
+                ### CYTHON ###
+                p_list = self.sbq_pdf.sbq_pdf_CYTHON.calc_consensus_error_rate("".join(query_list).encode("utf-8"), q_score_list, P_N_dict)
+                ##############
                 p = min(p_list)
                 # p_idx_list = [i for i, v in enumerate(p_list) if v == p]
                 consensus_base_call = self.mixed_bases([b for b, tmp_p in zip(self.bases, p_list) if tmp_p == p])
@@ -1534,7 +1564,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 raise Exception(f"error: {ref} {consensus_base_call}")
         return consensus_seq, consensus_q_scores, consensus_my_cigar
     @classmethod
-    def consensus_params(cls, param_dict):
+    def consensus_params(cls, param_dict, make_it_for_CYTHON):
         ins_rate = param_dict["ins_rate"]
         error_rate = param_dict["error_rate"]
         del_mut_rate = param_dict["del_mut_rate"]
@@ -1557,6 +1587,15 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         )
         P_N_dict_dict_without_prior["-"] = default_value_without_prior
 
+        if make_it_for_CYTHON:
+            P_N_dict_dict_with_prior = {
+                key:{ord(k):v for k, v in val.items()}
+                for key, val in P_N_dict_dict_with_prior.items()
+            }
+            P_N_dict_dict_without_prior = {
+                key:{ord(k):v for k, v in val.items()}
+                for key, val in P_N_dict_dict_without_prior.items()
+            }
         return P_N_dict_dict_with_prior, P_N_dict_dict_without_prior
     def mixed_bases(self, base_list):
         if len(base_list) == 1:
@@ -1573,7 +1612,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     # FOR LOG
     @classmethod
     def P_N_dict_dict_2_matrix(cls, param_dict):
-        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = cls.consensus_params(param_dict)
+        P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = cls.consensus_params(param_dict, make_it_for_CYTHON=False)
         def gen_matrix_from_dict_dict(P_N_dict_dict):
             r_matrix = np.empty((len(cls.bases), len(cls.bases)), dtype=float)
             for r, b_key1 in enumerate(cls.bases):
@@ -1809,6 +1848,12 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 raise Exception(f"unknown cigar: {L}")
         return True
     def convert_to_bam(self, save_dir=None, replace_S_with_I=False, ext_not_exported=[".sorted.sam", ".bam.fastq"]):
+        try:
+            import pysam
+        except ImportError:
+            raise Exception("ImportError: Missing optional dependency 'pysam'.  Use pip to install pysam.")
+        except ModuleNotFoundError:
+            raise Exception("ModuleNotFoundError: Missing optional dependency 'pysam'.  Use pip to install pysam.")
         S_replacement = "I" if replace_S_with_I else "S"
         # Create a BAM file
         ref_len = len(self.ref_seq_NoDEL)

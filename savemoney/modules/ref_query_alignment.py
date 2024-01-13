@@ -172,7 +172,7 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         self.ref_seq_v = np.array([ord(char) for char in ref_seq])
         self.N_ref = len(self.ref_seq_v)
         self.ref_seq_v_repeated_list = [
-            np.hstack([self.ref_seq_v for i in range(repeat)], dtype=np.int64)
+            np.hstack([self.ref_seq_v for i in range(repeat)]).astype(np.int64)
             for repeat in range(2, self.default_repeat_max + 1)
         ]
         self.k_list = np.arange(0, self.N_ref)
@@ -279,7 +279,7 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         if repeat <= self.default_repeat_max:
             ref_seq_v_repeated = self.ref_seq_v_repeated_list[repeat - 2]
         else:
-            ref_seq_v_repeated = np.hstack([self.ref_seq_v for i in range(repeat)], np.int64)
+            ref_seq_v_repeated = np.hstack([self.ref_seq_v for i in range(repeat)]).astype(np.int64)
 
         #######################
         # k座位分だけ query をずらして並べたときの類似性（repeated ref_seq を固定して、query_seq のオフセットを右にずらしていくイメージ）
