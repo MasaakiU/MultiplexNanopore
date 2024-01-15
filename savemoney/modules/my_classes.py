@@ -534,7 +534,7 @@ def assert_param_dict(param_dict: dict):
         raise Exception(f"Error: The `del_mut_rate` must be in the range 0 to 1.!")
     if not (0 <= param_dict.get("ins_rate", 0.1) <= 1):
         raise Exception(f"Error: The `ins_rate` must be in the range 0 to 1.!")
-    if not (11 <= param_dict.get("window", 100)):
-        raise Exception(f"Error: The `window` must be greaterthan 10!")
+    if not (100 <= param_dict.get("window", 100)):
+        raise Exception(f"Error: The `window` must be greaterthan 100!")
 
 

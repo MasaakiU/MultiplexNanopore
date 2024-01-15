@@ -95,9 +95,10 @@ kwargs = {
     'gap_extend_penalty':   1,   # alignment parameter
     'match_score':          1,   # alignment parameter
     'mismatch_score':      -2,   # alignment parameter
-    'error_rate':      0.0001,   # prior probability for Bayesian analysis
+    'error_rate':     0.00001,   # prior probability for Bayesian analysis
     'del_mut_rate':  0.0001/4,   # prior probability for Bayesian analysis # e.g. "A -> T, C, G, del"
-    'ins_rate':        0.0001,   # prior probability for Bayesian analysis
+    'ins_rate':       0.00001,   # prior probability for Bayesian analysis
+    'window':             160,   # maximum detectable length of repetitive sequences when wrong plasmid maps are provided: if region of 80 nt is repeated adjascently two times, put the value of 160
 }
 ```
 
@@ -146,6 +147,7 @@ options:
   -er ER              error_rate, optional, default_value = 0.0001
   -dmr DMR            del_mut_rate, optional, default_value = 2.5e-05
   -ir IR              ins_rate, optional, default_value = 0.0001
+  -w W                window, optional, default_value = 160
 ```
 
 ### Output

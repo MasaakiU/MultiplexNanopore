@@ -220,7 +220,7 @@ def export_log(ref_seq_list:list, my_fastq:mc.MyFastQ, param_dict, query_assignm
     print("export: DONE")
 
 class MyLog(mc.MyTextFormat, mc.MyHeader):
-    def __init__(self, ref_seq_list: list, my_fastq: mc.MyFastQ, param_dict: dict, query_assignment) -> None:
+    def __init__(self, ref_seq_list: list=None, my_fastq: mc.MyFastQ=None, param_dict: dict=None, query_assignment=None) -> None:
         super().__init__()
         self.header += (
             f"\nquery_assignment_version: {msa.QueryAssignment.query_assignment_version}"
@@ -228,15 +228,16 @@ class MyLog(mc.MyTextFormat, mc.MyHeader):
             f"\nMyMSA algorithm_version: {msa.MyMSA.algorithm_version}"
             f"\nMyMSA sbq_pdf_version: {msa.MyMSA.sbq_pdf_version}"
         )
-        self.input_reference_files = [refseq.path for refseq in ref_seq_list]
-        self.input_fastq_files = [fastq_path for fastq_path in my_fastq.path]
-        self.input_reference_hash_list = [refseq.my_hash for refseq in ref_seq_list]
-        self.input_fastq_hash = my_fastq.my_hash
-        self.alignment_params = param_dict
-        self.score_matrix = self.get_score_matrix()
-        self.assignment_summary = query_assignment.get_assignment_summary()
-        self.error_matrix_with_prior, self.error_matrix_without_prior = self.get_error_matrices()
-        self.class_attributes = self.get_class_attributes()
+        if ref_seq_list is not None:
+            self.input_reference_files = [refseq.path for refseq in ref_seq_list]
+            self.input_fastq_files = [fastq_path for fastq_path in my_fastq.path]
+            self.input_reference_hash_list = [refseq.my_hash for refseq in ref_seq_list]
+            self.input_fastq_hash = my_fastq.my_hash
+            self.alignment_params = param_dict
+            self.score_matrix = self.get_score_matrix()
+            self.assignment_summary = query_assignment.get_assignment_summary()
+            self.error_matrix_with_prior, self.error_matrix_without_prior = self.get_error_matrices()
+            self.class_attributes = self.get_class_attributes()
         # keys required for MyTextFormat
         self.keys = [
             ("header", "str"), 
