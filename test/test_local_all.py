@@ -25,7 +25,7 @@ if __name__ == "__main__":
     ###############
     param_dict = {  # optional params
         'distance_threshold':   5, 
-        'number_of_groups':     2, 
+        'number_of_groups':     1, 
     }
     savemoney.pre_survey(sequence_dir_path, save_dir_base, **param_dict)
     savemoney.post_analysis(sequence_dir_path, save_dir_base)

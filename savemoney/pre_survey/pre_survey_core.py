@@ -473,17 +473,16 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
     def draw_heatmap(self, group_idx, plasmid_idx_list_to_highlight):
         # font style params
         max_alias_width = max(len(ref_seq_alias) for ref_seq_alias in self.ref_seq_aliases)
-        y_tick_laabels = [f"{ref_seq_alias:<{max_alias_width}} {ref_seq_path.name}" for ref_seq_alias, ref_seq_path in zip(self.ref_seq_aliases, self.ref_seq_paths)]
+        y_tick_labels = [f"{ref_seq_alias:<{max_alias_width}} {ref_seq_path.name}" for ref_seq_alias, ref_seq_path in zip(self.ref_seq_aliases, self.ref_seq_paths)]
         tick_font_size = 10
         # fig size parmas (fixed margin with absoute values, not percentile)
         heatmap_cell_unit = 0.5
         top_margin_unit = 0.6
         left_margin_unit = 1.0
         bottom_margin_unit = 0.8
-        right_margin_unit = 0.5 + tick_font_size/100 * 0.9 * max(len(y_tick_laabel) for y_tick_laabel in y_tick_laabels)
+        right_margin_unit = 0.5 + tick_font_size/100 * 0.9 * max(len(y_tick_laabel) for y_tick_laabel in y_tick_labels)
         bar_width_percentile = 3            # color bar のサイズは、heatmap サイズに応じて決める
         bbox_to_anchor_x0_percentile = -5   # color bar のサイズは、heatmap サイズに応じて決める
-        bottom_title_y0_percentile = -0.4 / (heatmap_cell_unit * self.N_plasmids) * 100     # タイトルは、絶対値で決める
         fig_width = heatmap_cell_unit * self.N_plasmids + left_margin_unit + right_margin_unit
         fig_height = heatmap_cell_unit * self.N_plasmids + top_margin_unit + bottom_margin_unit
         # color styel params
@@ -522,7 +521,7 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
         # y
         ax.yaxis.set_ticks_position("right")
         ax.set_yticks(np.arange(self.N_plasmids))
-        ax.set_yticklabels(labels=y_tick_laabels, fontsize=tick_font_size, fontname="monospace")
+        ax.set_yticklabels(labels=y_tick_labels, fontsize=tick_font_size, fontname="monospace")
 
         # highlight heatmap cells
         for i in plasmid_idx_list_to_highlight:
@@ -540,10 +539,16 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
             if idx in plasmid_idx_list_to_highlight:
                 ytick.set_color("r")
 
-        ax.set_title(
-            f'Group {group_idx+1}: {{{", ".join([alias for i, alias in enumerate(self.ref_seq_aliases) if i in plasmid_idx_list_to_highlight])}}}'
-            f'{" "*4}(distance_threshold={self.adopted_distance_threshold or "?"}, number_of_groups={self.adopted_number_of_groups or "?"})', 
-            y=bottom_title_y0_percentile/100, loc='left', weight='bold'
+        ax.text(
+            x=-0.5, y=self.N_plasmids, s=
+            f'Group {group_idx+1}: {{{", ".join([alias for i, alias in enumerate(self.ref_seq_aliases) if i in plasmid_idx_list_to_highlight])}}}', 
+            weight='bold', va="bottom"
+        )
+        ax.text(
+            x=-0.5, y=self.N_plasmids+0.1, s=
+            f'distance_threshold: {self.adopted_distance_threshold or "?"}\n'
+            f'number_of_groups  : {self.adopted_number_of_groups or "?"}', 
+            fontsize=tick_font_size, fontname="monospace", va="top"
         )
         plt.subplots_adjust(left=left_margin_unit/fig_width, bottom=bottom_margin_unit/fig_height, right=1-right_margin_unit/fig_width, top=1-top_margin_unit/fig_height)
     def get_ref_seq_path_list_in_group(self, group_idx):

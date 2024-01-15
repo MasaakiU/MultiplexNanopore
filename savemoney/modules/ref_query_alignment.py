@@ -166,6 +166,7 @@ class MyAlignerBase():
 class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
     default_repeat_max = 5
     percentile_factor = 0.1 # 低いほど conserved region の quality は上がるが、計算時間がかかる
+    omit_too_long = 1.75    # omit_too_long: 1.5-2.0 くらいの値: self.calc_circular_conserved_region の elif 文参照
     def __init__(self, ref_seq, param_dict) -> None:
         super().__init__(param_dict)
         self.ref_seq = ref_seq
@@ -179,9 +180,11 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         x_percentile = 1 / self.N_ref * self.percentile_factor # 偶然 threshold を超える position が 0.1個/ref_seq 以下になるようにする
         self.sigma = stats.norm.ppf(1 - x_percentile, loc=0, scale=1)  # 累積分布関数の逆関数
         self.is_all_ATCG = all([b.upper() in "ATCG" for b in ref_seq])
-    def calc_circular_conserved_region(self, query_seq):
+    def calc_circular_conserved_region(self, query_seq, omit_too_long=False):
         conserved_regions = self.calc_circular_conserved_region_core(query_seq)
         if len(conserved_regions) == 0:
+            return None
+        elif omit_too_long and (self.N_ref * self.omit_too_long <= len(query_seq)):
             return None
         else:
             longest_path_trace, longest_path_score = SearchLongestPath.exec(conserved_regions, N_ref=self.N_ref, N_query=len(query_seq))

@@ -27,12 +27,11 @@ def pre_survey_separate_paths_input(plasmid_map_paths:List[Path], save_dir_base:
         if k not in default_pre_survey_param_dict.keys():
             raise Exception(f"unknown key in `param_dict`: {k}\nallowed keys are: {', '.join(default_pre_survey_param_dict.keys())}")
     param_dict = {key: param_dict.get(key, val) for key, val in default_pre_survey_param_dict.items()}
-    if param_dict["distance_threshold"] <= 0:
-        raise Exception(f"Error: `distance_threshold` must be greater than 0!")
-    if param_dict["number_of_groups"] <= 0:
-        raise Exception(f"Error: `number_of_groups` must be greater than 0!")
+    mc.assert_param_dict(param_dict)
+    if len(plasmid_map_paths) == 0:
+        raise Exception(f"Error: No plasmid map file was detected!")
     if param_dict["number_of_groups"] > len(plasmid_map_paths):
-        raise Exception(f"Error: `number_of_groups` cannot be greater than the number of plasmid maps ({len(ref_seq_list)})!")
+        raise Exception(f"Error: `number_of_groups` cannot be greater than the number of plasmid maps ({len(plasmid_map_paths)})!")
     # 1. Prepare objects
     ref_seq_list = [mc.MyRefSeq(plasmid_map_path) for plasmid_map_path in plasmid_map_paths]
     save_dir = mc.new_dir_path_wo_overlap(Path(save_dir_base) / Path(psc.RecommendedGrouping.file_name).stem, spacing="_")

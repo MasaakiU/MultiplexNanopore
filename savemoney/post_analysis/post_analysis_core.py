@@ -64,8 +64,8 @@ def execute_alignment_core(ref_seq_list, my_fastq, param_dict):
         query_seq = mc.MySeq(query_seq)
         query_seq_rc = query_seq.reverse_complement()
         for my_optimized_aligner in my_optimized_aligner_list:
-            conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq)
-            conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc)
+            conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq, omit_too_long=True)
+            conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc, omit_too_long=True)
             if conserved_regions is not None:
                 my_result = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq, conserved_regions)
             else:
@@ -269,6 +269,7 @@ class MyLog(mc.MyTextFormat, mc.MyHeader):
         class_attributes_dict.update(
             ALIGNMENT_default_repeat_max = rqa.MyOptimizedAligner.default_repeat_max, 
             ALIGNMENT_percentile_factor = rqa.MyOptimizedAligner.percentile_factor, 
+            ALIGNMENT_omit_too_long = rqa.MyOptimizedAligner.omit_too_long, 
             ALIGNMENT_consecutive_true_threshold = rqa.WindowAnalysis.consecutive_true_threshold, 
         )
         # msa/consensus params

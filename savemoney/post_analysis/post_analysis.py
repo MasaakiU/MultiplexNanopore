@@ -10,7 +10,7 @@ from . import post_analysis_core as pac
 
 __all__ = ["post_analysis", "default_post_analysis_param_dict", "post_analysis_separate_paths_input"]
 
-error_rate = 0.000001
+error_rate = 0.00001
 default_post_analysis_param_dict = {
     'gap_open_penalty': 3, 
     'gap_extend_penalty': 1, 
@@ -19,13 +19,13 @@ default_post_analysis_param_dict = {
     'score_threshold': 0.3, 
     'error_rate': error_rate, 
     'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
-    'ins_rate': 0.000001, 
+    'ins_rate': 0.00001, 
     'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
     plasmid_map_paths = [path for path in Path(sequence_dir_path).glob(f"*.*") if path.suffix in mc.MyRefSeq.allowed_plasmid_map_extensions]
-    fastq_paths = Path(sequence_dir_path).glob(f"*.fastq")
+    fastq_paths = list(Path(sequence_dir_path).glob(f"*.fastq"))
     return post_analysis_separate_paths_input(plasmid_map_paths, fastq_paths, save_dir_base, **param_dict)
 
 def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths:List[Path], save_dir_base: str, **param_dict:dict):
@@ -33,6 +33,11 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
         if k not in default_post_analysis_param_dict.keys():
             raise Exception(f"unknown key in `param_dict`: {k}\nallowed keys are: {', '.join(default_post_analysis_param_dict.keys())}")
     param_dict = {key: param_dict.get(key, val) for key, val in default_post_analysis_param_dict.items()}
+    mc.assert_param_dict(param_dict)
+    if len(plasmid_map_paths) == 0:
+        raise Exception(f"Error: No plasmid map file was detected!")
+    if len(fastq_paths) == 0:
+        raise Exception(f"Error: No fastq file was detected!")
     # 1. Prepare objects
     ref_seq_list = [mc.MyRefSeq(plasmid_map_path) for plasmid_map_path in plasmid_map_paths]
     my_fastq = mc.MyFastQ.combine([mc.MyFastQ(fastq_path) for fastq_path in fastq_paths])

@@ -10,7 +10,7 @@
         "language": "c++",
         "name": "savemoney.modules.cython_functions.alignment_functions",
         "sources": [
-            "/Users/masaaki/Documents/1_Research/4_Codes/1_miniconda/env_MultiplexNanopore/savemoney/modules/cython_functions/alignment_functions.pyx"
+            "savemoney/modules/cython_functions/alignment_functions.pyx"
         ]
     },
     "module_name": "savemoney.modules.cython_functions.alignment_functions"
@@ -1502,7 +1502,7 @@ static const char *__pyx_filename;
 /* #### Code section: filename_table ### */
 
 static const char *__pyx_f[] = {
-  "alignment_functions.pyx",
+  "savemoney/modules/cython_functions/alignment_functions.pyx",
   "<stringsource>",
 };
 /* #### Code section: utility_code_proto_before_types ### */
@@ -3121,7 +3121,6 @@ static const char __pyx_k_contiguous_and_direct[] = "<contiguous and direct>";
 static const char __pyx_k_Cannot_index_with_type[] = "Cannot index with type '";
 static const char __pyx_k_MemoryView_of_r_object[] = "<MemoryView of %r object>";
 static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x>";
-static const char __pyx_k_alignment_functions_pyx[] = "alignment_functions.pyx";
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
 static const char __pyx_k_k_mer_offset_analysis_2[] = "k_mer_offset_analysis_2";
 static const char __pyx_k_Dimension_d_is_not_direct[] = "Dimension %d is not direct";
@@ -3150,8 +3149,9 @@ static const char __pyx_k_SequenceBasecallQscorePDF_calc_c[] = "SequenceBasecall
 static const char __pyx_k_Unable_to_convert_item_to_object[] = "Unable to convert item to object";
 static const char __pyx_k_got_differing_extents_in_dimensi[] = "got differing extents in dimension ";
 static const char __pyx_k_no_default___reduce___due_to_non[] = "no default __reduce__ due to non-trivial __cinit__";
-static const char __pyx_k_savemoney_modules_cython_functio[] = "savemoney.modules.cython_functions.alignment_functions";
+static const char __pyx_k_savemoney_modules_cython_functio[] = "savemoney/modules/cython_functions/alignment_functions.pyx";
 static const char __pyx_k_unable_to_allocate_shape_and_str[] = "unable to allocate shape and strides.";
+static const char __pyx_k_savemoney_modules_cython_functio_2[] = "savemoney.modules.cython_functions.alignment_functions";
 /* #### Code section: decls ### */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
@@ -3304,7 +3304,6 @@ typedef struct {
   PyObject *__pyx_kp_u__6;
   PyObject *__pyx_kp_u__7;
   PyObject *__pyx_n_s_abc;
-  PyObject *__pyx_kp_s_alignment_functions_pyx;
   PyObject *__pyx_n_s_allocate_buffer;
   PyObject *__pyx_kp_u_and;
   PyObject *__pyx_n_s_asyncio_coroutines;
@@ -3390,7 +3389,8 @@ typedef struct {
   PyObject *__pyx_n_s_ref_seq;
   PyObject *__pyx_n_s_ref_seq_v_repeated;
   PyObject *__pyx_n_s_register;
-  PyObject *__pyx_n_s_savemoney_modules_cython_functio;
+  PyObject *__pyx_kp_s_savemoney_modules_cython_functio;
+  PyObject *__pyx_n_s_savemoney_modules_cython_functio_2;
   PyObject *__pyx_n_s_self;
   PyObject *__pyx_n_s_setstate;
   PyObject *__pyx_n_s_setstate_cython;
@@ -3542,7 +3542,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_kp_u__6);
   Py_CLEAR(clear_module_state->__pyx_kp_u__7);
   Py_CLEAR(clear_module_state->__pyx_n_s_abc);
-  Py_CLEAR(clear_module_state->__pyx_kp_s_alignment_functions_pyx);
   Py_CLEAR(clear_module_state->__pyx_n_s_allocate_buffer);
   Py_CLEAR(clear_module_state->__pyx_kp_u_and);
   Py_CLEAR(clear_module_state->__pyx_n_s_asyncio_coroutines);
@@ -3628,7 +3627,8 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_ref_seq);
   Py_CLEAR(clear_module_state->__pyx_n_s_ref_seq_v_repeated);
   Py_CLEAR(clear_module_state->__pyx_n_s_register);
-  Py_CLEAR(clear_module_state->__pyx_n_s_savemoney_modules_cython_functio);
+  Py_CLEAR(clear_module_state->__pyx_kp_s_savemoney_modules_cython_functio);
+  Py_CLEAR(clear_module_state->__pyx_n_s_savemoney_modules_cython_functio_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_self);
   Py_CLEAR(clear_module_state->__pyx_n_s_setstate);
   Py_CLEAR(clear_module_state->__pyx_n_s_setstate_cython);
@@ -3758,7 +3758,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_kp_u__6);
   Py_VISIT(traverse_module_state->__pyx_kp_u__7);
   Py_VISIT(traverse_module_state->__pyx_n_s_abc);
-  Py_VISIT(traverse_module_state->__pyx_kp_s_alignment_functions_pyx);
   Py_VISIT(traverse_module_state->__pyx_n_s_allocate_buffer);
   Py_VISIT(traverse_module_state->__pyx_kp_u_and);
   Py_VISIT(traverse_module_state->__pyx_n_s_asyncio_coroutines);
@@ -3844,7 +3843,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_ref_seq);
   Py_VISIT(traverse_module_state->__pyx_n_s_ref_seq_v_repeated);
   Py_VISIT(traverse_module_state->__pyx_n_s_register);
-  Py_VISIT(traverse_module_state->__pyx_n_s_savemoney_modules_cython_functio);
+  Py_VISIT(traverse_module_state->__pyx_kp_s_savemoney_modules_cython_functio);
+  Py_VISIT(traverse_module_state->__pyx_n_s_savemoney_modules_cython_functio_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_self);
   Py_VISIT(traverse_module_state->__pyx_n_s_setstate);
   Py_VISIT(traverse_module_state->__pyx_n_s_setstate_cython);
@@ -3998,7 +3998,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_kp_u__6 __pyx_mstate_global->__pyx_kp_u__6
 #define __pyx_kp_u__7 __pyx_mstate_global->__pyx_kp_u__7
 #define __pyx_n_s_abc __pyx_mstate_global->__pyx_n_s_abc
-#define __pyx_kp_s_alignment_functions_pyx __pyx_mstate_global->__pyx_kp_s_alignment_functions_pyx
 #define __pyx_n_s_allocate_buffer __pyx_mstate_global->__pyx_n_s_allocate_buffer
 #define __pyx_kp_u_and __pyx_mstate_global->__pyx_kp_u_and
 #define __pyx_n_s_asyncio_coroutines __pyx_mstate_global->__pyx_n_s_asyncio_coroutines
@@ -4084,7 +4083,8 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_ref_seq __pyx_mstate_global->__pyx_n_s_ref_seq
 #define __pyx_n_s_ref_seq_v_repeated __pyx_mstate_global->__pyx_n_s_ref_seq_v_repeated
 #define __pyx_n_s_register __pyx_mstate_global->__pyx_n_s_register
-#define __pyx_n_s_savemoney_modules_cython_functio __pyx_mstate_global->__pyx_n_s_savemoney_modules_cython_functio
+#define __pyx_kp_s_savemoney_modules_cython_functio __pyx_mstate_global->__pyx_kp_s_savemoney_modules_cython_functio
+#define __pyx_n_s_savemoney_modules_cython_functio_2 __pyx_mstate_global->__pyx_n_s_savemoney_modules_cython_functio_2
 #define __pyx_n_s_self __pyx_mstate_global->__pyx_n_s_self
 #define __pyx_n_s_setstate __pyx_mstate_global->__pyx_n_s_setstate
 #define __pyx_n_s_setstate_cython __pyx_mstate_global->__pyx_n_s_setstate_cython
@@ -19425,7 +19425,8 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2 = {"k_mer_offset_analysis_2", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+PyDoc_STRVAR(__pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2, "k_mer_offset_analysis_2(LL[:] ref_seq_v_repeated, LL[:] query_seq_v, LL N_ref, LL len_query_seq_v)");
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2 = {"k_mer_offset_analysis_2", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_k_mer_offset_analysis_2};
 static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
@@ -19806,7 +19807,8 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate = {"calc_consensus_error_rate", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+PyDoc_STRVAR(__pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_2calc_consensus_error_rate, "SequenceBasecallQscorePDF.calc_consensus_error_rate(self, char_vec query_list, vec q_score_list, chr_LD_map P_N_dict)");
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate = {"calc_consensus_error_rate", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_2calc_consensus_error_rate};
 static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
@@ -20266,7 +20268,8 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+PyDoc_STRVAR(__pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_4__reduce_cython__, "SequenceBasecallQscorePDF.__reduce_cython__(self)");
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__ = {"__reduce_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_4__reduce_cython__};
 static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
@@ -20346,7 +20349,8 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+PyDoc_STRVAR(__pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_6__setstate_cython__, "SequenceBasecallQscorePDF.__setstate_cython__(self, __pyx_state)");
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__ = {"__setstate_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_6__setstate_cython__};
 static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__(PyObject *__pyx_v_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
@@ -24216,7 +24220,8 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython = {"my_special_dp_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+PyDoc_STRVAR(__pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_2my_special_dp_cython, "my_special_dp_cython(string query_seq_1, string query_seq_2, string ref_seq, LL gap_open_penalty, LL gap_extend_penalty, LL match_score, LL mismatch_score)");
+static PyMethodDef __pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython = {"my_special_dp_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_2my_special_dp_cython};
 static PyObject *__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
@@ -24470,9 +24475,9 @@ static void __pyx_tp_dealloc_9savemoney_7modules_16cython_functions_19alignment_
 }
 
 static PyMethodDef __pyx_methods_9savemoney_7modules_16cython_functions_19alignment_functions_SequenceBasecallQscorePDF[] = {
-  {"calc_consensus_error_rate", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
-  {"__setstate_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0},
+  {"calc_consensus_error_rate", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_2calc_consensus_error_rate},
+  {"__reduce_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_4__reduce_cython__},
+  {"__setstate_cython__", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_6__setstate_cython__},
   {0, 0, 0, 0}
 };
 #if CYTHON_USE_TYPE_SPECS
@@ -25583,7 +25588,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_kp_u__6, __pyx_k__6, sizeof(__pyx_k__6), 0, 1, 0, 0},
     {&__pyx_kp_u__7, __pyx_k__7, sizeof(__pyx_k__7), 0, 1, 0, 0},
     {&__pyx_n_s_abc, __pyx_k_abc, sizeof(__pyx_k_abc), 0, 0, 1, 1},
-    {&__pyx_kp_s_alignment_functions_pyx, __pyx_k_alignment_functions_pyx, sizeof(__pyx_k_alignment_functions_pyx), 0, 0, 1, 0},
     {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
     {&__pyx_kp_u_and, __pyx_k_and, sizeof(__pyx_k_and), 0, 1, 0, 0},
     {&__pyx_n_s_asyncio_coroutines, __pyx_k_asyncio_coroutines, sizeof(__pyx_k_asyncio_coroutines), 0, 0, 1, 1},
@@ -25669,7 +25673,8 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_ref_seq, __pyx_k_ref_seq, sizeof(__pyx_k_ref_seq), 0, 0, 1, 1},
     {&__pyx_n_s_ref_seq_v_repeated, __pyx_k_ref_seq_v_repeated, sizeof(__pyx_k_ref_seq_v_repeated), 0, 0, 1, 1},
     {&__pyx_n_s_register, __pyx_k_register, sizeof(__pyx_k_register), 0, 0, 1, 1},
-    {&__pyx_n_s_savemoney_modules_cython_functio, __pyx_k_savemoney_modules_cython_functio, sizeof(__pyx_k_savemoney_modules_cython_functio), 0, 0, 1, 1},
+    {&__pyx_kp_s_savemoney_modules_cython_functio, __pyx_k_savemoney_modules_cython_functio, sizeof(__pyx_k_savemoney_modules_cython_functio), 0, 0, 1, 0},
+    {&__pyx_n_s_savemoney_modules_cython_functio_2, __pyx_k_savemoney_modules_cython_functio_2, sizeof(__pyx_k_savemoney_modules_cython_functio_2), 0, 0, 1, 1},
     {&__pyx_n_s_self, __pyx_k_self, sizeof(__pyx_k_self), 0, 0, 1, 1},
     {&__pyx_n_s_setstate, __pyx_k_setstate, sizeof(__pyx_k_setstate), 0, 0, 1, 1},
     {&__pyx_n_s_setstate_cython, __pyx_k_setstate_cython, sizeof(__pyx_k_setstate_cython), 0, 0, 1, 1},
@@ -25865,7 +25870,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__20 = PyTuple_Pack(4, __pyx_n_s_ref_seq_v_repeated, __pyx_n_s_query_seq_v, __pyx_n_s_N_ref, __pyx_n_s_len_query_seq_v); if (unlikely(!__pyx_tuple__20)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
-  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_k_mer_offset_analysis_2, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_codeobj__21 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 4, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__20, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_savemoney_modules_cython_functio, __pyx_n_s_k_mer_offset_analysis_2, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__21)) __PYX_ERR(0, 46, __pyx_L1_error)
 
   /* "savemoney/modules/cython_functions/alignment_functions.pyx":92
  *         self.N_bases = self.bases.size()
@@ -25877,7 +25882,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__22 = PyTuple_Pack(14, __pyx_n_s_self, __pyx_n_s_query_list, __pyx_n_s_q_score_list, __pyx_n_s_P_N_dict, __pyx_n_s_N_query_list, __pyx_n_s_base_idx, __pyx_n_s_idx, __pyx_n_s_bunshi_list, __pyx_n_s_bunshi_P_N, __pyx_n_s_bunbo_bunshi_sum, __pyx_n_s_base, __pyx_n_s_val, __pyx_n_s_p_list, __pyx_n_s_B); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__22);
   __Pyx_GIVEREF(__pyx_tuple__22);
-  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 14, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_calc_consensus_error_rate, 92, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 92, __pyx_L1_error)
+  __pyx_codeobj__23 = (PyObject*)__Pyx_PyCode_New(4, 0, 0, 14, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__22, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_savemoney_modules_cython_functio, __pyx_n_s_calc_consensus_error_rate, 92, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__23)) __PYX_ERR(0, 92, __pyx_L1_error)
 
   /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
@@ -25910,7 +25915,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__28 = PyTuple_Pack(7, __pyx_n_s_query_seq_1, __pyx_n_s_query_seq_2, __pyx_n_s_ref_seq, __pyx_n_s_gap_open_penalty, __pyx_n_s_gap_extend_penalty, __pyx_n_s_match_score, __pyx_n_s_mismatch_score); if (unlikely(!__pyx_tuple__28)) __PYX_ERR(0, 134, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__28);
   __Pyx_GIVEREF(__pyx_tuple__28);
-  __pyx_codeobj__29 = (PyObject*)__Pyx_PyCode_New(7, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__28, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_alignment_functions_pyx, __pyx_n_s_my_special_dp_cython, 134, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__29)) __PYX_ERR(0, 134, __pyx_L1_error)
+  __pyx_codeobj__29 = (PyObject*)__Pyx_PyCode_New(7, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__28, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_savemoney_modules_cython_functio, __pyx_n_s_my_special_dp_cython, 134, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__29)) __PYX_ERR(0, 134, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -26991,7 +26996,7 @@ if (!__Pyx_RefNanny) {
  *         LL[:] ref_seq_v_repeated,
  *         LL[:] query_seq_v,
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, 0, __pyx_n_s_k_mer_offset_analysis_2, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_1k_mer_offset_analysis_2, 0, __pyx_n_s_k_mer_offset_analysis_2, NULL, __pyx_n_s_savemoney_modules_cython_functio_2, __pyx_d, ((PyObject *)__pyx_codeobj__21)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_k_mer_offset_analysis_2, __pyx_t_7) < 0) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -27003,7 +27008,7 @@ if (!__Pyx_RefNanny) {
  *         cdef LL N_query_list
  *         cdef LL base_idx
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF_calc_c, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__23)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 92, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_3calc_consensus_error_rate, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF_calc_c, NULL, __pyx_n_s_savemoney_modules_cython_functio_2, __pyx_d, ((PyObject *)__pyx_codeobj__23)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (__Pyx_SetItemOnTypeDict((PyObject *)__pyx_ptype_9savemoney_7modules_16cython_functions_19alignment_functions_SequenceBasecallQscorePDF, __pyx_n_s_calc_consensus_error_rate, __pyx_t_7) < 0) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -27014,7 +27019,7 @@ if (!__Pyx_RefNanny) {
  *     raise TypeError, "no default __reduce__ due to non-trivial __cinit__"
  * def __setstate_cython__(self, __pyx_state):
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF___redu, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__25)); if (unlikely(!__pyx_t_7)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_5__reduce_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF___redu, NULL, __pyx_n_s_savemoney_modules_cython_functio_2, __pyx_d, ((PyObject *)__pyx_codeobj__25)); if (unlikely(!__pyx_t_7)) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_reduce_cython, __pyx_t_7) < 0) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -27025,7 +27030,7 @@ if (!__Pyx_RefNanny) {
  * def __setstate_cython__(self, __pyx_state):             # <<<<<<<<<<<<<<
  *     raise TypeError, "no default __reduce__ due to non-trivial __cinit__"
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF___sets, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__27)); if (unlikely(!__pyx_t_7)) __PYX_ERR(1, 3, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_25SequenceBasecallQscorePDF_7__setstate_cython__, __Pyx_CYFUNCTION_CCLASS, __pyx_n_s_SequenceBasecallQscorePDF___sets, NULL, __pyx_n_s_savemoney_modules_cython_functio_2, __pyx_d, ((PyObject *)__pyx_codeobj__27)); if (unlikely(!__pyx_t_7)) __PYX_ERR(1, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_setstate_cython, __pyx_t_7) < 0) __PYX_ERR(1, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
@@ -27037,7 +27042,7 @@ if (!__Pyx_RefNanny) {
  *         string query_seq_1,
  *         string query_seq_2,
  */
-  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, 0, __pyx_n_s_my_special_dp_cython, NULL, __pyx_n_s_savemoney_modules_cython_functio, __pyx_d, ((PyObject *)__pyx_codeobj__29)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 134, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_9savemoney_7modules_16cython_functions_19alignment_functions_3my_special_dp_cython, 0, __pyx_n_s_my_special_dp_cython, NULL, __pyx_n_s_savemoney_modules_cython_functio_2, __pyx_d, ((PyObject *)__pyx_codeobj__29)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 134, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_my_special_dp_cython, __pyx_t_7) < 0) __PYX_ERR(0, 134, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;

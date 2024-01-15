@@ -508,5 +508,33 @@ def key2argkey(key):
         key = "mis_match_score"
     return ''.join(i[0] for i in key.split('_'))
 
+def assert_param_dict(param_dict: dict):
+    # 共通
+    if param_dict['gap_open_penalty'] <= 0:
+        raise Exception(f"Error: The `gap_open_penalty` must be greater than 0!")
+    if param_dict['gap_extend_penalty'] <= 0:
+        raise Exception(f"Error: The `gap_extend_penalty` must be greater than 0!")
+    if param_dict['gap_extend_penalty'] > param_dict['gap_open_penalty']:
+        raise Exception(f"The `gap_open_penalty` must be greater than or equal to the `gap_extend_penalty`!")
+    if param_dict['match_score'] <= 0:
+        raise Exception(f"Error: The `match_score` must be greater than 0!")
+    if param_dict['mismatch_score'] >= 0:
+        raise Exception(f"Error: The `mismatch_score` must be a negative value!")
+    # pre-survey
+    if param_dict.get("distance_threshold", 1) <= 0:
+        raise Exception(f"Error: The `distance_threshold` must be greater than 0!")
+    if param_dict.get("number_of_groups", 1) <= 0:
+        raise Exception(f"Error: The `number_of_groups` must be greater than 0!")
+    # post-analysis
+    if not (0 <= param_dict.get("score_threshold", 0.1) <= 1):
+        raise Exception(f"Error: The `score_threshold` must be in the range 0 to 1.!")
+    if not (0 <= param_dict.get("error_rate", 0.1) <= 1):
+        raise Exception(f"Error: The `error_rate` must be in the range 0 to 1.!")
+    if not (0 <= param_dict.get("del_mut_rate", 0.1) <= 1):
+        raise Exception(f"Error: The `del_mut_rate` must be in the range 0 to 1.!")
+    if not (0 <= param_dict.get("ins_rate", 0.1) <= 1):
+        raise Exception(f"Error: The `ins_rate` must be in the range 0 to 1.!")
+    if not (11 <= param_dict.get("window", 100)):
+        raise Exception(f"Error: The `window` must be greaterthan 10!")
 
 

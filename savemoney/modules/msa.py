@@ -105,8 +105,6 @@ class QueryAssignment():
             assignment_set_4_read_length[classified_ref_seq_idx].append(len(query_seq))
             assignment_set_4_q_scores[classified_ref_seq_idx].extend(q_scores)
 
-
-
         # スタイル
         color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
         focused_color1 = color_cycle[0]
@@ -137,7 +135,6 @@ class QueryAssignment():
         widths = [left_header_unit] + [fig_w_unit] * (columns - 1)
         heights = [fig_h_unit] * rows
         spec = fig.add_gridspec(ncols=columns, nrows=rows, width_ratios=widths, height_ratios=heights)
-
 
         # # 描画パラメータ
         # fig = plt.figure(figsize=(4 * columns, 2 * rows), clear=True)
@@ -227,7 +224,7 @@ class QueryAssignment():
         fig.subplots_adjust(hspace=hspace, wspace=wspace, left=left, right=right, bottom=bottom, top=top)
 
         if save_dir is not None:
-            plt.savefig(Path(save_dir) / f"{self.my_fastq.combined_name_stem}.summary_scatter.svg")
+            plt.savefig(Path(save_dir) / f"{self.my_fastq.combined_name_stem}.summary_distribution.svg")
         if display_plot is None:
             return
         elif display_plot:
@@ -374,7 +371,7 @@ class QueryAssignment():
         fig.subplots_adjust(hspace=hspace, wspace=wspace, left=left, right=right, bottom=bottom, top=top)
 
         if save_dir is not None:
-            plt.savefig(Path(save_dir) / f"{self.my_fastq.combined_name_stem}.summary_distribution.svg")
+            plt.savefig(Path(save_dir) / f"{self.my_fastq.combined_name_stem}.summary_scatter.svg")
         if display_plot is None:
             return
         elif display_plot:

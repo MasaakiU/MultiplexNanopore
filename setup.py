@@ -45,7 +45,7 @@ except ImportError:
 #############################################################
 #############################################################
 
-test_version = "b4"
+test_version = ""
 root_dir = Path(__file__).parent.resolve()
 package_name = "savemoney"
 sub_package_names = [f"{package_name}.{sub_package_name}" for sub_package_name in find_packages(package_name)]
