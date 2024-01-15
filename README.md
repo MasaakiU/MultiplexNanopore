@@ -31,17 +31,18 @@ Verified on macOS, Linux, and Windows10
   - [Clang 14.0.0](https://clang.llvm.org)
   - [GCC 12.2.0](https://gcc.gnu.org)
   - [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (for Windows)
-- biopython>=1.81
-- pandas>=2.1.4
-- parasail==1.1.11    # newer version does not work with savemoney for now
-- Pillow>=10.1.0
+- biopython>=1.83
+- pandas>=1.5.3
+- parasail>=1.3.4
+- Pillow>=9.4.0
 - PuLP>=2.7.0
 - scipy>=1.11.4
 - snapgene_reader>=0.1.20
 - tqdm>=4.66.1
 - Cython>=3.0.7
-- matplotlib>=3.8.2
-- numpy>=1.26.2
+- matplotlib>=3.7.1
+- numpy>=1.23.5
+- pyspoa>=0.2.1
 
 ## Installation
 
