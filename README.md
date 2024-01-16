@@ -43,6 +43,7 @@ Verified on macOS, Linux, and Windows10
 - matplotlib>=3.7.1
 - numpy>=1.23.5
 - pyspoa>=0.2.1
+- pysam>=0.22.0 (optional)
 
 ## Installation
 
@@ -182,14 +183,14 @@ options:
   --offset OFFSET       offset, optional, default_value = 0
 ```
 
-Conversion of consensus alignment results (`*.ca`) to `*.bam` and `*.fastq` format is also supported. To do this, type the following code in a python script:
+Conversion of consensus alignment results (`*.ca`) to `*.bam` and `*.fastq` format is also supported. The conversion requires [pysam>=0.22.0](https://pypi.org/project/pysam/) be installed in your environment. To convert the file, type the following code in a python script:
 
 ```python
 import savemoney
 savemoney.ca2bam(consensus_alignment_path)
 ```
 
-From command line, type the following commnad:
+If you want to convert it via command line, type the following commnad:
 
 ```shell
 python -m savemoney.ca2bam path_to_consensus_alignment_file
