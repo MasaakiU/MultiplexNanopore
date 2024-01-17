@@ -196,7 +196,7 @@ If you want to convert it via command line, type the following commnad:
 python -m savemoney.ca2bam path_to_consensus_alignment_file
 ```
 
-# Reference
+# References
 
 [Uematsu M., Baskin J. M., "Barcode-free multiplex plasmid sequencing using Bayesian analysis and nanopore sequencing." *eLife*. **2023**; 12: RP88794](https://doi.org/10.7554/eLife.88794.1)
 
