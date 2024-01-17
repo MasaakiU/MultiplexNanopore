@@ -50,7 +50,7 @@ def execute_alignment(ref_seq_list:mc.MyRefSeq, my_fastq:mc.MyFastQ, param_dict,
             intermediate_results = IntermediateResults(ref_seq_list, my_fastq, param_dict, result_dict)
             intermediate_results.path = intermediate_results_save_path
     intermediate_results.save(intermediate_results_save_path)
-    return result_dict
+    return result_dict, ref_seq_list    # orders might have been changed during "assert_identity" step.
 
 def execute_alignment_core(ref_seq_list, my_fastq, param_dict):
     my_optimized_aligner_list = [rqa.MyOptimizedAligner(ref_seq, param_dict) for ref_seq in ref_seq_list]

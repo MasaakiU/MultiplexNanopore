@@ -44,7 +44,7 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
     save_dir = mc.new_dir_path_wo_overlap(Path(save_dir_base) / my_fastq.combined_name_stem, spacing="_")
     save_dir.mkdir()
     # 2. Execute alignment: load if any previous score_matrix if possible
-    result_dict = pac.execute_alignment(ref_seq_list, my_fastq, param_dict, save_dir)
+    result_dict, ref_seq_list = pac.execute_alignment(ref_seq_list, my_fastq, param_dict, save_dir)
     # 3. normalize alignment score and set threshold for assignment
     query_assignment = pac.normalize_scores_and_apply_threshold(ref_seq_list, my_fastq, result_dict, param_dict)
     pac.draw_and_save_query_assignment(query_assignment, save_dir, display_plot=False)
