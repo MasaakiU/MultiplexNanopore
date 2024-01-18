@@ -1054,10 +1054,10 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         consensus, msa = poa(
             [appendix + ref_seq_chunk_aligned.replace("-", "") + appendix] + seq_list, 
             algorithm = 1,  # global alignment
-            m = self.param_dict["match_score"], 
-            n = self.param_dict["mismatch_score"], 
-            g = -self.param_dict["gap_open_penalty"], 
-            e = -min(self.param_dict["gap_extend_penalty"] * 2, self.param_dict["gap_open_penalty"])    # gap extension penalyt は少し強いほうが良いコンセンサスが得られる
+            # m = 5     # m( 1) = self.param_dict["match_score"], 
+            # n = -4    # n(-2) = self.param_dict["mismatch_score"], 
+            # g = -8    # g(-3) = -self.param_dict["gap_open_penalty"], 
+            # e = -6    # e(-1) = -min(self.param_dict["gap_extend_penalty"] * 2, self.param_dict["gap_open_penalty"])    # gap extension penalyt は少し強いほうが良いコンセンサスが得られる
         )
         msa = [aligned_seq[len(appendix):-len(appendix)] for aligned_seq in msa]
         consensus_with_insert = "".join(Counter(aligned_seq[i] for aligned_seq in msa if aligned_seq[i] != "-").most_common(1)[0][0] for i in range(len(msa[0])))
@@ -1424,17 +1424,17 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         print(f"{header_pos:>{header_width}}{position_string}     Q-score {header_q_score}\033[0m")
         print(
             f"\033[1m{header_ref_seq_aligned:<{header_width}}"
-            f"{self.ref_seq_aligned[s_idx:c_idx]}\033[38;2;255;0;0m{self.ref_seq_aligned[c_idx]}\033[39m{self.ref_seq_aligned[c_idx+1:e_idx+1]}"
+            f"{self.ref_seq_aligned[s_idx:c_idx]}\033[48;2;180;180;180m{self.ref_seq_aligned[c_idx]}\033[0m{self.ref_seq_aligned[c_idx+1:e_idx+1]}"
             f"\033[0m     1{' '*8}10{' '*8}20{' '*8}30{' '*8}40{' '*8}50"
         )
         print(
             f"{header_consensus_with_prior:<{header_width}}"
-            f"{self.q_score_color_string(self.with_prior_consensus_seq[s_idx:e_idx+1], self.with_prior_consensus_q_scores[s_idx:e_idx+1], q_score_color_dict, c_idx - s_idx)}\033[0m"
+            f"{self.q_score_color_string(self.with_prior_consensus_seq[s_idx:e_idx+1], self.with_prior_consensus_q_scores[s_idx:e_idx+1], q_score_color_dict, c_idx - s_idx, self.ref_seq_aligned[s_idx:e_idx+1])}\033[0m"
             f"{self.q_score_bar(None, None, self.with_prior_consensus_q_scores[c_idx], self.with_prior_consensus_my_cigar[c_idx], q_score_color_dict, show_asterisk=True)}\033[0m"
         )
         print(
             f"{header_consensus_without_prior:<{header_width}}"
-            f"{self.q_score_color_string(self.without_prior_consensus_seq[s_idx:e_idx+1], self.without_prior_consensus_q_scores[s_idx:e_idx+1], q_score_color_dict, c_idx - s_idx)}\033[0m"
+            f"{self.q_score_color_string(self.without_prior_consensus_seq[s_idx:e_idx+1], self.without_prior_consensus_q_scores[s_idx:e_idx+1], q_score_color_dict, c_idx - s_idx, self.ref_seq_aligned[s_idx:e_idx+1])}\033[0m"
             f"{self.q_score_bar(None, None, self.without_prior_consensus_q_scores[c_idx], self.without_prior_consensus_my_cigar[c_idx], q_score_color_dict, show_asterisk=True)}\033[0m"
         )
         for query_id, query_seq, q_scores, my_cigar in zip(self.query_id_list, self.query_seq_list_aligned, self.q_scores_list_aligned, self.my_cigar_list_aligned):
@@ -1453,10 +1453,14 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             N_diff += self.ref_seq_aligned[previous_idx + 1:idx + 1].count("-")
         return idx
     @staticmethod
-    def q_score_color_string(seq, q_scores, q_score_color_dict: defaultdict, make_it_bold: int):
+    def q_score_color_string(seq, q_scores, q_score_color_dict: defaultdict, make_it_bold: int, ref_seq):
         stdout_txt = ""
-        for i, (s, q) in enumerate(zip(list(seq), q_scores)):
-            L = f"\033[48;2;{q_score_color_dict[q]}m{s}"
+        for i, (s, q, r) in enumerate(zip(list(seq), q_scores, ref_seq)):
+            if s == r:
+                L = f"\033[48;2;{q_score_color_dict[q]}m{s}"
+            else:
+                L = f"\033[48;2;255;0;0m{s}\033[0m"
+                # L = f"\033[48;2;{q_score_color_dict[q]}m\033[38;2;255;0;0m{s}"
             if i == make_it_bold:
                 L = f"\033[1m{L}\033[0m"
             stdout_txt += L
