@@ -195,7 +195,8 @@ def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_di
 def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict):
     print("executing MSA...")
     my_msa_list = []
-    for i, (ref_seq, my_fastq_subset, result_list) in enumerate(query_assignment.iter_assignment_info(result_dict)):
+    msa.MyMSA.set_sbq_pdf(query_assignment.my_fastq)
+    for ref_seq, my_fastq_subset, result_list in query_assignment.iter_assignment_info(result_dict):
         print(f"processing {ref_seq.path.name}...")
         my_msa_aligner = msa.MyMSAligner(ref_seq, my_fastq_subset, result_list)
         my_msa_list.append(my_msa_aligner.execute(param_dict))
@@ -222,12 +223,6 @@ def export_log(ref_seq_list:list, my_fastq:mc.MyFastQ, param_dict, query_assignm
 class MyLog(mc.MyTextFormat, mc.MyHeader):
     def __init__(self, ref_seq_list: list=None, my_fastq: mc.MyFastQ=None, param_dict: dict=None, query_assignment=None) -> None:
         super().__init__()
-        self.header += (
-            f"\nquery_assignment_version: {msa.QueryAssignment.query_assignment_version}"
-            f"\nMyMSA file_format_version (*.ca): {msa.MyMSA.file_format_version}"
-            f"\nMyMSA algorithm_version: {msa.MyMSA.algorithm_version}"
-            f"\nMyMSA sbq_pdf_version: {msa.MyMSA.sbq_pdf_version}"
-        )
         if ref_seq_list is not None:
             self.input_reference_files = [refseq.path for refseq in ref_seq_list]
             self.input_fastq_files = [fastq_path for fastq_path in my_fastq.path]
@@ -275,9 +270,12 @@ class MyLog(mc.MyTextFormat, mc.MyHeader):
         )
         # msa/consensus params
         class_attributes_dict.update(
+            ALIGNMENT_algorithm_ver = rqa.MyAlignerBase.alignment_algorithm_version, 
+            QUERY_assignment_version = msa.QueryAssignment.query_assignment_version, 
+            MSALIGN_N_polish = msa.MyMSAligner.N_polish, 
             MSA_algorithm_version = msa.MyMSA.algorithm_version, 
             MSA_bases = msa.MyMSA.bases, 
-            MSA_letter_code_dict = msa.MyMSA.letter_code_dict,               # dict
+            MSA_letter_code_dict = msa.MyMSA.letter_code_dict, 
             MSA_sbq_pdf_version = msa.MyMSA.sbq_pdf_version, 
         )
         # consensus file_format info

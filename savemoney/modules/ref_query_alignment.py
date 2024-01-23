@@ -19,6 +19,7 @@ from . import my_classes as mc
 from .cython_functions import alignment_functions as af
 
 class MyAlignerBase():
+    alignment_algorithm_version = "aa_0.2.0"
     def __init__(self, param_dict):
         # params
         self.param_dict = param_dict
@@ -29,52 +30,64 @@ class MyAlignerBase():
     @property
     def my_custom_matrix(self):
         return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
-    def sw_trace(self, ref_seq, query_seq):
+    def my_special_sw(self, ref_seq, query_seq):
         result = parasail.sw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-        return MyResult(result)
+        my_result = MyResult(result)
+        my_result.my_cigar = (
+            "H" * my_result.beg_ref + 
+            "S" * my_result.beg_query + 
+            my_result.my_cigar + 
+            "S" * (len(query_seq) - my_result.end_query - 1) + 
+            "H" * (len(ref_seq) - my_result.end_ref - 1)
+        )
+        my_result.beg_query = 0
+        my_result.end_query = len(query_seq) - 1
+        return my_result
     def nw_trace(self, ref_seq, query_seq):
         result = parasail.nw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
         return MyResult(result)
-    def sg_de_trace(self, ref_seq, query_seq):
+    def my_special_sg_qe_de(self, ref_seq, query_seq):
         """
         ATCGATCGATCGATCG
         ATCGATCG--------
+        or
+        ATCGATCG--------
+        ATCGATCGATCGATCG
         """
-        result = parasail.sg_de_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-        return MyResult(result)
-    def sg_db_trace(self, ref_seq, query_seq):
+        result = parasail.sg_qe_de_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        my_result = MyResult(result)
+        assert my_result.beg_ref == 0
+        assert my_result.beg_query == 0
+        my_result.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="beg")
+        return my_result
+    def my_special_sg_qb_db(self, ref_seq, query_seq):
         """
         ATCGATCGATCGATCG
         --------ATCGATCG
+        or
+        --------ATCGATCG
+        ATCGATCGATCGATCG
         """
-        result = parasail.sg_db_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-        return MyResult(result)
+        result = parasail.sg_qb_db_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+        my_result = MyResult(result)
+        assert my_result.end_ref == len(ref_seq) - 1
+        assert my_result.end_query == len(query_seq) - 1
+        my_result.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="end")
+        return my_result
     # query の間はギャップペナルティを与えないアラインメント
-    def my_special_dp(self, query_seq_1: str, query_seq_2: str, ref_seq: str):
+    def my_special_DP(self, query_seq_1: str, query_seq_2: str, ref_seq: str):
         ################
         # アラインメント #
         ################
         if len(query_seq_1) > 0:
-            result_1 = parasail.sg_de_trace(query_seq_1, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-            my_result_1 = MyResult(result_1)
-            assert my_result_1.end_query == len(query_seq_1) - 1
-            len_endD = my_result_1.organize_end()
-            assert my_result_1.end_ref + 1 + len_endD == len(ref_seq)
-            # ソフトクリッピング
-            my_result_1.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="beg")
+            my_result_1 = self.my_special_sg_qe_de(ref_seq, query_seq_1)
         else:
             my_result_1 = MyResult()
             my_result_1.my_cigar = "H" * len(ref_seq)
             my_result_1.beg_ref = -1
             my_result_1.end_ref = -1
         if len(query_seq_2) > 0:
-            result_2 = parasail.sg_db_trace(query_seq_2, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-            my_result_2 = MyResult(result_2)
-            assert my_result_2.end_ref == len(ref_seq) - 1
-            assert my_result_2.end_query == len(query_seq_2) - 1
-            len_begD = my_result_2.organize_beg()
-            # ソフトクリッピング
-            my_result_2.set_soft_clipping(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score, side="end")
+            my_result_2 = self.my_special_sg_qb_db(ref_seq, query_seq_2)
         else:
             my_result_2 = MyResult()
             my_result_2.my_cigar = "H" * len(ref_seq)
@@ -240,7 +253,7 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
                     # execute alignment
                     query_seq_extracted_1 = query_seq[non_conserved_query_start:query_end_idx_after_offset + 1]
                     query_seq_extracted_2 = query_seq[query_end_idx_after_offset + 1:]
-                    my_result = self.my_special_dp(
+                    my_result = self.my_special_DP(
                         query_seq_extracted_1, 
                         query_seq_extracted_2, 
                         ref_seq_extracted, 
@@ -433,24 +446,38 @@ class MyResult(mc.MyCigarBase):
     # for pre-survey
     def calc_levenshtein_distance(self):
         return len(self.my_cigar) - self.my_cigar.count("=")
-    # for semi-global alignment
-    def organize_end(self):
-        m = re.search(r"^[=XDI]+?(D*)$", self.my_cigar)
-        assert self.beg_ref == self.beg_query == 0
-        len_endD = len(m.group(1))
-        alignment_len = len(self.my_cigar) - len_endD
-        self.end_ref = alignment_len - self.my_cigar[:alignment_len].count("I") - 1
-        self.end_query = alignment_len - self.my_cigar[:alignment_len].count("D") - 1
-        assert self.end_ref >= 0
-        assert self.end_query >= 0
-        self.my_cigar = self.my_cigar[:alignment_len] + "H" * len_endD
-        return len_endD
-    def organize_beg(self):
-        assert self.beg_ref == self.beg_query == 0
-        m = re.search(r"^(D*)[=XDI]+?$", self.my_cigar)
-        self.beg_ref = len(m.group(1))
-        self.my_cigar = "H" * self.beg_ref + self.my_cigar[self.beg_ref:]
-        return self.beg_ref # = len_begD
+    # # for semi-global alignment
+    # def organize_end(self):
+    #     assert self.beg_ref == self.beg_query == 0
+    #     m = re.search(r"^[=XDI]+?(I*)(D*)$", self.my_cigar)
+    #     len_endI = len(m.group(1))
+    #     len_endD = len(m.group(2))
+    #     if len_endD == 0:
+    #         len_endID = len_endI
+    #         end_cigar = "S"
+    #     else:
+    #         len_endID = len_endD
+    #         end_cigar = "H"
+    #     alignment_len = len(self.my_cigar) - len_endID
+    #     self.end_ref = alignment_len - self.my_cigar[:alignment_len].count("I") - 1
+    #     self.end_query = alignment_len - self.my_cigar[:alignment_len].count("D") - 1
+    #     assert self.end_ref >= 0
+    #     assert self.end_query >= 0
+    #     self.my_cigar = self.my_cigar[:alignment_len] + end_cigar * len_endID
+    # def organize_beg(self):
+    #     m = re.search(r"^(D*)(I*)[=XDI]+?$", self.my_cigar)
+    #     len_begI = len(m.group(1))
+    #     len_begD = len(m.group(2))
+    #     if len_begD == 0:
+    #         len_begID = len_begI
+    #         end_cigar = "S"
+    #     else:
+    #         len_begID = len_begD
+    #         end_cigar = "H"
+    #     self.beg_ref = len_begID - self.my_cigar[:len_begID].count("I")
+    #     self.beg_query = len_begID - self.my_cigar[:len_begID].count("D")
+    #     self.my_cigar = "H" * self.beg_ref + self.my_cigar[self.beg_ref:]
+    #     return self.beg_ref # = len_begD
     def set_soft_clipping(self, gap_open_penalty, gap_extend_penalty, match_score, mismatch_score, side):
         if side == "end":
             my_cigar = self.my_cigar[::-1]
@@ -461,10 +488,12 @@ class MyResult(mc.MyCigarBase):
         my_cigar, len_aligned_ref = self.set_soft_clipping_core(my_cigar, gap_open_penalty, gap_extend_penalty, match_score, mismatch_score)
         if side == "end":
             self.my_cigar = my_cigar[::-1]
-            self.beg_ref = self.my_cigar.count("H")
+            self.beg_ref = my_cigar.count("H")
+            self.beg_query = 0
         elif side == "beg":
             self.my_cigar = my_cigar
             self.end_ref = len_aligned_ref - 1
+            self.end_query = len(my_cigar) - my_cigar.count("H") - my_cigar.count("D") - 1
     @staticmethod
     def set_soft_clipping_core(my_cigar, gap_open_penalty, gap_extend_penalty, match_score, mismatch_score):
         """ 下記のようなイメージにする
@@ -491,8 +520,6 @@ class MyResult(mc.MyCigarBase):
                     cur_score -= gap_extend_penalty
                 else:
                     cur_score -= gap_open_penalty
-            elif L == "H":
-                break
             else:
                 raise Exception(f"error: {L}")
             score_list.append(cur_score)
@@ -553,7 +580,7 @@ class ConnectionMatrix():
         self.connection_matrix_remained_to_be_analyzed = None
     def remove_unreachable_branches(self):
         # 便宜上数値を1つだけ適当な値を代入（このクラスメソッドの最後で元に戻されるよ）
-        self.connection_matrix[self.initial_node_idx, self.initial_node_idx] = 100
+        self.connection_matrix[self.initial_node_idx, self.initial_node_idx] = 100  # 値は何でも良いが、必要
 
         N_idx_with_no_input_previous = []
         update = True

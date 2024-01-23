@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("plasmid_map_dir_paths", help="path to plasmid map_directory", type=str)
     parser.add_argument("save_dir_base", help="save directory path", type=str)
     for key, val in param_dict.items():
-        parser.add_argument(f"-{mc.key2argkey(key)}", help=f"{key}, optional, default_value = {val}", type=int, default=val)
+        parser.add_argument(f"-{mc.key2argkey(key)}", help=f"{key}, optional, default_value = {val}", type=type(val), default=val)
 
     # 取得した引数を適用
     args = parser.parse_args()

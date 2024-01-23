@@ -190,6 +190,12 @@ class MyFastQ(dict):
         for v in self.values():
             q_scores.extend(v[1])
         return np.array(q_scores)
+    def get_q_score_distribution(self):
+        q_score_distribution = [0 for i in range(self.maximum_q_score_allowed + 2)] # +2 は、0 と -1 用
+        for seq, q_scores in self.values():
+            for q in q_scores:
+                q_score_distribution[q] += 1
+        return q_score_distribution[-1:] + q_score_distribution[:-1]    # -1 は最初にもってくる
     def get_new_fastq_id(self, k):
         if k not in self.keys():
             return k

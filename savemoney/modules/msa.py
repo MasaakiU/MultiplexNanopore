@@ -123,7 +123,7 @@ class QueryAssignment():
         fig_w_unit = 4.0
         fig_h_unit = 2.0
         fig_width_unit = (fig_w_unit + wspace_unit) * (columns - 1) + left_margin_unit + right_margin_unit + left_header_unit
-        fig_height_unit = (fig_h_unit + hspace_unit) * (rows - 1) + top_margin_unit + bottom_margin_unit
+        fig_height_unit = (fig_h_unit + hspace_unit) * (rows - 1) + top_margin_unit + bottom_margin_unit + fig_h_unit
         left = left_margin_unit / fig_width_unit
         right = 1 - right_margin_unit / fig_width_unit
         top = 1 - top_margin_unit / fig_height_unit
@@ -609,6 +609,7 @@ class QueryAssignment():
         return summary_txt
 
 class MyMSAligner(mc.AlignmentBase):
+    N_polish = 4
     def __init__(self, ref_seq, my_fastq_subset, result_list: List[rqa.MyResult]) -> None:
         self.ref_seq = ref_seq
         self.my_fastq_subset = my_fastq_subset
@@ -624,26 +625,29 @@ class MyMSAligner(mc.AlignmentBase):
             query_seq_list.append(mc.MySeq.set_offset_core(query_seq, my_result.new_query_seq_offset))
             q_scores_list.append(mc.MySeq.set_offset_core(list(q_scores), my_result.new_query_seq_offset))
             my_cigar_list.append(my_result.my_cigar)
-            query_seq_offset_list.append((my_result.new_query_seq_offset - 1)%len(query_seq) + 1)   # new_query_seq_offset == 0 の場合は、query_seq_offset = len(query_seq) とする
+            query_seq_offset_list.append((my_result.new_query_seq_offset - 1)%len(query_seq) + 1)   # new_query_seq_offset == 0 の場合は、query_seq_offset = len(query_seq) とする        
         # MSA 1st step
-        my_msa = MyMSA.generate_msa(self.ref_seq, query_seq_list, q_scores_list, my_cigar_list, query_seq_offset_list, param_dict)
+        my_msa = MyMSA.generate_msa(self.ref_seq, query_seq_list, q_scores_list, my_cigar_list, param_dict)  ### time consuming ###
+        my_msa.set_query_seq_offset_list(query_seq_offset_list)
         # MSA 2nd step: 4回 polish する (4回目の offset は最初の offet と同じ)
-        N_polish = 4
-        actual_window = np.ceil(param_dict["window"] / (N_polish - 2)).astype(int) * (N_polish - 1)    # 1 nt ずつずらしながら polish するわけではないので、window を拡張する必要がある
+        actual_window = np.ceil(param_dict["window"] / (self.N_polish - 2)).astype(int) * (self.N_polish - 1)    # 1 nt ずつずらしながら polish するわけではないので、window を拡張する必要がある
         len_ref_seq_aligned = len(my_msa.ref_seq_aligned)
-        with mc.MyTQDM(total=len_ref_seq_aligned * N_polish, ncols=100, leave=True, bar_format='{l_bar}{bar}{r_bar}', desc=f"polishing reads #{len(self.my_fastq_subset)}{'.' * max(0, 6 - len(str(len(self.my_fastq_subset))))}") as my_pbar:
-            for i, offset in enumerate(np.array([0, 1, 2, 0]) * (actual_window // (N_polish - 1))):                        #"generating consensus..."
+        # my_msa.add_pseudo_ref_seq_as_query()    # polish の間、consensus 取るたびに ref_seq がズレていってしまうので、それを防ぐ
+        with mc.MyTQDM(total=len_ref_seq_aligned * self.N_polish, ncols=100, leave=True, bar_format='{l_bar}{bar}{r_bar}', desc=f"polishing reads #{len(self.my_fastq_subset)}{'.' * max(0, 6 - len(str(len(self.my_fastq_subset))))}") as my_pbar:
+            for i, offset in enumerate(np.array([0, 1, 2, 0]) * (actual_window // (self.N_polish - 1))):                        #"generating consensus..."
                 my_pbar.offset_value = len_ref_seq_aligned * i
                 my_msa = my_msa.polish(offset=offset, window=actual_window, my_pbar=my_pbar)
+                if i == 2:
+                    break
             my_pbar.offset_value = 0
-            my_pbar.set_value(len_ref_seq_aligned * N_polish)
+            my_pbar.set_value(len_ref_seq_aligned * self.N_polish)
         # MSA 後処理
-        my_msa.post_polish_process()
-        my_msa.set_hard_clipping_info()
+        my_msa.post_polish_process(self.ref_seq)    ### sub seconds ###
+        my_msa.set_hard_clipping_info()             ### second      ###
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # MSA calc consensus
-        my_msa = my_msa.execute_soft_clipping()
+        my_msa = my_msa.execute_soft_clipping()     ### time consuming ###
         my_msa.calculate_consensus()
         # my_msa.print_alignment()
         return my_msa
@@ -657,11 +661,22 @@ class SequenceBasecallQscorePDF():
         with open(df_csv_path, "r") as f:
             self.NanoporeStats_PDF_version = re.match(r"^# file_version: ([0-9]+\.[0-9]+\.[0-9]+)$", f.readline().strip()).group(1)
         self.df_stats = pd.read_csv(df_csv_path, sep="\t", header=1, index_col=0)
-
         # initialize
         self.pdf_core = {}
         self.P_base_calling_given_true_refseq_dict = {}
         self.initialize_pdf()
+        q_score_distribution = self.df_stats.sum(axis=1)
+        assert list(q_score_distribution.index) == list(range(-1, mc.MyFastQ.maximum_q_score_allowed + 1))
+        self.q_score_distribution = list(q_score_distribution)
+    def calc_js_divergence(self, q_score_distribution):
+        assert len(q_score_distribution) == len(self.q_score_distribution)
+        # -1 (最初) は除いて計算する
+        p_dist = np.array(self.q_score_distribution[1:]) + 1    # 0 の項をなくす
+        q_dist = np.array(q_score_distribution[1:]) + 1         # 0 の項をなくす
+        p_dist = p_dist / p_dist.sum()
+        q_dist = q_dist / q_dist.sum()
+        r_dist = (p_dist + q_dist) / 2
+        return p_dist.dot(np.log(p_dist / r_dist)) + q_dist.dot(np.log(q_dist / r_dist))
     def initialize_pdf(self):
         assert all(self.df_stats.dtypes == np.int64)
         # 確率 0 となるのを避ける
@@ -722,7 +737,7 @@ class SequenceBasecallQscorePDF():
 
 class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     file_format_version = "ff_0.2.4"
-    algorithm_version = "al_0.2.0"
+    algorithm_version = "al_0.2.1"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
         ("add_sequence", "with_prior_consensus_seq"), 
@@ -756,22 +771,24 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         "C":"C", 
         "G":"G", 
     }
-    sbq_pdf_version="pdf_0.2.0"
-    sbq_pdf = SequenceBasecallQscorePDF(df_csv_path=Path(__file__).parent / f"NanoporeStats_PDF/NanoporeStats_{sbq_pdf_version}.csv")
+    sbq_pdf_major_version = "pdf_0.2"
+    sbq_pdf_minor_version = None
+    sbq_pdf = None
     default_print_options = {
         "center": 2000, 
         "seq_range": 50, 
         "offset": 0, 
         "trim_soft_clipping": True, 
     }
-    def __init__(self, ref_seq_aligned: str=None, query_seq_list_aligned: List[str]=None, q_scores_list_aligned: List[List[int]]=None, my_cigar_list_aligned: List[str]=None, query_seq_offset_list: List[int]=None, param_dict: dict=None) -> None:
+    def __init__(self, ref_seq_aligned: str=None, query_seq_list_aligned: List[str]=None, q_scores_list_aligned: List[List[int]]=None, my_cigar_list_aligned: List[str]=None, param_dict: dict=None) -> None:
         self.ref_seq_name = None
         self.query_id_list = None
         self.ref_seq_aligned = ref_seq_aligned                  # ref_related
         self.query_seq_list_aligned = query_seq_list_aligned    # query_related
         self.q_scores_list_aligned = q_scores_list_aligned      # query_related
         self.my_cigar_list_aligned = my_cigar_list_aligned      # query_related
-        self.query_seq_offset_list = query_seq_offset_list      # query_related, aligned_offset_info_list (= query_seq_offset_list_aligned) will be saved
+        self.query_seq_offset_list = None                       # set by self.set_query_seq_offset_list query_related, aligned_offset_info_list (= query_seq_offset_list_aligned) will be saved
+        self.query_seq_offset_list_aligned = None               # set by self.calc_query_seq_offset_list_aligned()
         self.with_prior_consensus_seq = ""          # consensus_related
         self.with_prior_consensus_q_scores = []     # consensus_related
         self.with_prior_consensus_my_cigar = ""     # consensus_related
@@ -779,6 +796,10 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         self.without_prior_consensus_q_scores = []  # consensus_related
         self.without_prior_consensus_my_cigar = ""  # consensus_related
         super().__init__(param_dict)
+    @classmethod
+    @property
+    def sbq_pdf_version(self):
+        return f"{self.sbq_pdf_major_version}.{self.sbq_pdf_minor_version}"
     @property
     def ref_seq_NoDEL(self):
         return self.ref_seq_aligned.replace("-", "")
@@ -862,7 +883,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     # MSA 1st step #
     ################
     @staticmethod
-    def generate_msa(ref_seq: mc.MySeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str], query_seq_offset_list: List[int], param_dict:dict):
+    def generate_msa(ref_seq: mc.MySeq, query_seq_list: List[str], q_scores_list: List[int], my_cigar_list: List[str], param_dict:dict):
         """
         最後が必ず同時に終わるように、特殊シーケンスを追加 (こうしないと、query_seq_list のどれか一つのの最後が "I" である場合に正常終了しない)
         また、`elif my_cigar_list[i][my_cigar_idx_list[i] - 1] in "H":` の部分で idx=-1 が生じる可能性がある。
@@ -935,7 +956,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                         query_seq_list_aligned[i] += "-"
                         q_scores_list_aligned[i]  += [-1]
                 ref_seq_aligned += "-"
-            # contains "S": S と I が混在して存在するときもが常に連続するようになっている
+            # contains "S": S と I が混在して存在するときも、S が常に連続するようになっている
             else:
                 for i, L in enumerate(L_list):
                     if L == "S":
@@ -962,14 +983,22 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             # query_seq_list = [query_seq[:-1] for query_seq in query_seq_list] # view ではないので、元に戻す必要はない
             # q_scores_list = [q_scores[:-1] for q_scores in q_scores_list]     # view ではないので、元に戻す必要はない
             # my_cigar_list = [my_cigar[:-1] for my_cigar in my_cigar_list]     # view ではないので、元に戻す必要はない
-        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, query_seq_offset_list, param_dict)
+        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, param_dict)
     ################
     # MSA 2nd step #
     ################
+    def add_pseudo_ref_seq_as_query(self):    # polish の間、consensus 取るたびに ref_seq がズレていってしまうので、それを防ぐ
+        assert self.ref_seq_aligned[0] != "-"
+        self.query_seq_list_aligned.append(self.ref_seq_aligned)
+        self.q_scores_list_aligned.append(self.custom_fill(self.ref_seq_aligned, some_list=[50 for i in self.ref_seq_NoDEL], empty_value=-1))
+        self.my_cigar_list_aligned.append(self.custom_fill(self.ref_seq_aligned, some_list=["=" for i in self.ref_seq_NoDEL], empty_value="N"))
+        self.query_seq_offset_list.append(0)
+        self.query_seq_offset_list_aligned.append(0)
     def polish(self, offset, window, my_pbar: mc.MyTQDM=None):
         chunk_idx_start_aligned_list = []
         cur_chunk_len = 0
         target_chunk_len = offset   # 最初はオフセット
+        # pseudo_ref_seq = self.query_seq_list_aligned[-1]    # add_pseudo_ref_seq_as_query で追加された pseudo ref_seq
         for i, s in enumerate(self.ref_seq_aligned):
             # 新規 chunk 開始
             if cur_chunk_len == target_chunk_len:
@@ -987,14 +1016,14 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         N_bases_before_1st_chunk = [len(query_seq_aligned[:chunk_idx_start_aligned_list[0]].replace(" ", "").replace("-", "")) for query_seq_aligned in self.query_seq_list_aligned]
         # POA 実行
         msa_set = []
-        for s, e in zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:]):
+        for i, (s, e) in enumerate(zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:])):
             if my_pbar is not None:
                 my_pbar.set_value(s)
             ref_seq_chunk_aligned = self.ref_seq_aligned[s:e]
             query_seq_chunk_list_aligned = [query_seq_aligned[s:e] for query_seq_aligned in self.query_seq_list_aligned]
             my_cigar_chunk_list_aligned = [my_cigar_aligned[s:e] for my_cigar_aligned in self.my_cigar_list_aligned]
             # 実行
-            msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned)
+            msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
             # 格納
             msa_set.append(msa)
         else:
@@ -1007,7 +1036,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             query_seq_chunk_list_aligned = [query_seq_aligned[s:] + query_seq_aligned[:e] for query_seq_aligned in self.query_seq_list_aligned]
             my_cigar_chunk_list_aligned = [my_cigar_aligned[s:] + my_cigar_aligned[:e] for my_cigar_aligned in self.my_cigar_list_aligned]
             # 実行
-            msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned)
+            msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
             # 格納
             msa_set.append(msa)
         # 後処理
@@ -1020,7 +1049,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             if s != "-":
                 cur_len += 1
         msa_list = [aligned_seq[-offset_after_msa:] + aligned_seq[:-offset_after_msa] for aligned_seq in msa_list]
-        # MyMSA 再生性
+        # MyMSA 再生成
         ref_seq_aligned = msa_list[0]
         query_seq_list_aligned = msa_list[1:]
         q_scores_list = [[q for q in q_scores_aligned if q != -1] for q_scores_aligned in self.q_scores_list_aligned]
@@ -1033,8 +1062,12 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             np.array(self.query_seq_offset_list) + np.array(N_bases_before_1st_chunk) - np.array(N_bases_before_1st_chunk_after_msa) - 1, 
             [len(query_seq_aligned.replace(" ", "").replace("-", "")) for query_seq_aligned in query_seq_list_aligned]
         ) + 1   # query_seq_offset に 0 は許されない: 詳しくは self.query_seq_offset_list_aligned を参照
-        return MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, query_seq_offset_list, self.param_dict)
-    def exec_chunk_poa(self, ref_seq_chunk_aligned: str, query_seq_chunk_list_aligned: List[str], my_cigar_chunk_list_aligned: List[str]) -> list:
+        my_msa = MyMSA(ref_seq_aligned, query_seq_list_aligned, q_scores_list_aligned, my_cigar_list_aligned, self.param_dict)
+        my_msa.set_query_seq_offset_list(query_seq_offset_list)
+        return my_msa
+    SN_re_beg = re.compile(r"^[N]*[S]+")
+    SN_re_end = re.compile(r"[S]+[N]*$")
+    def exec_chunk_poa(self, ref_seq_chunk_aligned: str, query_seq_chunk_list_aligned: List[str], my_cigar_chunk_list_aligned: List[str], s_idx: int) -> list:
         # S, H が含まれているかどうか
         chunk_type_list = []
         for my_cigar_chunk_aligned in my_cigar_chunk_list_aligned:
@@ -1046,70 +1079,69 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 chunk_type_list.append("valid4poa")
         # 両端処理 (適当な共通配列を付加することで、端のアラインメントが崩れることを防ぐ)
         appendix = "Z" 
-        seq_list = [
-            appendix + query_seq_chunk_aligned.replace(" ", "").replace("-", "") + appendix 
-            for query_seq_chunk_aligned, chunk_type in zip(query_seq_chunk_list_aligned, chunk_type_list) if chunk_type == "valid4poa"
-        ]
+        assert len(appendix) == 1
+        query_seq_chunk_list = [query_seq_chunk_aligned.replace(" ", "").replace("-", "") for query_seq_chunk_aligned in query_seq_chunk_list_aligned]
+        seq_list = [appendix + query_seq_chunk + appendix for query_seq_chunk, chunk_type in zip(query_seq_chunk_list, chunk_type_list) if chunk_type == "valid4poa"]
+        ref_seq_chunk = appendix + ref_seq_chunk_aligned.replace("-", "") + appendix
         # 実行
         consensus, msa = poa(
-            [appendix + ref_seq_chunk_aligned.replace("-", "") + appendix] + seq_list, 
+            [ref_seq_chunk] + seq_list, 
             algorithm = 1,  # global alignment
+            genmsa = False, #
             # m = 5     # m( 1) = self.param_dict["match_score"], 
             # n = -4    # n(-2) = self.param_dict["mismatch_score"], 
             # g = -8    # g(-3) = -self.param_dict["gap_open_penalty"], 
             # e = -6    # e(-1) = -min(self.param_dict["gap_extend_penalty"] * 2, self.param_dict["gap_open_penalty"])    # gap extension penalyt は少し強いほうが良いコンセンサスが得られる
         )
-        msa = [aligned_seq[len(appendix):-len(appendix)] for aligned_seq in msa]
-        consensus_with_insert = "".join(Counter(aligned_seq[i] for aligned_seq in msa if aligned_seq[i] != "-").most_common(1)[0][0] for i in range(len(msa[0])))
-        # msa できなかったものをペアワイズでアラインメントしていく
-        empty_idx_list = []
-        additional_idx_list = []
-        additional_alignment_info = {"query_seq_list":[], "q_scores_list":[], "my_cigar_list":[], "query_seq_offset_list":[]}
-        for idx, (chunk_type, query_seq_chunk_aligned, my_cigar_chunk_aligned) in enumerate(zip(chunk_type_list, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned)):
-            if chunk_type == "valid4poa":
-                continue
+        # 各リードをリマップしていく
+        my_cigar_list = []
+        consensus_wo_appendix = consensus[1:-1]
+        for idx, (chunk_type, query_seq_chunk) in enumerate(zip(chunk_type_list, query_seq_chunk_list)):
+            if chunk_type == "valid4poa":   # appendix ありでアラインメントすると、"Z" のスコア (match, mismatch) が定義されていないのでバグる
+                my_cigar = self.nw_trace(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
             elif chunk_type == "all_NDHO":          # HHOOHH, DDNNDD, etc.
-                empty_idx_list.append(idx)
-                continue
-            else:   # with_SHO
+                my_cigar = "D" * len(consensus_wo_appendix)
+            else:   # with_SHO: appendix なしでアラインメント
+                my_cigar_chunk_aligned = my_cigar_chunk_list_aligned[idx]
                 starts_with_OH = my_cigar_chunk_aligned[0] in "OH"
                 ends_with_OH = my_cigar_chunk_aligned[-1] in "OH"
-                query_seq_chunk = query_seq_chunk_aligned.replace(" ", "").replace("-", "")
-                if starts_with_OH and ends_with_OH:         # HHHSSS===SSSHHH -> local alignment
-                    my_result = self.sw_trace(query_seq=query_seq_chunk, ref_seq=consensus_with_insert)
-                elif starts_with_OH and (not ends_with_OH): # HHHSSS========= -> semi-global
-                    my_result = self.sg_db_trace(query_seq=query_seq_chunk, ref_seq=consensus_with_insert)
-                elif (not starts_with_OH) and ends_with_OH: # =========SSSHHH -> semi-global
-                    my_result = self.sg_de_trace(query_seq=query_seq_chunk, ref_seq=consensus_with_insert)
-                else:   # (not starts_with_OH) and (not ends_with_OH):  # ===SSSHHHSSS===, ===SSSSSS===
-                    if "H" not in my_cigar_chunk_aligned:
-                        my_result = self.nw_trace(query_seq=query_seq_chunk, ref_seq=consensus_with_insert)
-                    else:
-                        some_H_idx = my_cigar_chunk_aligned.index("H")
-                        my_result = self.my_special_dp(
-                            query_seq_1=query_seq_chunk_aligned[:some_H_idx].replace(" ", "").replace("-", ""), 
-                            query_seq_2=query_seq_chunk_aligned[some_H_idx:].replace(" ", "").replace("-", ""), 
-                            ref_seq=consensus_with_insert
-                        )
-                additional_idx_list.append(idx)
-                additional_alignment_info["query_seq_list"].append(query_seq_chunk)
-                additional_alignment_info["q_scores_list"].append([1] * len(query_seq_chunk))
-                additional_alignment_info["my_cigar_list"].append(my_result.my_cigar)
-                additional_alignment_info["query_seq_offset_list"].append(-1)
+                starts_with_S = self.SN_re_beg.search(my_cigar_chunk_aligned) is not None
+                ends_with_S = self.SN_re_end.search(my_cigar_chunk_aligned) is not None
+                if starts_with_OH and ends_with_OH:         # HHHSSS===SSSHHH
+                    my_cigar = self.my_special_sw(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                elif starts_with_OH and (not ends_with_OH): # HHHSSS=========
+                    my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                elif (not starts_with_OH) and ends_with_OH: # =========SSSHHH
+                    my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                # HEREAFTER: (not starts_with_OH) and (not ends_with_OH)
+                elif starts_with_S and ends_with_S:         # SSSSSSSSS # len(consensus_wo_appendix) = 0 となってしまうが、それはありえない
+                    raise Exception("error")
+                elif starts_with_S and (not ends_with_S):   # SSSSSS=========
+                    my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                elif (not starts_with_S) and ends_with_S:   # =========SSSSSS
+                    my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                else:                                       # ===SSSHHHSSS===
+                    query_seq_chunk_aligned = query_seq_chunk_list_aligned[idx]
+                    S_beg_idx = len(self.ref_seq_aligned) - self.query_seq_offset_list_aligned[idx] - s_idx
+                    if S_beg_idx < 0:
+                        S_beg_idx += len(self.ref_seq_aligned)
+                    assert 0 <= S_beg_idx <= len(ref_seq_chunk_aligned)
+                    my_cigar = self.my_special_DP(
+                        query_seq_1=query_seq_chunk_aligned[:S_beg_idx].replace(" ", "").replace("-", ""), 
+                        query_seq_2=query_seq_chunk_aligned[S_beg_idx:].replace(" ", "").replace("-", ""), 
+                        ref_seq=consensus_wo_appendix, 
+                    ).my_cigar
+            # 追加
+            my_cigar_list.append(my_cigar)
         # 整頓する
-        mini_my_msa = self.generate_msa(ref_seq=mc.MySeq(consensus_with_insert), param_dict=self.param_dict, **additional_alignment_info)
-        cur_seq_in_msa = len(msa)
-        for col, ra in enumerate(mini_my_msa.ref_seq_aligned):
-            if ra == "-":
-                for row in range(cur_seq_in_msa):
-                    msa[row] = msa[row][:col] + "-" + msa[row][col:]
-        for idx in range(len(chunk_type_list)):
-            # msa の最初は ref_seq_aligned なので、idx は 1 ずれる
-            if idx in empty_idx_list:
-                msa.insert(idx+1, "-" * len(mini_my_msa.ref_seq_aligned))
-            elif idx in additional_idx_list:
-                msa.insert(idx+1, mini_my_msa.query_seq_list_aligned[additional_idx_list.index(idx)].replace(" ", "-"))
-        return msa
+        mini_my_msa = self.generate_msa(
+            ref_seq=mc.MySeq(consensus_wo_appendix), 
+            query_seq_list=query_seq_chunk_list, 
+            q_scores_list=[[[1] for _q in query_seq_chunk] for query_seq_chunk in query_seq_chunk_list], 
+            my_cigar_list=my_cigar_list, 
+            param_dict=self.param_dict
+        )
+        return [mini_my_msa.ref_seq_aligned] + [query_seq_aligned.replace(" ", "-") for query_seq_aligned in mini_my_msa.query_seq_list_aligned]
     @staticmethod
     def custom_fill(seq_aligned, some_list, empty_value):
         r = np.full(len(seq_aligned), fill_value=empty_value, dtype=type(some_list[0]))
@@ -1118,7 +1150,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     #############
     # MSA 後処理 #
     #############
-    def post_polish_process(self):
+    def post_polish_process(self, ref_seq):
         """
         my_cigar を整理する (現在は N と S の位置のみ合っていることが保証されている状態)
         """
@@ -1144,15 +1176,14 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 else:   # HO
                     raise Exception(f"error: {c}")
             self.my_cigar_list_aligned[query_idx] = my_cigar_aligned
-    @property
-    def query_seq_offset_list_aligned(self):
+    def set_query_seq_offset_list(self, query_seq_offset_list: List[int]):
+        self.query_seq_offset_list = query_seq_offset_list
         """
         query_seq_offset に 0 は許されない: 0 のかわりに len(query_seq) になっている
         そうしないと、offset が 0 であるが aligned の状態が HO region から開始する場に本当の offset_aligned が得られない
         *** query_seq_offset_aligned については可能な場合は 0 を用いるよ (for loop の else 節) ***
         """
-        # query_seq_offset_list の処理
-        query_seq_offset_list_aligned = []
+        self.query_seq_offset_list_aligned = []
         for query_seq_offset, my_cigar_aligned in zip(self.query_seq_offset_list, self.my_cigar_list_aligned):
             assert query_seq_offset > 0
             cur_len_at_the_end = 0
@@ -1167,8 +1198,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                     raise Exception(f"error: {c}")
             else:
                 i = 0   # break されなかったということは、最初が切れ目ということ
-            query_seq_offset_list_aligned.append(i)
-        return query_seq_offset_list_aligned
+            self.query_seq_offset_list_aligned.append(i)
     def set_hard_clipping_info(self):
         total_len = len(self.ref_seq_aligned)
         for query_idx, (query_seq_offset_aligned, my_cigar_aligned, query_seq_aligned) in enumerate(zip(self.query_seq_offset_list_aligned, self.my_cigar_list_aligned, self.query_seq_list_aligned)):
@@ -1345,16 +1375,6 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             self.with_prior_consensus_my_cigar = "".join(with_prior_consensus_my_cigar)
             self.without_prior_consensus_seq = "".join(without_prior_consensus_seq)
             self.without_prior_consensus_my_cigar = "".join(without_prior_consensus_my_cigar)
-
-    # @staticmethod
-    # def __calc_entropy(seq_list):
-    #     n = len(seq_list)
-    #     if n != 0:
-    #         counts = Counter(seq_list)
-    #         probabilities = [count / n for count in counts.values()]
-    #         return -sum(p * np.log2(p) for p in probabilities)
-    #     else:
-    #         return -1
     ###################
     # print functions #
     ###################
@@ -1497,6 +1517,28 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     ########################
     # consensus calculator #
     ########################
+    @classmethod
+    def get_sbq_pdf_info_list(cls):
+        sbq_pdf_list = []
+        sbq_pdf_minor_version = 0
+        sbq_pdf_minor_version_list = []
+        while True:
+            df_csv_path = Path(__file__).parent / f"NanoporeStats_PDF/NanoporeStats_{cls.sbq_pdf_major_version}.{sbq_pdf_minor_version}.csv"
+            if df_csv_path.exists():
+                sbq_pdf_list.append(SequenceBasecallQscorePDF(df_csv_path=df_csv_path))
+                sbq_pdf_minor_version_list.append(sbq_pdf_minor_version)
+                sbq_pdf_minor_version += 1
+            else:
+                break
+        return sbq_pdf_list, sbq_pdf_minor_version_list
+    @classmethod
+    def set_sbq_pdf(cls, my_fastq: mc.MyFastQ):
+        q_score_distribution = my_fastq.get_q_score_distribution()
+        sbq_pdf_list, sbq_pdf_minor_version_list = cls.get_sbq_pdf_info_list()
+        js_scores = [sbq_pdf.calc_js_divergence(q_score_distribution) for sbq_pdf in sbq_pdf_list]
+        min_idx = np.argmin(js_scores)
+        cls.sbq_pdf = sbq_pdf_list[min_idx]
+        cls.sbq_pdf_minor_version = sbq_pdf_minor_version_list[min_idx]
     def calculate_consensus(self):
         # params
         P_N_dict_dict_with_prior, P_N_dict_dict_without_prior = self.consensus_params(self.param_dict, make_it_for_CYTHON=True)
@@ -1953,7 +1995,18 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             else:
                 mbs.keep(True)
         return mbs
-
+    def generate_stats(self):
+        # q_scores 0~41 and -1 = 43
+        d = {f"{i}_{j}":[0 for k in range(mc.MyFastQ.maximum_q_score_allowed + 2)] for i in SequenceBasecallQscorePDF.bases for j in SequenceBasecallQscorePDF.bases}
+        for query_seq_aligned, q_scores_aligned in zip(self.query_seq_list_aligned, self.q_scores_list_aligned):
+            query_seq_aligned = query_seq_aligned.upper()
+            for idx, r in enumerate(self.ref_seq_aligned.upper()):
+                q = query_seq_aligned[idx]
+                if q == " ":
+                    continue
+                else:
+                    d[f"{r}_{q}"][q_scores_aligned[idx]] += 1
+        return d
 class MyBamSet(mc.MyTempFiles):
     """
     一時的なファイルが作られるので、

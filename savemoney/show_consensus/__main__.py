@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("consensus_alignment_path", help="path to consensus_alignment (*.ca) file", type=str)
     for key, val in param_dict.items():
-        parser.add_argument(f"--{key}", help=f"{key}, optional, default_value = {val}", type=int, default=val)
+        parser.add_argument(f"--{key}", help=f"{key}, optional, default_value = {val}", type=type(val), default=val)
 
     # 取得した引数を適用
     args = parser.parse_args()
