@@ -56,10 +56,9 @@ def execute_alignment_core(ref_seq_list, my_fastq, param_dict):
     my_optimized_aligner_list = [rqa.MyOptimizedAligner(ref_seq, param_dict) for ref_seq in ref_seq_list]
     fastq_len = len(my_fastq)
     result_dict = defaultdict(list)
-    pbar = tqdm(enumerate(list(my_fastq.items())), ncols=100, mininterval=0.1, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=len(my_fastq))   # \033[32m
-    for query_idx, (query_id, (query_seq, q_scores)) in pbar:
+    pbar = tqdm(my_fastq.items(), ncols=100, mininterval=0.1, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=len(my_fastq))   # \033[32m
+    for query_id, (query_seq, q_scores) in pbar:
         pbar.set_postfix_str(query_id[:50])
-        # print(f"\rExecuting alignment: {query_idx + 1} out of {fastq_len} ({query_id})", end="")
         # calc scores for each ref_seq
         query_seq = mc.MySeq(query_seq)
         query_seq_rc = query_seq.reverse_complement()

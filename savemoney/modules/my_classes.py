@@ -418,12 +418,24 @@ class AlignmentBase():
                 raise Exception(f"unknown cigar {c}")
 
 class MyCigarBase():
+    re_my_cigar = re.compile(r"((.)\2*)")
     @staticmethod
     def cigar_to_my_cigar(cigar_str):
         return "".join([ L for N, L in re.findall('(\d+)(\D)', cigar_str) for i in range(int(N)) ])
-    @staticmethod
-    def generate_cigar_iter(my_cigar):
-        return re.findall(r"((.)\2*)", my_cigar)
+    @classmethod
+    def generate_cigar_iter(cls, my_cigar):
+        """ usage
+        for LLL, L in generate_cigar_iter(my_cigar):
+            ...
+        """
+        return cls.re_my_cigar.findall(my_cigar)
+    @classmethod
+    def generate_cigar_match(cls, my_cigar):
+        """ usage
+        for LLL, L in generate_cigar_iter(my_cigar):
+            ...
+        """
+        return cls.re_my_cigar.finditer(my_cigar)
 
 class MyTempFiles():
     def __init__(self, suffix_list: List[str]=[]) -> None:

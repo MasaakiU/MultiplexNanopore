@@ -18,8 +18,8 @@ import scipy.stats as stats
 from . import my_classes as mc
 from .cython_functions import alignment_functions as af
 
-class MyAlignerBase():
-    alignment_algorithm_version = "aa_0.2.0"
+class MyAlignerBase(mc.MyCigarBase):
+    alignment_algorithm_version = "aa_0.2.1"
     def __init__(self, param_dict):
         # params
         self.param_dict = param_dict
@@ -96,13 +96,13 @@ class MyAlignerBase():
         ########
         # 結合 #
         ########
-        """
-        ref         ?????????????????????     ??????         ?????????????????????
-        my_cigar_1  =====ALIGNED-SEQ=====SSSSSHHHHHH         HHHHHHHHHHHHHHHHHHHHH
-        my_cigar_2  HHHHHHHHHHHHHHHHHHHHH     HHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
-        combined    =====ALIGNED-SEQ=====SSSSSHHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
-        """
         if my_result_2.beg_ref - my_result_1.end_ref - 1 > 0:
+            """
+            ref         ?????????????????????     ??????         ?????????????????????
+            my_cigar_1  =====ALIGNED-SEQ=====SSSSSHHHHHH         HHHHHHHHHHHHHHHHHHHHH
+            my_cigar_2  HHHHHHHHHHHHHHHHHHHHH     HHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
+            combined    =====ALIGNED-SEQ=====SSSSSHHHHHHSSSSSSSSS=====ALIGNED-SEQ=====
+            """
             len_H = my_result_2.beg_ref - my_result_1.end_ref - 1
             my_result = MyResult()
             my_result.my_cigar = (
@@ -110,71 +110,68 @@ class MyAlignerBase():
                 "H" * len_H + 
                 my_result_2.my_cigar[my_result_2.my_cigar.count("H"):]
             )
-        # =====ALIGNED-SEQ=====SSSSSS
-        #              SSSSSS=====ALIGNED-SEQ=====  Redo alignment
         else:
-            # アラインメントやり直し
-            result = parasail.nw_trace(query_seq_1 + query_seq_2, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-            my_result = MyResult(result)
-        """ OLD FUNCTIONS
-        # =====ALIGNED-SEQ=====SSSSSSS(SSSSS)
-        #                   (SSSSS)SSSSSSSS=====ALIGNED-SEQ=====
-        elif (my_result_2.beg_ref + my_result_2.my_cigar.count("S")) - (my_result_1.end_ref - my_result_1.my_cigar.count("S")) - 1 > 0:
-            len_S_1 = my_result_1.my_cigar.count("S")
-            len_S_2 = my_result_2.my_cigar.count("S")
-            ref_seq_inter = ref_seq[my_result_1.end_ref - len_S_1 + 1:my_result_2.beg_ref + len_S_2]
-            query_seq_inter = query_seq_1[len(query_seq_1) - len_S_1:] + query_seq_2[:len_S_2]
-            # 中間配列のみアラインメント
-            result_inter = parasail.nw_trace(query_seq_inter, ref_seq_inter, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-            my_result_inter = MyResult(result_inter)
-            # 統合
-            my_result = MyResult()
-            my_result.my_cigar = (
-                my_result_1.my_cigar[:len(my_result_1.my_cigar) - len_H_1 - len_S_1] + 
-                my_result_inter.my_cigar +
-                my_result_2.my_cigar[len_H_2 + len_S_2:]
+            """ ベストな区切りを探すよ
+            ref         ??????????????????????????????????????????????????
+            my_cigar_1  =====ALIGNED-SEQ===========SSSSSHHHHHHHHHHHHHHHHHH
+            my_cigar_2  HHHHHHHHHHHHSSSSSSSSS=============ALIGNED-SEQ=====
+            """
+            from . import msa
+            my_msa = msa.MyMSA.generate_msa(mc.MySeq(ref_seq), [query_seq_1, query_seq_2], q_scores_list=[[-1] * len(query_seq_1), [-1] * len(query_seq_2)], my_cigar_list=[my_result_1.my_cigar, my_result_2.my_cigar], param_dict=self.param_dict)
+            # find best position to cut
+            my_cigar_1_aligned, my_cigar_2_aligned = my_msa.my_cigar_list_aligned   # 逆端に O が入ることはあっても H が入ることはない
+            cumsum_scores_1_from_left = self.cumsum_my_cigar_scores(my_cigar_1_aligned)
+            cumsum_scores_2_from_right = self.cumsum_my_cigar_scores(my_cigar_2_aligned[::-1])[::-1]
+            idx_to_cut = (np.array(cumsum_scores_1_from_left) + np.array(cumsum_scores_2_from_right)).argmax()
+            len_S_1 = (
+                len(cumsum_scores_1_from_left) - 1 - idx_to_cut - 
+                my_cigar_1_aligned[idx_to_cut:].count("D") - 
+                my_cigar_1_aligned[idx_to_cut:].count("N") - 
+                my_cigar_1_aligned[idx_to_cut:].count("H") - 
+                my_cigar_1_aligned[idx_to_cut:].count("O")
             )
-        # =====ALIGNED-SEQ=====SSSSSS
-        #              SSSSSS=====ALIGNED-SEQ=====  # replace redundant sequence with "R"
-        else:
-            idx_2 = my_result_2.count("H") + my_result_2.count("S")
-            len_1 = 0
-            for idx_1, L in enumerate(my_result_1.my_cigar):
-                if L in "=XD":
-                    len_1 += 1
-                elif L == "I":
-                    continue
-                else:
-                    raise Exception("error")
-                # 終了
-                if len_1 == idx_2:
-                    idx_1 += 1
-                    break
-            len_R = 0
-            for L in my_result_1.my_cigar[idx_1:]:
-                if L in "=XD":
-                    len_R += 1
-                    if my_result_2[idx_2] != "I":
-                        idx_2 += 1
-                    else:
-                        while my_result_2[idx_2] == "I":
-                            idx_2 += 1
-                elif L == "I":
-                    continue
-                elif L in "HS":
-                    break
-                else:
-                    raise Exception("error")
-            my_result = MyResult()
-            my_result.my_cigar = (
-                my_result_1.my_cigar[:len(my_result_1.my_cigar) - my_result_1.my_cigar.count("H") - my_result_1.my_cigar.count("S")] + 
-                "E" * my_result_1.my_cigar.count("S") + 
-                "R" * len_R + 
-                "E" * my_result_2.my_cigar.count("S") + 
-                my_result_2.my_cigar[idx_2:]
+            len_S_2 = (
+                idx_to_cut - 
+                my_cigar_2_aligned[:idx_to_cut].count("D") - 
+                my_cigar_2_aligned[:idx_to_cut].count("N") - 
+                my_cigar_2_aligned[:idx_to_cut].count("H") - 
+                my_cigar_2_aligned[:idx_to_cut].count("O")
             )
-        """
+            my_cigar = my_cigar_1_aligned[:idx_to_cut] + "S" * len_S_1 + "S" * len_S_2 + my_cigar_2_aligned[idx_to_cut:]
+            my_cigar = my_cigar.replace("N", "").replace("O", "")
+            """ # assert my_cigar.count("H") == 0 は不要: 例えば下記の場合に H が入る
+            ref_seq     ACTTGTTTAGAAGA    AATAAT GGAA
+            query_seq_1 ACTTGTTTAGAAGAGATG
+            my_cigar_1  ==============SSSSHHHHHHOHHHH
+            query_seq_2 ACTTGTTT    GA    GATAATGGGAG
+            my_cigar_2  ========DDDD==NNNNX=====I===X
+            combined    ==============SSSSH=====I===X
+            """
+            my_result = MyResult()
+            my_result.my_cigar = my_cigar
         return my_result
+    def cumsum_my_cigar_scores(self, my_cigar):
+        cumsum_scores = [0]
+        for LLL, L in self.generate_cigar_iter(my_cigar):
+            N = len(LLL)
+            if L == "=":
+                cumsum_scores.extend(
+                    np.arange(1, N + 1) * self.match_score + cumsum_scores[-1]
+                )
+            elif L == "X":
+                cumsum_scores.extend(
+                    np.arange(1, N + 1) * self.mismatch_score + cumsum_scores[-1]
+                )
+            elif L in "DI":
+                s = cumsum_scores[-1] - self.gap_open_penalty
+                cumsum_scores.extend(
+                    [s] + list(s - np.arange(1, N) * self.gap_extend_penalty)
+                )
+            elif L in "SHON":
+                cumsum_scores.extend([cumsum_scores[-1] for i in range(N)])
+            else:
+                raise Exception(f"error: {L}")
+        return cumsum_scores
 
 class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
     default_repeat_max = 5
