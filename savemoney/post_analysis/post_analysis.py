@@ -10,7 +10,7 @@ from . import post_analysis_core as pac
 
 __all__ = ["post_analysis", "default_post_analysis_param_dict", "post_analysis_separate_paths_input"]
 
-error_rate = 0.00001
+error_rate = 0.0000001
 default_post_analysis_param_dict = {
     'gap_open_penalty': 3, 
     'gap_extend_penalty': 1, 
@@ -19,7 +19,7 @@ default_post_analysis_param_dict = {
     'score_threshold': 0.3, 
     'error_rate': error_rate, 
     'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
-    'ins_rate': 0.00001, 
+    'ins_rate': error_rate, 
     'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
 }
 

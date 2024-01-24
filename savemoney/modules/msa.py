@@ -640,7 +640,6 @@ class MyMSAligner(mc.AlignmentBase):
             my_pbar.set_value(len_ref_seq_aligned * self.N_polish)
         # MSA 後処理
         my_msa.recover_query_seq_from_pseudo()
-        my_msa.set_hard_clipping_info()             ### second      ###
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # MSA calc consensus
@@ -734,7 +733,7 @@ class SequenceBasecallQscorePDF():
 
 class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     file_format_version = "ff_0.2.4"
-    algorithm_version = "al_0.2.1"
+    algorithm_version = "al_0.2.2"
     ref_seq_related_save_order = [
         ("add_sequence", "ref_seq_aligned"), 
         ("add_sequence", "with_prior_consensus_seq"), 
@@ -993,7 +992,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         self.query_seq_offset_list_aligned.append(0)
     def recover_query_seq_from_pseudo(self):
         """
-        本処理の後は、"S+N*=" および "=N*S+" が保証されなくなる (= の部分が変わりうる) が、それは許容しよう
+        本処理の後は、"S+N*=", "=N*S+", "H+O*[SN]*=", "=[NS]*O*H+" が保証されなくなる (= の部分が変わりうる) が、それは許容しよう
         """
         # query_seq 末尾の pseudo_ref_seq で ref_seq を置換
         self.ref_seq_aligned = self.query_seq_list_aligned.pop(-1)
@@ -1123,13 +1122,19 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         return my_msa
     SN_re_beg = re.compile(r"^[N]*[S]+")
     SN_re_end = re.compile(r"[S]+[N]*$")
+    all_HO_re = re.compile(r"^[HO]+$")
+    all_ND_re = re.compile(r"^[ND]+$")
+    with_SHO_re = re.compile(r"^.*[SHO]+.*$")
     def exec_chunk_poa(self, ref_seq_chunk_aligned: str, query_seq_chunk_list_aligned: List[str], my_cigar_chunk_list_aligned: List[str], s_idx: int) -> list:
         # S, H が含まれているかどうか
         chunk_type_list = []
         for my_cigar_chunk_aligned in my_cigar_chunk_list_aligned:
-            if re.match(r"^[NDHO]+$", my_cigar_chunk_aligned) is not None:
-                chunk_type_list.append("all_NDHO")
-            elif re.match(r"^.*[SHO]+.*$", my_cigar_chunk_aligned) is not None:
+            # recover_query_seq_from_pseudo が実行されるまでは、HO と ND が、それら以外の要素を含まず混在することはない
+            if self.all_HO_re.match(my_cigar_chunk_aligned) is not None:
+                chunk_type_list.append("all_HO")
+            elif self.all_ND_re.match(my_cigar_chunk_aligned) is not None:
+                chunk_type_list.append("all_ND")
+            elif self.with_SHO_re.match(my_cigar_chunk_aligned) is not None:
                 chunk_type_list.append("with_SHO")
             else:
                 chunk_type_list.append("valid4poa")
@@ -1167,8 +1172,10 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                         query_seq_2=query_seq_chunk_aligned[beg_idx:].replace(" ", "").replace("-", ""), 
                         ref_seq=consensus_wo_appendix, 
                     ).my_cigar
-            elif chunk_type == "all_NDHO":          # HHOOHH, DDNNDD, etc.
+            elif chunk_type == "all_HO":          # HHOOHH
                 my_cigar = "H" * len(consensus_wo_appendix)
+            elif chunk_type == "all_ND":          # DDNNDD
+                my_cigar = "D" * len(consensus_wo_appendix)
             else:   # with_SHO: appendix なしでアラインメント
                 my_cigar_chunk_aligned = my_cigar_chunk_list_aligned[idx]
                 starts_with_OH = my_cigar_chunk_aligned[0] in "OH"
@@ -1182,7 +1189,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 elif (not starts_with_OH) and ends_with_OH: # =========SSSHHH
                     my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
                 # HEREAFTER: (not starts_with_OH) and (not ends_with_OH)
-                elif starts_with_S and ends_with_S:         # SSSSSSSSS # len(consensus_wo_appendix) = 0 となってしまうが、それはありえない
+                elif starts_with_S and ends_with_S:         # SSSSSSSSS
                     raise Exception("error")
                 elif starts_with_S and (not ends_with_S):   # SSSSSS=========
                     my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
@@ -1209,22 +1216,41 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             my_cigar_list=my_cigar_list, 
             param_dict=self.param_dict
         )
-        mini_my_msa.correct_end_O()  # generate_msa の都合、右端に O が来てしまいうる (circular な前提として msa してるため)
+        mini_my_msa.correct_end_SNOH()  # generate_msa の都合、右端に O が来てしまいうる (circular な前提として msa してるため) また、=+S+の右隣はNではなくOであるべき
         return mini_my_msa
-    beg_O_re = re.compile(r"^O+[^HO]") # H ではない文字の前に O が来て、の形で始まるのはダメ
-    end_O_re = re.compile(r"[^HO]O+$") # H ではない文字の後に O が来て、そのまま終わるのはダメ
-    def correct_end_O(self):
+    beg_HO_re = re.compile(r"^O+[^HO]") # H ではない文字の前に O が来て、の形で始まるのはダメ
+    end_HO_re = re.compile(r"[^HO]O+$") # H ではない文字の後に O が来て、そのまま終わるのはダメ
+    beg_SN_re = re.compile(r"^(N+)S+[^SNOH]")
+    end_SN_re = re.compile(r"[^SNOH]S+(N+)$")
+    def correct_end_SNOH(self):
         for query_idx, my_cigar_aligned in enumerate(self.my_cigar_list_aligned):
-            beg_m = self.beg_O_re.search(my_cigar_aligned)
-            end_m = self.end_O_re.search(my_cigar_aligned)
+            beg_m = self.beg_HO_re.search(my_cigar_aligned)
+            end_m = self.end_HO_re.search(my_cigar_aligned)
             if beg_m is not None:
                 assert end_m is None
                 self.my_cigar_list_aligned[query_idx] = "N" * (beg_m.end() - 1) + my_cigar_aligned[beg_m.end() - 1:]
                 self.query_seq_list_aligned[query_idx] = "-" * (beg_m.end() - 1) + self.query_seq_list_aligned[query_idx][beg_m.end() - 1:]
+                continue
             if end_m is not None:
                 assert beg_m is None
                 self.my_cigar_list_aligned[query_idx] = my_cigar_aligned[:end_m.start() + 1] + "N" * (end_m.end() - end_m.start() - 1)
                 self.query_seq_list_aligned[query_idx] = self.query_seq_list_aligned[query_idx][:end_m.start() + 1] + "-" * (end_m.end() - end_m.start() - 1)
+                continue
+            beg_m = self.beg_SN_re.search(my_cigar_aligned)
+            end_m = self.end_SN_re.search(my_cigar_aligned)
+            if beg_m is not None:
+                assert end_m is None
+                len_N = len(beg_m.group(1))
+                self.my_cigar_list_aligned[query_idx] = "O" * len_N + my_cigar_aligned[len_N:]
+                self.query_seq_list_aligned[query_idx] = " " * len_N + self.query_seq_list_aligned[query_idx][len_N:]
+                continue
+            if end_m is not None:
+                assert beg_m is None
+                len_N = len(end_m.group(1))
+                self.my_cigar_list_aligned[query_idx] = my_cigar_aligned[:-len_N] + "O" * len_N
+                self.query_seq_list_aligned[query_idx] = self.query_seq_list_aligned[query_idx][:-len_N] + " " * len_N
+                continue
+
     @staticmethod
     def custom_fill(seq_aligned, some_list, empty_value):
         r = np.full(len(seq_aligned), fill_value=empty_value, dtype=type(some_list[0]))
@@ -1256,26 +1282,6 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             else:
                 i = 0   # break されなかったということは、最初が切れ目ということ
             self.query_seq_offset_list_aligned.append(i)
-    def set_hard_clipping_info(self):
-        total_len = len(self.ref_seq_aligned)
-        for query_idx, (query_seq_offset_aligned, my_cigar_aligned, query_seq_aligned) in enumerate(zip(self.query_seq_offset_list_aligned, self.my_cigar_list_aligned, self.query_seq_list_aligned)):
-            # 場所検出
-            hard_clipping_idx_list_aligned = []  # [(s,e), ...]
-            assert query_seq_offset_aligned >= 0
-            cur_idx = total_len - query_seq_offset_aligned - 1  # こうすることで、cur_idx がマイナスになっても条件分岐せずに処理可能
-            while my_cigar_aligned[cur_idx] in "ND":    # =XIS ND HO
-                hard_clipping_idx_list_aligned.append(cur_idx)
-                cur_idx -= 1
-            # アプデ
-            for idx in hard_clipping_idx_list_aligned:
-                if idx != -1:
-                    query_seq_aligned = query_seq_aligned[:idx] + " " + query_seq_aligned[idx+1:]
-                    my_cigar_aligned = my_cigar_aligned[:idx] + ("O" if self.ref_seq_aligned[idx] == "-" else "H") + my_cigar_aligned[idx+1:]
-                else:
-                    query_seq_aligned = query_seq_aligned[:idx] + " "
-                    my_cigar_aligned = my_cigar_aligned[:idx] + ("O" if self.ref_seq_aligned[idx] == "-" else "H")
-            self.query_seq_list_aligned[query_idx] = query_seq_aligned
-            self.my_cigar_list_aligned[query_idx] = my_cigar_aligned
     def execute_soft_clipping(self):
         """
         S ごとに、それが存在することでスコアを上げることができるかを判定
@@ -1334,7 +1340,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             while my_cigar_aligned[cur_idx] in "HO":
                 cur_idx -= 1
             # soft-clipping の範囲を左側に向けて探索しながら処理
-            assert my_cigar_aligned[cur_idx] in "=XIS"
+            assert my_cigar_aligned[cur_idx] in "=XIS" # HO DN
             right_side_S_idx_list_inversed = []
             score_diff_list_inversed = []
             while my_cigar_aligned[cur_idx] in "SN":   # 右 > 左に進みながら終わりを探す & スコア計算
