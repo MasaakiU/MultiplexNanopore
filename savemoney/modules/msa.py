@@ -774,7 +774,6 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         "center": 2000, 
         "seq_range": 50, 
         "offset": 0, 
-        "trim_soft_clipping": True, 
     }
     def __init__(self, ref_seq_aligned: str=None, query_seq_list_aligned: List[str]=None, q_scores_list_aligned: List[List[int]]=None, my_cigar_list_aligned: List[str]=None, param_dict: dict=None) -> None:
         self.ref_seq_name = None
@@ -1295,6 +1294,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             Example 2:  HHHSSS======
             Example 3:  ===HHHSSS===
             Example 4:  SSS===HHHSSS
+            Example 5:  ===SSSHHH=== (運悪く polish の切れ目に S の切れ目がきてしてしまうと、左端でもこれが起こり得てしまう)
             """
             # soft-clipping の範囲を右側に向けて探索しながら処理
             assert query_seq_offset_aligned >= 0
@@ -1302,7 +1302,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             assert my_cigar_aligned[cur_idx] in "=XIS"
             left_side_S_idx_list = []
             score_diff_list = []
-            while my_cigar_aligned[cur_idx] in "SN":   # 左 > 右に進みながら終わりを探す & スコア計算
+            while my_cigar_aligned[cur_idx] in "SNOH":   # 左 > 右に進みながら終わりを探す & スコア計算 # Example 5 の処理のため、OH も含める必要あり
                 """
                 # 情報エントロピーを計算
                 entropy_full += self.calc_entropy(
@@ -1334,16 +1334,17 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             Example 2:  ======SSSHHH
             Example 3:  ===SSSHHH===
             Example 4:  SSSHHH===SSS
+            Example 5:  ===HHHSSS=== (運悪く polish の切れ目に S の切れ目がきてしてしまうと、右端でもこれが起こり得てしまう)
             """
             # まず soft-clipping の右端を探す
             cur_idx = total_len - query_seq_offset_aligned - 1 # これが、 soft-clipping 左端より一つ左のインデックス: これをもとに左に進みながら右端のインデックスを探していく
             while my_cigar_aligned[cur_idx] in "HO":
                 cur_idx -= 1
             # soft-clipping の範囲を左側に向けて探索しながら処理
-            assert my_cigar_aligned[cur_idx] in "=XIS" # HO DN
+            assert my_cigar_aligned[cur_idx] in "=XISN" # HO D  # example 5 のために、N も許容する必要がある
             right_side_S_idx_list_inversed = []
             score_diff_list_inversed = []
-            while my_cigar_aligned[cur_idx] in "SN":   # 右 > 左に進みながら終わりを探す & スコア計算
+            while my_cigar_aligned[cur_idx] in "SNOH":   # 右 > 左に進みながら終わりを探す & スコア計算 # Example 5 の処理のため、OH も含める必要あり
                 # スコア計算
                 score_diff_list_inversed.append(self.calc_score_diff(
                     query_seq_aligned[cur_idx], 
@@ -1384,9 +1385,13 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 return score / len_others
             # 他のシーケンスがない場合
             else:
-                return -self.param_dict["gap_open_penalty"]
+                return -self.param_dict["gap_open_penalty"] * len(other_s_list)
         elif subject_my_c == "N":
             return 0
+        elif subject_my_c == "O":
+            return 0
+        elif subject_my_c == "H":
+            return -self.param_dict["gap_open_penalty"] * len(other_s_list)
         else:
             raise Exception(f"error: {subject_s}, {subject_my_c}")
     #########################
