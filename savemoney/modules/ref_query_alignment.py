@@ -316,9 +316,9 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
 
         # import matplotlib.pyplot as plt
         # plt.plot(self.k_list, result_array)
-        # plt.axhline(np.median(result_array), color="result_array")
-        # plt.axhline(np.median(result_array) + self.sigma * np.std(result_array), color="result_array")
-        # plt.axhline(np.median(result_array) - self.sigma * np.std(result_array), color="result_array")
+        # plt.axhline(np.median(result_array), color="r")
+        # plt.axhline(np.median(result_array) + self.sigma * np.std(result_array), color="r")
+        # plt.axhline(np.median(result_array) - self.sigma * np.std(result_array), color="r")
         # plt.show()
 
         # ウィンドウ解析
@@ -730,10 +730,15 @@ class SearchLongestPath():
                 # さらにその中で、query_start_gap 以外の gap が最大なものを選出する
                     # query_start_gap は np.diff の値がマイナスになるので自動的に除かれる
                     # 最初と最後の np.diff の値が計算結果に含まれないので別途追加する
-                gap_max_list.append(max(
-                    np.diff(conserved_regions_ordered[:, 2:].flatten())[1::2].max(), 
-                    conserved_regions_ordered[0, 2] - conserved_regions_ordered[-1, 3]
-                ))
+                    # conserved_regions の長さが 1 の場合もあるので、その場合分けも処理する
+                diff = np.diff(conserved_regions_ordered[:, 2:].flatten())[1::2]
+                if len(diff) > 0:
+                    gap_max_list.append(max(
+                        diff.max(), 
+                        conserved_regions_ordered[0, 2] - conserved_regions_ordered[-1, 3]
+                    ))
+                else:
+                    gap_max_list.append(conserved_regions_ordered[0, 2] - conserved_regions_ordered[-1, 3])
             # query の start と end のギャップが最大ものも
             query_start_end_gap_max = max(query_start_end_gap_list)
             q_se_gap_max_idx_list = np.where(np.array(query_start_end_gap_list) == query_start_end_gap_max)[0]
