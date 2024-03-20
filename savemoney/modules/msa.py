@@ -1098,6 +1098,8 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         ref_seq_aligned = "".join(mini_my_msa.ref_seq_aligned for mini_my_msa in mini_my_msa_list)
         query_seq_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.query_seq_list_aligned for mini_my_msa in mini_my_msa_list])]
         my_cigar_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.my_cigar_list_aligned for mini_my_msa in mini_my_msa_list])]
+        # 最後に入ってる ref_seq も始点と終点のあるリニアなリードとして扱われてるので、その切れ目（mapの切れ目に相当）の部分とコンセンサスに insertion の部分が一致してしまうと、リードが " " となってしまうが、実際は環状プラスミドなので、"-" としなくてはダメ
+        query_seq_list_aligned[-1] = query_seq_list_aligned[-1].replace(" ", "-")
         # 後処理
         cur_len = 0
         for i, s in enumerate(query_seq_list_aligned[-1][::-1]):  # pseudo_ref_seq_aligned
