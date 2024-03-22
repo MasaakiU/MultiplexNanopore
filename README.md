@@ -19,6 +19,7 @@ The algorithm permits mixing of six (or potentially even more) plasmids for sequ
 
 - [SAVEMONEY](https://colab.research.google.com/github/MasaakiU/MultiplexNanopore/blob/master/colab/MultiplexNanopore.ipynb)
 - SAVEMONEY_batch (coming soon!)
+- SAVEMONEY_linear (coming soon!)
 
 # SAVEMONEY for local environment
 
