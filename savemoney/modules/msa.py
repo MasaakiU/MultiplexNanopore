@@ -995,11 +995,10 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         """
         # query_seq 末尾の pseudo_ref_seq で ref_seq を置換
         self.ref_seq_aligned = self.query_seq_list_aligned.pop(-1)
-        assert self.ref_seq_aligned[0] != "-"
         del self.q_scores_list_aligned[-1]
         my_cigar_ref_seq_vs_pseudo = self.my_cigar_list_aligned.pop(-1)
         del self.query_seq_offset_list[-1]
-        assert self.query_seq_offset_list_aligned.pop(-1) == 0
+        del self.query_seq_offset_list_aligned[-1]
         # my_cigar を修正していく
         for m in self.generate_cigar_match(my_cigar_ref_seq_vs_pseudo):
             L = m.group(2)

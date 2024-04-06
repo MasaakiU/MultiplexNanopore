@@ -11,6 +11,10 @@ $ pipreqs .
 -> manually pasted into INSTALL_REQUIREMENTS with some modification
 $ pip install twine
 $ pip install wheel
+-> remove the following folders:
+    build
+    dist
+    savemoney.egg-info
 $ python setup.py sdist
 -> `dist`, `savemoney.egg-info` directories will be created.
 $ python setup.py bdist_wheel
@@ -45,7 +49,6 @@ except ImportError:
 #############################################################
 #############################################################
 
-test_version = ""
 root_dir = Path(__file__).parent.resolve()
 package_name = "savemoney"
 sub_package_names = [f"{package_name}.{sub_package_name}" for sub_package_name in find_packages(package_name)]
@@ -65,7 +68,7 @@ class About():
         return txt.strip()
     @property
     def version_pypi(self):
-        return re.match(r"ver_([0-9.]+)", self.version).group(1) + test_version   # version format must be "x.x.x" etc.
+        return re.match(r"^ver_([0-9.]+(?:(?:a|b|rc)[0-9]*)?)$", self.version).group(1)   # version format must be "x.x.x" etc.
 
 about = About(
     root_dir / package_name / '__about__.py', 
