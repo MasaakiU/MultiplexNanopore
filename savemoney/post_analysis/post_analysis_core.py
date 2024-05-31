@@ -7,6 +7,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List
 from collections import defaultdict
+from multiprocessing import Pool
 
 # my modules
 from ..modules import msa
@@ -54,30 +55,36 @@ def execute_alignment(ref_seq_list:mc.MyRefSeq, my_fastq:mc.MyFastQ, param_dict,
 
 def execute_alignment_core(ref_seq_list, my_fastq, param_dict):
     my_optimized_aligner_list = [rqa.MyOptimizedAligner(ref_seq, param_dict) for ref_seq in ref_seq_list]
-    fastq_len = len(my_fastq)
-    result_dict = defaultdict(list)
-    pbar = tqdm(my_fastq.items(), ncols=100, mininterval=0.1, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=len(my_fastq))   # \033[32m
-    for query_id, (query_seq, q_scores) in pbar:
-        pbar.set_postfix_str(query_id[:50])
-        # calc scores for each ref_seq
-        query_seq = mc.MySeq(query_seq)
-        query_seq_rc = query_seq.reverse_complement()
-        for my_optimized_aligner in my_optimized_aligner_list:
-            conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq, omit_too_long=True)
-            conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc, omit_too_long=True)
-            if conserved_regions is not None:
-                my_result = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq, conserved_regions)
-            else:
-                my_result = rqa.MyResult()
-            if conserved_regions_rc is not None:
-                my_result_rc = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq_rc, conserved_regions_rc)
-            else:
-                my_result_rc = rqa.MyResult()
+    input_iter = [(query_seq, my_optimized_aligner_list) for query_seq, q_scores in my_fastq.values()]
 
-            # レジスター
-            result_dict[query_id].extend([my_result, my_result_rc])
-            gc.collect()
-    return result_dict
+    with Pool(processes=param_dict["n_cpu"]) as p:
+        result_list_list = list(tqdm(p.imap(execute_alignment_core_loop_wrapper, input_iter), ncols=100, mininterval=0.1, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=len(my_fastq)))
+    gc.collect()
+    return {
+        query_id:result_list for query_id, result_list in zip(my_fastq.keys(), result_list_list)
+    }
+def execute_alignment_core_loop_wrapper(args):
+    return execute_alignment_core_loop(*args)
+def execute_alignment_core_loop(query_seq, my_optimized_aligner_list: List[rqa.MyOptimizedAligner]):
+    # calc scores for each ref_seq
+    query_seq = mc.MySeq(query_seq)
+    query_seq_rc = query_seq.reverse_complement()
+    result_list = []
+    for my_optimized_aligner in my_optimized_aligner_list:
+        conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq, omit_too_long=True)
+        conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc, omit_too_long=True)
+        if conserved_regions is not None:
+            my_result = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq, conserved_regions)
+        else:
+            my_result = rqa.MyResult()
+        if conserved_regions_rc is not None:
+            my_result_rc = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq_rc, conserved_regions_rc)
+        else:
+            my_result_rc = rqa.MyResult()
+        # レジスター
+        result_list.extend([my_result, my_result_rc])
+        # gc.collect()
+    return result_list
 
 class IntermediateResults(mc.MyTextFormat, mc.MyHeader):
     intermediate_results_version = "ir_0.2.0"

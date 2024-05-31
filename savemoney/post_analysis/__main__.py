@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
 import copy
 import argparse
+from multiprocessing import Pool
 
 from . import *
 from ..modules import my_classes as mc
@@ -25,6 +27,10 @@ if __name__ == "__main__":
     args_dict =vars(args)
     for key in param_dict.keys():
         param_dict[key] = args_dict[mc.key2argkey(key)]
+
+    # process 数については、必要に応じて修正する
+    param_dict["n_cpu"] = min(param_dict["n_cpu"], os.cpu_count())
+    print(f"n_cpu={param_dict['n_cpu']} (max={os.cpu_count()})")
 
     post_analysis(args.sequence_dir_paths, args.save_dir_base, **param_dict)
 

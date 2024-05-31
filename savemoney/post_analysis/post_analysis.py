@@ -21,6 +21,7 @@ default_post_analysis_param_dict = {
     'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
     'ins_rate': error_rate, 
     'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
+    'n_cpu': 2, 
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
