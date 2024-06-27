@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import copy
 import argparse
 
@@ -25,6 +26,10 @@ if __name__ == "__main__":
     args_dict =vars(args)
     for key in param_dict.keys():
         param_dict[key] = args_dict[mc.key2argkey(key)]
+
+    # process 数については、必要に応じて修正する
+    param_dict["n_cpu"] = min(param_dict["n_cpu"], os.cpu_count())
+    print(f"n_cpu={param_dict['n_cpu']} (max={os.cpu_count()})")
 
     pre_survey(args.plasmid_map_dir_paths, args.save_dir_base, **param_dict)
 
