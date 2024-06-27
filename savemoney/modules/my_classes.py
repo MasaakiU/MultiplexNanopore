@@ -26,6 +26,12 @@ from ..__about__ import *
 ###
 sans_serif_font_master = "Arial"
 
+class classproperty:
+    def __init__(self, func):
+        self.fget = func
+    def __get__(self, instance, owner):
+        return self.fget(owner)
+
 @contextlib.contextmanager
 def fopen(filein, *args, **kwargs):
     if isinstance(filein, str) or isinstance(filein, Path):  # filename/Path
@@ -312,8 +318,7 @@ class MyRefSeq(MySeq):
         @property
         def my_hash(self):
             return "unknown file location"
-    @classmethod
-    @property
+    @classproperty
     def allowed_plasmid_map_extensions(cls):
         allowed_plasmid_map_extensions = []
         allowed_plasmid_map_extensions.extend(cls.allowed_snapgene_extensions)

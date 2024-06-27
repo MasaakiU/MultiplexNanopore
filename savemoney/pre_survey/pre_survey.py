@@ -13,9 +13,12 @@ default_pre_survey_param_dict = {
     'gap_open_penalty':     3, 
     'gap_extend_penalty':   1, 
     'match_score':          1, 
-    'mismatch_score':       -2, 
+    'mismatch_score':      -2, 
     'distance_threshold':   5, 
     'number_of_groups':     1, 
+    'topology_of_dna':      0,       # 0: circular, 1: linear
+    'n_cpu':                2, 
+    'export_image_results': 1,  # 0; skip export of svg figure files, 1: export svg figure files
 }
 
 def pre_survey(plasmid_map_dir_path: str, save_dir_base: str, ref_seq_aliases: List[str]=None, **param_dict: dict):
@@ -39,7 +42,7 @@ def pre_survey_separate_paths_input(plasmid_map_paths:List[Path], save_dir_base:
     # 2. execute
     recommended_grouping = psc.execute_grouping(ref_seq_list, param_dict, save_dir, ref_seq_aliases)
     # 3. save results
-    psc.export_results(recommended_grouping, save_dir)
+    psc.export_results(recommended_grouping, save_dir, export_image_results=param_dict["export_image_results"])
     # 4. display recommended_grouping in the std output
     print(f"\n{recommended_grouping.recommended_grouping_txt}")
     return save_dir

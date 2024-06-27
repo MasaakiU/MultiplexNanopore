@@ -16,6 +16,7 @@ from typing import List
 from pathlib import Path
 from itertools import product
 from collections import defaultdict, Counter
+from multiprocessing import Pool
 from numpy.core.memmap import uint8
 from matplotlib.patches import Patch
 
@@ -635,11 +636,12 @@ class MyMSAligner(mc.AlignmentBase):
         with mc.MyTQDM(total=len_ref_seq_aligned * self.N_polish, ncols=100, leave=True, bar_format='{l_bar}{bar}{r_bar}', desc=f"polishing reads #{len(self.my_fastq_subset)}{'.' * max(0, 6 - len(str(len(self.my_fastq_subset))))}") as my_pbar:
             for i, offset in enumerate(np.array([0, 1, 2, 0]) * (actual_window // (self.N_polish - 1))):                        #"generating consensus..."
                 my_pbar.offset_value = len_ref_seq_aligned * i
-                my_msa = my_msa.polish(offset=offset, window=actual_window, my_pbar=my_pbar)
+                my_msa = my_msa.polish(offset=offset, window=actual_window, topology_of_dna=param_dict["topology_of_dna"], my_pbar=my_pbar)
             my_pbar.offset_value = 0
             my_pbar.set_value(len_ref_seq_aligned * self.N_polish)
         # MSA 後処理
         my_msa.recover_query_seq_from_pseudo()
+        my_msa.recover_q_scores(q_scores_list)       # polish には q_scores が必要がないので削ぎ落としている。再度追加する必要あり。
         my_msa.ref_seq_name = self.ref_seq.path.name
         my_msa.query_id_list = list(self.my_fastq_subset.keys())
         # MSA calc consensus
@@ -771,7 +773,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     sbq_pdf_minor_version = None
     sbq_pdf = None
     default_print_options = {
-        "center": 2000, 
+        "center": 50, 
         "seq_range": 50, 
         "offset": 0, 
     }
@@ -791,8 +793,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         self.without_prior_consensus_q_scores = []  # consensus_related
         self.without_prior_consensus_my_cigar = ""  # consensus_related
         super().__init__(param_dict)
-    @classmethod
-    @property
+    @mc.classproperty
     def sbq_pdf_version(self):
         return f"{self.sbq_pdf_major_version}.{self.sbq_pdf_minor_version}"
     @property
@@ -873,7 +874,8 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         from ..post_analysis.post_analysis import default_post_analysis_param_dict
         for k_v in param_dict_str.split("\n"):
             k_str, v_str = k_v.split(":")
-            self.param_dict[k_str] = type(default_post_analysis_param_dict[k_str])(v_str)
+            if k_str in default_post_analysis_param_dict.keys():    # 後方互換性のために必要：具体的には、default_post_analysis_param_dict から削除したパラメータ (del_mut_rate など) がある場合に必要
+                self.param_dict[k_str] = type(default_post_analysis_param_dict[k_str])(v_str)
     ################
     # MSA 1st step #
     ################
@@ -983,11 +985,16 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     # MSA 2nd step #
     ################
     def add_pseudo_ref_seq_as_query(self):    # polish の間、consensus 取るたびに ref_seq がズレていってしまうので、それを防ぐ
-        assert self.ref_seq_aligned[0] != "-"
+        if self.param_dict["topology_of_dna"] == 0:
+            assert self.ref_seq_aligned[0] != "-"
+        elif self.param_dict["topology_of_dna"] == 1:
+            pass
+        else:
+            raise Exception(f"unknown topology_of_dna: {self.param_dict['topology_of_dna']}")
         self.query_seq_list_aligned.append(self.ref_seq_aligned)
         self.q_scores_list_aligned.append(list(self.custom_fill(self.ref_seq_aligned, some_list=[50 for i in self.ref_seq_NoDEL], empty_value=-1)))
         self.my_cigar_list_aligned.append("".join(self.custom_fill(self.ref_seq_aligned, some_list=["=" for i in self.ref_seq_NoDEL], empty_value="N")))
-        self.query_seq_offset_list.append(0)
+        self.query_seq_offset_list.append(len(self.ref_seq_aligned.replace(" ", "").replace("-", "")))
         self.query_seq_offset_list_aligned.append(0)
     def recover_query_seq_from_pseudo(self):
         """
@@ -1048,7 +1055,15 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                         self.my_cigar_list_aligned[queruy_idx] = my_cigar_aligned[:s] + new_my_cigar_chunk + my_cigar_aligned[e:]
                 else:
                     raise Exception(f"error: {L}")
-    def polish(self, offset, window, my_pbar: mc.MyTQDM=None):
+    def recover_q_scores(self, q_scores_list: List[list]):
+        assert len(q_scores_list) == len(self.query_seq_offset_list_aligned)
+        aligned_len = len(self.ref_seq_aligned)
+        for query_idx, (query_seq_aligned, query_seq_offset_aligned, q_scores) in enumerate(zip(self.query_seq_list_aligned, self.query_seq_offset_list_aligned, q_scores_list)):
+            q_scores_after_offset = q_scores[query_seq_offset_aligned:] + q_scores[:query_seq_offset_aligned]
+            q_scores_aligned = np.full(aligned_len, fill_value=-1, dtype=int)
+            q_scores_aligned[[q not in "- " for q in query_seq_aligned]] = q_scores_after_offset
+            self.q_scores_list_aligned[query_idx] = list(q_scores_aligned)
+    def polish(self, offset, window, topology_of_dna, my_pbar: mc.MyTQDM=None):
         chunk_idx_start_aligned_list = []
         cur_chunk_len = 0
         target_chunk_len = offset   # 最初はオフセット
@@ -1061,65 +1076,92 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 target_chunk_len = window
             if s != "-":
                 cur_chunk_len += 1
-        # 最終 chunk は常に最初の offset 部分と連結されるが、それでも最後の chunk の長さがが短ければ、一つ前のものと連結
+        # 最後の chunk の長さがが短ければ、一つ前のものと連結
         if len(chunk_idx_start_aligned_list) <= 1:  # 短すぎると chunk がなくなる
             raise Exception(f"Plasmid size is too small or window size is too large!")
         if len(pseudo_ref_seq[chunk_idx_start_aligned_list[-1]:].replace("-", "")) + offset < window:
             del chunk_idx_start_aligned_list[-1]
-        # self.query_seq_offset_list も変更しなくてはならないので、その準備をする
-        N_bases_before_1st_chunk = [len(query_seq_aligned[:chunk_idx_start_aligned_list[0]].replace(" ", "").replace("-", "")) for query_seq_aligned in self.query_seq_list_aligned]
-        # POA 実行
-        mini_my_msa_list = []
-        for i, (s, e) in enumerate(zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:])):
-            if my_pbar is not None:
-                my_pbar.set_value(s)
-            ref_seq_chunk_aligned = self.ref_seq_aligned[s:e]
-            query_seq_chunk_list_aligned = [query_seq_aligned[s:e] for query_seq_aligned in self.query_seq_list_aligned]
-            my_cigar_chunk_list_aligned = [my_cigar_aligned[s:e] for my_cigar_aligned in self.my_cigar_list_aligned]
-            # 実行
-            mini_my_msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
-            # 格納
-            mini_my_msa_list.append(mini_my_msa)
+
+        # 最終 chunk は常に最初の offset 部分と連結される (ただし circular な場合に限る)。後でもとに戻すための準備をする。self.query_seq_offset_list も変更しなくてはならないので、その準備をする
+        if topology_of_dna == 0:
+            N_bases_before_1st_chunk = [len(query_seq_aligned[:chunk_idx_start_aligned_list[0]].replace(" ", "").replace("-", "")) for query_seq_aligned in self.query_seq_list_aligned]
+        # linear な場合は、最初のchunkは常に0である必要がある（circularな場合と違って最初の chunk が最後の chunk と連結されないので）
+        elif topology_of_dna == 1:
+            chunk_idx_start_aligned_list[0] = 0 # 最初に 0 を insert する形だと、最初の chunk が短くなってしまう場合がある。
+            chunk_idx_start_aligned_list.append(len(self.ref_seq_aligned))  # chunk_idx_start_aligned_list の最後に追加することで、 以下の with Pool 内でで回してる for loop の後処理を無くせる
         else:
-            # 最終 chunk: 最初の offset 部分と連結
-            s = chunk_idx_start_aligned_list[-1]
-            e = chunk_idx_start_aligned_list[0]
-            if my_pbar is not None:
-                my_pbar.set_value(s)
-            ref_seq_chunk_aligned = self.ref_seq_aligned[s:] + self.ref_seq_aligned[:e]
-            query_seq_chunk_list_aligned = [query_seq_aligned[s:] + query_seq_aligned[:e] for query_seq_aligned in self.query_seq_list_aligned]
-            my_cigar_chunk_list_aligned = [my_cigar_aligned[s:] + my_cigar_aligned[:e] for my_cigar_aligned in self.my_cigar_list_aligned]
-            # 実行
-            mini_my_msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
-            # 格納
-            mini_my_msa_list.append(mini_my_msa)
+            raise Exception(f"unknown topology_of_dna: {topology_of_dna}")
+
+        # POA 実行
+        with Pool(processes=self.param_dict["n_cpu"]) as p:
+            mini_my_msa_list = []
+            for s, e, mini_my_msa in p.imap(self.polish_core, zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:])):
+                if my_pbar is not None:
+                    my_pbar.set_value(s)
+                mini_my_msa_list.append(mini_my_msa)
+            # circular な場合、最終 chunk: 最初の offset 部分と連結する
+            if topology_of_dna == 0:
+                s = chunk_idx_start_aligned_list[-1]
+                e = chunk_idx_start_aligned_list[0]
+                if my_pbar is not None:
+                    my_pbar.set_value(s)
+                ref_seq_chunk_aligned = self.ref_seq_aligned[s:] + self.ref_seq_aligned[:e]
+                query_seq_chunk_list_aligned = [query_seq_aligned[s:] + query_seq_aligned[:e] for query_seq_aligned in self.query_seq_list_aligned]
+                my_cigar_chunk_list_aligned = [my_cigar_aligned[s:] + my_cigar_aligned[:e] for my_cigar_aligned in self.my_cigar_list_aligned]
+                # 実行
+                mini_my_msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
+                # 格納
+                mini_my_msa_list.append(mini_my_msa)
+            # linear な場合は普通にPOA実行する
+            elif topology_of_dna == 1:
+                pass
+            else:
+                raise Exception(f"unknown topology_of_dna: {topology_of_dna}")
+
         # 結合
         ref_seq_aligned = "".join(mini_my_msa.ref_seq_aligned for mini_my_msa in mini_my_msa_list)
         query_seq_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.query_seq_list_aligned for mini_my_msa in mini_my_msa_list])]
         my_cigar_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.my_cigar_list_aligned for mini_my_msa in mini_my_msa_list])]
-        # 最後に入ってる ref_seq も始点と終点のあるリニアなリードとして扱われてるので、その切れ目（mapの切れ目に相当）の部分とコンセンサスに insertion の部分が一致してしまうと、リードが " " となってしまうが、実際は環状プラスミドなので、"-" としなくてはダメ
-        query_seq_list_aligned[-1] = query_seq_list_aligned[-1].replace(" ", "-")
         # 後処理
-        cur_len = 0
-        for i, s in enumerate(query_seq_list_aligned[-1][::-1]):  # pseudo_ref_seq_aligned
-            if cur_len == offset:
-                offset_after_msa = i
-                break
-            if s != "-":
-                cur_len += 1
-        ref_seq_aligned = ref_seq_aligned[-offset_after_msa:] + ref_seq_aligned[:-offset_after_msa]
-        query_seq_list_aligned = [query_seq_aligned[-offset_after_msa:] + query_seq_aligned[:-offset_after_msa] for query_seq_aligned in query_seq_list_aligned]
-        my_cigar_list_aligned = [my_cigar_aligned[-offset_after_msa:] + my_cigar_aligned[:-offset_after_msa] for my_cigar_aligned in my_cigar_list_aligned]
-        # MyMSA 再生成 (q_scores_list_aligned は適当)
-        my_msa = MyMSA(ref_seq_aligned, query_seq_list_aligned, [[-1] * len(ref_seq_aligned) for i in range(len(query_seq_list_aligned))], my_cigar_list_aligned, self.param_dict)
-        # 新しい self.query_seq_offset_list を取得する
-        N_bases_before_1st_chunk_after_msa = [len(query_seq_aligned[:offset_after_msa].replace(" ", "").replace("-", "")) for query_seq_aligned in query_seq_list_aligned]
-        query_seq_offset_list = np.mod(
-            np.array(self.query_seq_offset_list) + np.array(N_bases_before_1st_chunk) - np.array(N_bases_before_1st_chunk_after_msa) - 1, 
-            [len(query_seq_aligned.replace(" ", "").replace("-", "")) for query_seq_aligned in query_seq_list_aligned]
-        ) + 1   # query_seq_offset に 0 は許されない: 詳しくは self.query_seq_offset_list_aligned を参照
-        my_msa.set_query_seq_offset_list(list(query_seq_offset_list))
-        return my_msa
+        if topology_of_dna == 0:
+            # 最後に入ってる ref_seq も始点と終点のあるリニアなリードとして扱われてるので、コンセンサスに insertion の部分が存在し、かつその位置が mapの切れ目の部分と一致してしまうと、リードが " " となってしまうが、実際は環状プラスミドなので、"-" としなくてはダメ
+            query_seq_list_aligned[-1] = query_seq_list_aligned[-1].replace(" ", "-")
+            cur_len = 0
+            for i, s in enumerate(query_seq_list_aligned[-1][::-1]):  # pseudo_ref_seq_aligned
+                if cur_len == offset:
+                    offset_after_msa = i
+                    break
+                if s != "-":
+                    cur_len += 1
+            ref_seq_aligned = ref_seq_aligned[-offset_after_msa:] + ref_seq_aligned[:-offset_after_msa]
+            query_seq_list_aligned = [query_seq_aligned[-offset_after_msa:] + query_seq_aligned[:-offset_after_msa] for query_seq_aligned in query_seq_list_aligned]
+            my_cigar_list_aligned = [my_cigar_aligned[-offset_after_msa:] + my_cigar_aligned[:-offset_after_msa] for my_cigar_aligned in my_cigar_list_aligned]
+            # MyMSA 再生成 (q_scores_list_aligned は適当)
+            my_msa = MyMSA(ref_seq_aligned, query_seq_list_aligned, [[-1] * len(ref_seq_aligned) for i in range(len(query_seq_list_aligned))], my_cigar_list_aligned, self.param_dict)
+            N_bases_before_1st_chunk_after_msa = [len(query_seq_aligned[:offset_after_msa].replace(" ", "").replace("-", "")) for query_seq_aligned in query_seq_list_aligned]
+            query_seq_offset_list = np.mod(
+                np.array(self.query_seq_offset_list) + np.array(N_bases_before_1st_chunk) - np.array(N_bases_before_1st_chunk_after_msa) - 1, 
+                [len(query_seq_aligned.replace(" ", "").replace("-", "")) for query_seq_aligned in query_seq_list_aligned]
+            ) + 1   # query_seq_offset に 0 は許されない: 詳しくは self.query_seq_offset_list_aligned を参照
+            my_msa.set_query_seq_offset_list(list(query_seq_offset_list))
+            return my_msa
+        # linear の場合は query_seq_offset_list は本質的には必要ないが、exec_chunk_poa で必要なので登録して置く必要あり
+        elif topology_of_dna == 1:
+            my_msa = MyMSA(ref_seq_aligned, query_seq_list_aligned, [[-1] * len(ref_seq_aligned) for i in range(len(query_seq_list_aligned))], my_cigar_list_aligned, self.param_dict)
+            for i, query_seq in enumerate(self.query_seq_list_aligned):
+                assert self.query_seq_offset_list[i] == len(query_seq.replace(" ", "").replace("-", ""))
+            my_msa.set_query_seq_offset_list(self.query_seq_offset_list)
+            return my_msa
+        else:
+            raise Exception(f"unknown topology_of_dna: {topology_of_dna}")
+    def polish_core(self, args):
+        s, e = args
+        ref_seq_chunk_aligned = self.ref_seq_aligned[s:e]
+        query_seq_chunk_list_aligned = [query_seq_aligned[s:e] for query_seq_aligned in self.query_seq_list_aligned]
+        my_cigar_chunk_list_aligned = [my_cigar_aligned[s:e] for my_cigar_aligned in self.my_cigar_list_aligned]
+        # 実行
+        mini_my_msa = self.exec_chunk_poa(ref_seq_chunk_aligned, query_seq_chunk_list_aligned, my_cigar_chunk_list_aligned, s)
+        return s, e, mini_my_msa
     SN_re_beg = re.compile(r"^[N]*[S]+")
     SN_re_end = re.compile(r"[S]+[N]*$")
     all_HO_re = re.compile(r"^[HO]+$")
@@ -1155,9 +1197,9 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         )
         # 各リードをリマップしていく
         my_cigar_list = []
-        consensus_wo_appendix = consensus[1:-1]
+        consensus_wo_appendix = consensus[1:-1] # appendix ありでアラインメントすると、"Z" のスコア (match, mismatch) が定義されていないのでバグる
         for idx, (chunk_type, query_seq_chunk) in enumerate(zip(chunk_type_list, query_seq_chunk_list)):
-            if chunk_type == "valid4poa":   # appendix ありでアラインメントすると、"Z" のスコア (match, mismatch) が定義されていないのでバグる
+            if chunk_type == "valid4poa":
                 beg_idx = len(self.ref_seq_aligned) - self.query_seq_offset_list_aligned[idx] - s_idx
                 if beg_idx < 0:
                     beg_idx += len(self.ref_seq_aligned)
@@ -1573,7 +1615,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     @staticmethod
     def q_score_bar(r, q, q_score, my_cigar, q_score_color_dict: defaultdict, show_asterisk):
         color = q_score_color_dict[q_score]
-        if my_cigar in "=N":
+        if my_cigar in "=NHO":
             q_score_txt = f"{q_score:<3}"
         elif my_cigar in "S":
             q_score_txt = f"{q_score:<3}" if r == q else f"\033[48;2;255;176;176m{q_score:<2}\033[0m "
@@ -1679,26 +1721,25 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
     def consensus_params(cls, param_dict, make_it_for_CYTHON):
         ins_rate = param_dict["ins_rate"]
         error_rate = param_dict["error_rate"]
-        del_mut_rate = param_dict["del_mut_rate"]
-        default_value_with_prior = {b_key2:ins_rate / 4 if b_key2 != "-" else 1 - ins_rate for b_key2 in cls.bases}
-
-        P_N_dict_dict_with_prior = defaultdict(
-            lambda: default_value_with_prior, 
-            {   # 真のベースが b_key1 である場合に、b_key2 への mutation/deletion などが起こる確率
-                b_key1:{b_key2:1 - error_rate if b_key2 == b_key1 else del_mut_rate for b_key2 in cls.bases} for b_key1 in cls.bases[:-1]  # remove "-" from b_key1
-            }
-        )
-        P_N_dict_dict_with_prior["-"] = default_value_with_prior
-
-        default_value_without_prior = {b_key2:0.2 / 4 if b_key2 != "-" else 0.8 for b_key2 in cls.bases}
-        P_N_dict_dict_without_prior = defaultdict(
-            lambda: default_value_without_prior, 
-            {
-                b_key1:{b_key2: 0.2 for b_key2 in cls.bases} for b_key1 in cls.bases[::-1]
-            }
-        )
-        P_N_dict_dict_without_prior["-"] = default_value_without_prior
-
+        # del_mut_rate = error_rate / 4, # e.g. "A -> T, C, G, del"
+        len_bases = len(cls.bases)
+        assert len_bases == 5 # "ATCG-"
+        ##############
+        # with prior #
+        ##############
+        P_N_dict_dict_with_prior = {   # 真のベースが b_key1 である場合に、b_key2 への mutation/deletion などが起こる確率
+            b_key1:{b_key2:(1 - error_rate) / len(b_val1) if b_key2 in b_val1 else error_rate / (len_bases - len(b_val1)) for b_key2 in cls.bases} for b_val1, b_key1 in cls.letter_code_dict.items()
+        }
+        P_N_dict_dict_with_prior["-"] = {b_key2:ins_rate / 4 if b_key2 != "-" else 1 - ins_rate for b_key2 in cls.bases}
+        #################
+        # without prior #
+        #################
+        P_N_dict_dict_without_prior = {
+            b_key1:{b_key2: 1 / len_bases for b_key2 in cls.bases} for b_key1 in "".join(cls.letter_code_dict.values()) + "-"
+        }
+        ######################
+        # prepare for cython #
+        ######################
         if make_it_for_CYTHON:
             P_N_dict_dict_with_prior = {
                 key:{ord(k):v for k, v in val.items()}
@@ -2076,6 +2117,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                 else:
                     d[f"{r}_{q}"][q_scores_aligned[idx]] += 1
         return d
+
 class MyBamSet(mc.MyTempFiles):
     """
     一時的なファイルが作られるので、
@@ -2107,28 +2149,22 @@ class MyByteStr():
         struct_bit = 24     
         seq_offset = 64
         edian = ">"
-        @classmethod
-        @property
+        @mc.classproperty
         def struct_N(cls):
             return cls.struct_bit // cls.my_bit
-        @classmethod
-        @property
+        @mc.classproperty
         def struct_byte(cls):
             return cls.struct_bit // 8
-        @classmethod
-        @property
+        @mc.classproperty
         def my_bit_struct_bitshift(cls):
             return np.arange(cls.struct_N)[::-1] * cls.my_bit
-        @classmethod
-        @property
+        @mc.classproperty
         def byte_struct_bitshift(cls):
             return np.arange(cls.struct_byte)[::-1] * 8
-        @classmethod
-        @property
+        @mc.classproperty
         def byte_bitmask(cls):
             return np.hstack([255 for i in range(cls.struct_byte)]) # 2 ** 8 -1
-        @classmethod
-        @property
+        @mc.classproperty
         def my_bit_bitmask(cls):
             return np.hstack([63 for i in range(cls.struct_N)])  # 2 ** 6 -1
         @classmethod

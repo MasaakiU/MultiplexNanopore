@@ -12,16 +12,17 @@ __all__ = ["post_analysis", "default_post_analysis_param_dict", "post_analysis_s
 
 error_rate = 0.0000001
 default_post_analysis_param_dict = {
-    'gap_open_penalty': 3, 
-    'gap_extend_penalty': 1, 
-    'match_score': 1, 
-    'mismatch_score': -2, 
-    'score_threshold': 0.3, 
-    'error_rate': error_rate, 
-    'del_mut_rate': error_rate / 4, # e.g. "A -> T, C, G, del"
-    'ins_rate': error_rate, 
-    'window': 160,      # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
-    'n_cpu': 2, 
+    'gap_open_penalty':     3, 
+    'gap_extend_penalty':   1, 
+    'match_score':          1, 
+    'mismatch_score':      -2, 
+    'score_threshold':    0.3, 
+    'error_rate':  error_rate, 
+    'ins_rate':    error_rate, 
+    'window':             160,  # maximum detectable length of repetitive sequences: if region of 80 nt is repeated adjascently two times, put the value of 160.
+    'topology_of_dna':      0,  # 0: circular, 1: linear
+    'n_cpu':                2, 
+    'export_image_results': 1,  # 0; skip export of svg figure files, 1: export svg figure files
 }
 
 def post_analysis(sequence_dir_path:str, save_dir_base: str, **param_dict:dict):
@@ -48,7 +49,7 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
     result_dict, ref_seq_list = pac.execute_alignment(ref_seq_list, my_fastq, param_dict, save_dir)
     # 3. normalize alignment score and set threshold for assignment
     query_assignment = pac.normalize_scores_and_apply_threshold(ref_seq_list, my_fastq, result_dict, param_dict)
-    pac.draw_and_save_query_assignment(query_assignment, save_dir, display_plot=False)
+    pac.draw_and_save_query_assignment(query_assignment, save_dir, display_plot=False, export_image_results=param_dict["export_image_results"])
     # 4. MSA/consensus
     my_msa_list = pac.execute_msa(result_dict, query_assignment, param_dict)
     # 5. EXPORT

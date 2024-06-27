@@ -3,7 +3,6 @@
 import os
 import copy
 import argparse
-from multiprocessing import Pool
 
 from . import *
 from ..modules import my_classes as mc

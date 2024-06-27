@@ -30,17 +30,28 @@ class MyAlignerBase(mc.MyCigarBase):
     @property
     def my_custom_matrix(self):
         return parasail.matrix_create("ACGT", self.match_score, self.mismatch_score)
+    re_beginning_D = re.compile(r"^D+")
     def my_special_sw(self, ref_seq, query_seq):
         result = parasail.sw_trace(query_seq, ref_seq, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
         my_result = MyResult(result)
-        my_result.my_cigar = (
-            "H" * my_result.beg_ref + 
-            "S" * my_result.beg_query + 
-            my_result.my_cigar + 
-            "S" * (len(query_seq) - my_result.end_query - 1) + 
-            "H" * (len(ref_seq) - my_result.end_ref - 1)
-        )
-        my_result.beg_query = 0
+        # なぜか最初に D (deletion) が入ってしまうことがある
+        if my_result.my_cigar[0] != "D":
+            my_result.my_cigar = (
+                "H" * my_result.beg_ref + 
+                "S" * my_result.beg_query + 
+                my_result.my_cigar + 
+                "S" * (len(query_seq) - my_result.end_query - 1) + 
+                "H" * (len(ref_seq) - my_result.end_ref - 1)
+            )
+            my_result.beg_query = 0
+        else:
+            assert my_result.beg_ref == 0
+            assert my_result.beg_query == 0
+            my_result.my_cigar = (
+                self.re_beginning_D.sub(lambda match: 'H' * len(match.group()), my_result.my_cigar) + 
+                "S" * (len(query_seq) - my_result.end_query - 1) + 
+                "H" * (len(ref_seq) - my_result.end_ref - 1)
+            )
         my_result.end_query = len(query_seq) - 1
         return my_result
     def nw_trace(self, ref_seq, query_seq):
@@ -186,22 +197,76 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
             np.hstack([self.ref_seq_v for i in range(repeat)]).astype(np.int64)
             for repeat in range(2, self.default_repeat_max + 1)
         ]
-        self.k_list = np.arange(0, self.N_ref)
         x_percentile = 1 / self.N_ref * self.percentile_factor # 偶然 threshold を超える position が 0.1個/ref_seq 以下になるようにする
         self.sigma = stats.norm.ppf(1 - x_percentile, loc=0, scale=1)  # 累積分布関数の逆関数
         self.is_all_ATCG = all([b.upper() in "ATCG" for b in ref_seq])
-    def calc_circular_conserved_region(self, query_seq, omit_too_long=False):
-        conserved_regions = self.calc_circular_conserved_region_core(query_seq)
+    def calc_conserved_region(self, query_seq, omit_too_long=False):
+        conserved_regions = self.calc_conserved_region_core(query_seq)
         if len(conserved_regions) == 0:
             return None
         elif omit_too_long and (self.N_ref * self.omit_too_long <= len(query_seq)):
             return None
         else:
-            longest_path_trace, longest_path_score = SearchLongestPath.exec(conserved_regions, N_ref=self.N_ref, N_query=len(query_seq))
+            if self.param_dict["topology_of_dna"] == 0:
+                longest_path_trace, longest_path_score = SearchLongestPath.exec_circular(conserved_regions, N_ref=self.N_ref, N_query=len(query_seq))
+            elif self.param_dict["topology_of_dna"] == 1:
+                longest_path_trace, longest_path_score = SearchLongestPath.exec_linear(conserved_regions, N_ref=self.N_ref, N_query=len(query_seq))
+            else:
+                raise Exception(f"unknown topology_of_dna: {self.param_dict['topology_of_dna']}")            
             # 順序づけ
             conserved_regions.tidy_conserved_regions(longest_path_trace)
             return conserved_regions
-    def execute_circular_alignment_using_conserved_regions(self, query_seq, conserved_regions):
+    def execute_alignment_using_conserved_regions(self, query_seq, conserved_regions):
+        if self.param_dict["topology_of_dna"] == 0:
+            return self.execute_alignment_using_conserved_regions_circular(query_seq, conserved_regions)
+        elif self.param_dict["topology_of_dna"] == 1:
+            return self.execute_alignment_using_conserved_regions_linear(query_seq, conserved_regions)
+        else:
+            raise Exception(f"unknown topology_of_dna: {self.param_dict['topology_of_dna']}")            
+    def execute_alignment_using_conserved_regions_linear(self, query_seq, conserved_regions):
+        # execute alignment for non_conserved_regiong
+        result_master = MyResult()
+        regions = conserved_regions.iter_regions()
+        ########
+        # 最初 #
+        ########
+        length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end = regions[-1]
+        if non_conserved_ref_end == -1: # non_conserved_ref の長さが 0 の場合
+            result_master.append_my_cigar("S" * (non_conserved_query_end + 1))  # ソフトクリップ
+        elif non_conserved_query_end == -1: # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
+            result_master.append_my_cigar("H" * (non_conserved_ref_end + 1)) # ハードクリップ
+        else:
+            my_result = self.my_special_sg_qb_db(self.ref_seq[:non_conserved_ref_end+1], query_seq[:non_conserved_query_end+1])
+            result_master.append_my_cigar(my_result.my_cigar)
+        ########
+        # 途中 #
+        ########
+        for length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end in regions[:-1]:
+            new_my_ciar = self.execute_alignment_using_conserved_regions_core(query_seq, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end)
+            result_master.append_my_cigar("=" * length_of_previous_conserved_region + new_my_ciar)
+        ########
+        # 最後 #
+        ########
+        N_query = len(query_seq)
+        length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end = regions[-1]
+        if non_conserved_ref_start == self.N_ref:
+            new_my_ciar = "S" * (N_query - non_conserved_query_start)
+        # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
+        elif non_conserved_query_start == N_query:
+            new_my_ciar = "H" * (self.N_ref - non_conserved_ref_start)
+        else:
+            new_my_ciar = self.my_special_sg_qe_de(self.ref_seq[non_conserved_ref_start:], query_seq[non_conserved_query_start:]).my_cigar
+        result_master.append_my_cigar("=" * length_of_previous_conserved_region + new_my_ciar)
+        result_master.set_cigar_score(self.gap_open_penalty, self.gap_extend_penalty, self.match_score, self.mismatch_score)
+        result_master.new_query_seq_offset = 0
+        # assertion # linear の場合は offset はすべて 0
+        assert conserved_regions.ref_seq_offset == 0
+        assert conserved_regions.query_seq_offset == 0
+        assert self.ref_seq.offset == 0
+        assert query_seq.offset == 0
+        self.assert_alignment(self.ref_seq, query_seq, result_master.my_cigar)
+        return result_master
+    def execute_alignment_using_conserved_regions_circular(self, query_seq, conserved_regions):
         N_query = len(query_seq)
         # set offset
         query_end_idx_after_offset = conserved_regions.set_tidy_offset(len(self.ref_seq), N_query)   # ラストの non_conserved_region もしくは ラストの conserved_region の末端に query_end_idx_after_offset が含まれることを保証する
@@ -211,54 +276,33 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         result_master = MyResult()
         for length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end in conserved_regions.iter_regions():
             # print(length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end)
-            # 最後のループはは常に -1 になっているはず (conserved_regions.iter_regions() の中で assert している)
+            # 最後のループはは常に non_conserved_ref_end == non_conserved_query_end == -1 (conserved_regions.iter_regions() の中で assert している -> linear用でも使えるように iter_regions() 内での assertion は削除した)
+                # 上記は、数行上の self.ref_seq.set_offset, query_seq.set_offset および iter_regions のにより保証される。
             if non_conserved_ref_end != -1:
-                # non_conserved_ref の長さが 0 の場合
-                if non_conserved_ref_start > non_conserved_ref_end:
-                    assert non_conserved_ref_start - 1 == non_conserved_ref_end
-                    result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("I" * (non_conserved_query_end - non_conserved_query_start + 1))
-                    continue
-                # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
-                elif non_conserved_query_start > non_conserved_query_end:
-                    assert non_conserved_query_start - 1 == non_conserved_query_end
-                    result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("D" * (non_conserved_ref_end - non_conserved_ref_start + 1))
-                    continue
-                else:
-                    ref_seq_extracted = self.ref_seq[non_conserved_ref_start:non_conserved_ref_end+1]
-                    query_seq_extracted = query_seq[non_conserved_query_start:non_conserved_query_end+1]
-                    # execute alignment # non_conserved_region の両端は完全一致している conserved_region のはずなので、ローカルアラインメントではない！
-                    result = parasail.nw_trace(query_seq_extracted, ref_seq_extracted, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
-                    my_result = MyResult(result)
+                new_my_ciar = self.execute_alignment_using_conserved_regions_core(query_seq, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end)
             # ラストループ
             else:
                 assert non_conserved_query_end == -1
                 # non_conserved_ref の長さが 0 の場合
                 if non_conserved_ref_start == self.N_ref:
-                    result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("S" * (N_query - non_conserved_query_start))  # ソフトクリップ
-                    continue
+                    new_my_ciar = "S" * (N_query - non_conserved_query_start)
                 # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
                 elif non_conserved_query_start == N_query:
-                    result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-                    result_master.append_my_cigar("H" * (self.N_ref - non_conserved_ref_start)) # ハードクリップ
-                    continue
+                    new_my_ciar = "H" * (self.N_ref - non_conserved_ref_start)
                 else:
                     ref_seq_extracted = self.ref_seq[non_conserved_ref_start:]
                     query_seq_extracted = query_seq[non_conserved_query_start:]
                     # execute alignment
                     query_seq_extracted_1 = query_seq[non_conserved_query_start:query_end_idx_after_offset + 1]
                     query_seq_extracted_2 = query_seq[query_end_idx_after_offset + 1:]
-                    my_result = self.my_special_DP(
+                    new_my_ciar = self.my_special_DP(
                         query_seq_extracted_1, 
                         query_seq_extracted_2, 
                         ref_seq_extracted, 
-                    )
+                    ).my_cigar
 
             # 結果を追加
-            result_master.append_my_cigar("=" * length_of_previous_conserved_region)
-            result_master.append_my_cigar(my_result.my_cigar)
+            result_master.append_my_cigar("=" * length_of_previous_conserved_region + new_my_ciar)
 
         # self.print_alignment(self.ref_seq, query_seq, result_master.my_cigar)
 
@@ -283,16 +327,45 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         #     self.print_alignment(self.ref_seq, query_seq, result_master.my_cigar)
         #     quit()
         return result_master
-    def calc_circular_conserved_region_core(self, query_seq):
+    def execute_alignment_using_conserved_regions_core(self, query_seq, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end):
+        # non_conserved_ref の長さが 0 の場合
+        if non_conserved_ref_start > non_conserved_ref_end:
+            assert non_conserved_ref_start - 1 == non_conserved_ref_end
+            new_my_ciar = "I" * (non_conserved_query_end - non_conserved_query_start + 1)
+        # non_conserved_query の長さが 0 の場合（non_conserved_ref, non_conserved_query の長さが同時に 0 になることがあるが、多分大丈夫なはず）
+        elif non_conserved_query_start > non_conserved_query_end:
+            assert non_conserved_query_start - 1 == non_conserved_query_end
+            new_my_ciar = "D" * (non_conserved_ref_end - non_conserved_ref_start + 1)
+        else:
+            ref_seq_extracted = self.ref_seq[non_conserved_ref_start:non_conserved_ref_end+1]
+            query_seq_extracted = query_seq[non_conserved_query_start:non_conserved_query_end+1]
+            # execute alignment # non_conserved_region の両端は完全一致している conserved_region のはずなので、ローカルアラインメントではない！
+            result = parasail.nw_trace(query_seq_extracted, ref_seq_extracted, self.gap_open_penalty, self.gap_extend_penalty, self.my_custom_matrix)
+            new_my_ciar = MyResult(result).my_cigar
+        return new_my_ciar
+    def calc_conserved_region_core(self, query_seq):
         # 文字列を数字に変換
         query_seq_v = np.array([ord(char) for char in query_seq], dtype=np.int64)
         N_query = len(query_seq_v)
-        repeat = 1 + np.ceil((N_query - 1) / self.N_ref).astype(int)
-        # アラインメントのたびに ref_seq_v_repeated を作らないようにする：本来は else 中の hstack のみで ok だけど、それだと時間がかかるかな？
-        if repeat <= self.default_repeat_max:
-            ref_seq_v_repeated = self.ref_seq_v_repeated_list[repeat - 2]
+
+        if self.param_dict["topology_of_dna"] == 0:    # circular
+            repeat = 1 + np.ceil((N_query - 1) / self.N_ref).astype(int)
+            # アラインメントのたびに ref_seq_v_repeated を作らないようにする：本来は else 中の hstack のみで ok だけど、それだと時間がかかるかな？
+            if repeat <= self.default_repeat_max:
+                ref_seq_v_repeated = self.ref_seq_v_repeated_list[repeat - 2]
+            else:
+                ref_seq_v_repeated = np.hstack([self.ref_seq_v for i in range(repeat)]).astype(np.int64)
+            max_k = self.N_ref
+            result_array_slice = slice(None, None, None)
+        elif self.param_dict["topology_of_dna"] == 1:    # linear
+            ref_seq_v_repeated = np.array([0 for i in range(N_query - 1)] + list(self.ref_seq_v) + [0 for i in range(N_query - 1)]).astype(np.int64)
+            max_k = self.N_ref + N_query - 1
+            if self.N_ref > N_query:
+                result_array_slice = slice(N_query - 1, self.N_ref)
+            else:
+                result_array_slice = slice(self.N_ref - 1, N_query)
         else:
-            ref_seq_v_repeated = np.hstack([self.ref_seq_v for i in range(repeat)]).astype(np.int64)
+            raise Exception(f"unknown topology_of_dna: {self.param_dict['topology_of_dna']}")
 
         #######################
         # k座位分だけ query をずらして並べたときの類似性（repeated ref_seq を固定して、query_seq のオフセットを右にずらしていくイメージ）
@@ -309,16 +382,16 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         """
         # cython version 2 (0.012740850448608398s)
         """
-        result_array = af.k_mer_offset_analysis_2(ref_seq_v_repeated, query_seq_v, self.N_ref, len(query_seq_v))
+        result_array = af.k_mer_offset_analysis_2(ref_seq_v_repeated, query_seq_v, max_k, N_query)
 
         # 閾値を超える類似性が得られた場合の k座位を取得 (0.001313924789428711s)
-        selected_k_list = np.where(result_array > np.median(result_array) + self.sigma * np.std(result_array))[0]
+        selected_k_list = np.where(result_array > np.median(result_array[result_array_slice]) + self.sigma * np.std(result_array[result_array_slice]))[0]
 
         # import matplotlib.pyplot as plt
-        # plt.plot(self.k_list, result_array)
-        # plt.axhline(np.median(result_array), color="r")
-        # plt.axhline(np.median(result_array) + self.sigma * np.std(result_array), color="r")
-        # plt.axhline(np.median(result_array) - self.sigma * np.std(result_array), color="r")
+        # plt.plot(range(max_k), result_array)
+        # plt.axhline(np.median(result_array[result_array_slice]), color="r")
+        # plt.axhline(np.median(result_array[result_array_slice]) + self.sigma * np.std(result_array[result_array_slice]), color="r")
+        # plt.axhline(np.median(result_array[result_array_slice]) - self.sigma * np.std(result_array[result_array_slice]), color="r")
         # plt.show()
 
         # ウィンドウ解析
@@ -327,15 +400,21 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         conserved_region_start_idx_list_ref = []
         conserved_region_end_idx_list_ref = []
 
-        for i, k in enumerate(selected_k_list):
+        for k in selected_k_list:
             start_idx_sublist, end_idx_sublist = WindowAnalysis.exec(ref_seq_v_repeated[k:k + N_query], query_seq_v)
             conserved_region_start_idx_list_ref.extend(start_idx_sublist + k)
             conserved_region_end_idx_list_ref.extend(end_idx_sublist + k)
             conserved_region_start_idx_list_query.extend(start_idx_sublist)
             conserved_region_end_idx_list_query.extend(end_idx_sublist)
         conserved_regions_ref = np.vstack((conserved_region_start_idx_list_ref, conserved_region_end_idx_list_ref)).T
-        conserved_regions_ref %= self.N_ref # リピートが 3 以上の場合は、複数回引く必要がある：でないと index エラーになる
         conserved_regions_query = np.vstack((conserved_region_start_idx_list_query, conserved_region_end_idx_list_query)).T
+        if self.param_dict["topology_of_dna"] == 0:    # circular
+            conserved_regions_ref %= self.N_ref # リピートが 3 以上の場合は、複数回引く必要がある：でないと index エラーになる
+        elif self.param_dict["topology_of_dna"] == 1:
+            conserved_regions_ref -= N_query - 1
+            assert not (conserved_regions_ref < 0).any()
+        else:
+            raise Exception(f"unknown topology_of_dna: {self.param_dict['topology_of_dna']}")
         return ConservedRegions(np.hstack((conserved_regions_ref, conserved_regions_query)))
 
 class MyResult(mc.MyCigarBase):
@@ -653,10 +732,7 @@ class ConservedRegions():
         query_end_idx_after_offset = N_query - self.query_seq_offset - 1
         query_start_idx_after_offset = (N_query - self.query_seq_offset)%N_query
     def set_offset(self, ref_start, query_start, N_ref, N_query):
-        self.ref_seq_offset = ref_start
-        self.query_seq_offset = query_start
-        self.conserved_regions[:, :2] -= self.ref_seq_offset
-        self.conserved_regions[:, 2:] -= self.query_seq_offset
+        self.set_offset_core(ref_start, query_start, N_ref, N_query)
         # 負の index を補正
         below_zero_ref = self.conserved_regions < 0
         below_zero_query = np.copy(below_zero_ref)
@@ -664,18 +740,21 @@ class ConservedRegions():
         below_zero_query[:, :2] = False
         self.conserved_regions[below_zero_ref] += N_ref
         self.conserved_regions[below_zero_query] += N_query
-    # @property
-    # def non_conserved_regions(self):
-    #     non_conserved_regions = np.empty_like(self.conserved_regions)
-    #     for i, (ref_start, ref_end, query_start, query_end) in enumerate(self):
-    #         non_conserved_regions[i, 0] = ref_end + 1
-    #         non_conserved_regions[i, 2] = query_end + 1
-    #         non_conserved_regions[i - 1, 1] = ref_start - 1
-    #         non_conserved_regions[i - 1, 3] = query_start - 1
-    #     return non_conserved_regions
+    def set_offset_core(self, ref_start, query_start, N_ref, N_query):
+        self.ref_seq_offset = ref_start
+        self.query_seq_offset = query_start
+        self.conserved_regions[:, :2] -= self.ref_seq_offset
+        self.conserved_regions[:, 2:] -= self.query_seq_offset
     def iter_regions(self):
         """
         regions.shape = (N, 5)  # length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end
+        最初の conerved_region の直後の non_conserved_region から格納されてく感じ。
+        最初の conserved_region の前に non_conserved_region がある場合は、最後の行について、
+            non_conserved_ref_end < non_conserved_ref_start
+            non_conserved_query_end < non_conserved_query_start
+        となる。(最初の conserved_region の前の non_conserved_region と最後の conserved_region の後の non_conserved_region が合わさった感じになる)
+        circular の場合は、最初の conserved_region の前に non_conserved_region が来ないようにオフセットしてるので、上記はあまり気にしなくて良い。
+        linear の場合は、オフセットしてないので気にする必要あり。
         """
         regions = np.empty((self.conserved_regions.shape[0], 5), dtype=int)
         for i, (ref_start, ref_end, query_start, query_end) in enumerate(self):
@@ -684,7 +763,6 @@ class ConservedRegions():
             regions[i, 3] = query_end + 1
             regions[i - 1, 2] = ref_start - 1
             regions[i - 1, 4] = query_start - 1
-        assert regions[-1, 2] == regions[-1, 4] == -1
         return regions
     def __iter__(self):
         yield from self.conserved_regions
@@ -698,7 +776,25 @@ class ConservedRegions():
 #####################
 class SearchLongestPath():
     @classmethod
-    def exec(cls, conserved_regions:ConservedRegions, N_ref:int, N_query:int):   # conserved_regions.shape = (N, 4)  # ref_start, ref_end, query_start, query_end
+    def exec_linear(cls, conserved_regions:ConservedRegions, N_ref:int, N_query:int):
+        longest_path_trace_list = []
+        longest_path_score_list = []
+        # 各々の conserved_region を始点とした時の、最適スコアを計算する
+        for ref_start, ref_end, query_start, query_end in conserved_regions.conserved_regions:
+            # 各 conserved_region を始点とするように offset を調整して、簡易DPを実行
+            conserved_regions_copied = conserved_regions.copy()
+            conserved_regions_copied.set_offset_core(ref_start, query_start, N_ref, N_query)    # 負の値は補正しない
+            longest_path_trace, longest_path_score = cls.search_longest_path(conserved_regions_copied)
+            longest_path_trace_list.append(longest_path_trace)
+            longest_path_score_list.append(longest_path_score)
+        longest_path_score = np.max(longest_path_score_list)
+        initial_idx_list_with_max_score = np.where(longest_path_score_list == longest_path_score)[0]
+
+        # circular のやつを参考に適切なものを選ぼう！！
+
+        return cls.search_longest_path(conserved_regions_copied)
+    @classmethod
+    def exec_circular(cls, conserved_regions:ConservedRegions, N_ref:int, N_query:int):   # conserved_regions.shape = (N, 4)  # ref_start, ref_end, query_start, query_end
         longest_path_trace_list = []
         longest_path_score_list = []
         # 各々の conserved_region を始点とした時の、最適スコアを計算する
@@ -717,7 +813,7 @@ class SearchLongestPath():
         if len(initial_idx_list_with_max_score) == 1:   # この場合分けがないと、下記の np.diff でエラーが出る
             return longest_path_trace_list[initial_idx_list_with_max_score[0]], longest_path_score
         else:
-            # スコア max のうち、query の start と end のギャップが最大のものを採用する (もっとも多くの場合は全部同じになるけど)
+            # スコア max のうち、query の start と end のギャップが最大のもの（要はギュッとまとまってるやつ）を採用する (もっとも多くの場合は全部同じになるけど)
             query_start_end_gap_list = []   # __len__ = len(initial_idx_list_with_max_score)
             gap_max_list = []               # __len__ = len(initial_idx_list_with_max_score)
             for initial_idx in initial_idx_list_with_max_score:

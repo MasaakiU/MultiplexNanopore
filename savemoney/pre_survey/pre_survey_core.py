@@ -8,6 +8,7 @@ from tqdm import tqdm
 from typing import List
 from pathlib import Path
 from itertools import combinations
+from multiprocessing import Pool
 from scipy.cluster.hierarchy import linkage, leaves_list
 from pulp import LpProblem, LpVariable, PULP_CBC_CMD, LpStatus, LpBinary, LpMinimize, lpSum
 import matplotlib.pyplot as plt
@@ -236,24 +237,29 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
     def set_distance_matrix(self):
         self.distance_matrix = np.zeros((self.N_plasmids, self.N_plasmids), dtype=int)
         ref_seq_idx_list = np.arange(self.N_plasmids)
-        ref_seq_idx_pairs = combinations(ref_seq_idx_list, 2)
-        for idx_1, idx_2 in tqdm(ref_seq_idx_pairs, ncols=100, mininterval=0.05, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=self.N_plasmids * (self.N_plasmids - 1) // 2):
-            ref_seq_1 = self.ref_seq_list[idx_1]
-            ref_seq_2 = self.ref_seq_list[idx_2]
-            self.distance_matrix[idx_1, idx_2] = self.distance_matrix[idx_2, idx_1] = self.calc_distance(ref_seq_1, ref_seq_2)
+        ref_seq_idx_pairs = list(combinations(ref_seq_idx_list, 2)) # リスト化しないと二回以上使用することができない
+        with Pool(processes=self.param_dict["n_cpu"]) as p:
+            distance_values = list(tqdm(p.imap(self.set_distance_matrix_wrapper, ref_seq_idx_pairs), ncols=100, mininterval=0.1, leave=True, bar_format='{l_bar}{bar}{r_bar}', total=self.N_plasmids * (self.N_plasmids - 1) // 2))
+        for (idx_1, idx_2), distance_value in zip(ref_seq_idx_pairs, distance_values):
+            self.distance_matrix[idx_1, idx_2] = self.distance_matrix[idx_2, idx_1] = distance_value
         assert (self.distance_matrix >= 0).all()
+    def set_distance_matrix_wrapper(self, args):
+        idx_1, idx_2 = args
+        ref_seq_1 = self.ref_seq_list[idx_1]
+        ref_seq_2 = self.ref_seq_list[idx_2]
+        return self.calc_distance(ref_seq_1, ref_seq_2)
     def calc_distance(self, ref_seq_1: mc.MyRefSeq, ref_seq_2: mc.MyRefSeq):
         my_optimized_aligner = rqa.MyOptimizedAligner(ref_seq_1, self.param_dict)
         ref_seq_2 = mc.MySeq(ref_seq_2._seq)
         ref_seq_2_rc = ref_seq_2.reverse_complement()
-        conserved_regions = my_optimized_aligner.calc_circular_conserved_region(ref_seq_2)
-        conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(ref_seq_2_rc)
+        conserved_regions = my_optimized_aligner.calc_conserved_region(ref_seq_2)
+        conserved_regions_rc = my_optimized_aligner.calc_conserved_region(ref_seq_2_rc)
         if conserved_regions is not None:
-            my_result = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(ref_seq_2, conserved_regions)
+            my_result = my_optimized_aligner.execute_alignment_using_conserved_regions(ref_seq_2, conserved_regions)
         else:
             my_result = rqa.MyResult()
         if conserved_regions_rc is not None:
-            my_result_rc = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(ref_seq_2_rc, conserved_regions_rc)
+            my_result_rc = my_optimized_aligner.execute_alignment_using_conserved_regions(ref_seq_2_rc, conserved_regions_rc)
         else:
             my_result_rc = rqa.MyResult()
         # return distance
@@ -1141,10 +1147,11 @@ class PlasmidAssignment():
             print(idx, all(available_group == self.available_group_for_plasmid[:, idx]))
             # assert all(available_group == self.available_group_for_plasmid[:, idx])
 
-def export_results(recommended_grouping: RecommendedGrouping, save_dir: Path):
+def export_results(recommended_grouping: RecommendedGrouping, save_dir: Path, export_image_results=True):
     print("\nexporting results...")
     recommended_grouping.save(save_dir / RecommendedGrouping.file_name) # execute_pre_survey では必ず一度 save される (そのさい path が登録される) ので、再度 path を与える必要はない
-    recommended_grouping.draw_heatmaps(save_dir, display_plot=False)
+    if export_image_results:
+        recommended_grouping.draw_heatmaps(save_dir, display_plot=False)
     print("export: DONE")
 
 

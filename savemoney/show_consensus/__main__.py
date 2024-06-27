@@ -5,7 +5,6 @@ import argparse
 
 from . import *
 from ..modules import msa
-from ..post_analysis.post_analysis import default_post_analysis_param_dict
 
 if __name__ == "__main__":
     """

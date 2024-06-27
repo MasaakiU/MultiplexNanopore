@@ -89,19 +89,24 @@ kwargs = {
     'gap_extend_penalty':   1,  # alignment parameter
     'match_score':          1,  # alignment parameter
     'mismatch_score':      -2,  # alignment parameter
+    'topology_of_dna':      0,  # 0: circular, 1: linear
+    'n_cpu':                2,  # number of cpu cores to be used
+    'export_image_results': 1,  # 0; skip export of svg figure files, 1: export svg figure files
 }
 
 # post-analysis
 kwargs = {
-    'score_threshold':    0.3,   # main parameter to be changed 
-    'gap_open_penalty':     3,   # alignment parameter
-    'gap_extend_penalty':   1,   # alignment parameter
-    'match_score':          1,   # alignment parameter
-    'mismatch_score':      -2,   # alignment parameter
-    'error_rate':     0.00001,   # prior probability for Bayesian analysis
-    'del_mut_rate':  0.0001/4,   # prior probability for Bayesian analysis # e.g. "A -> T, C, G, del"
-    'ins_rate':       0.00001,   # prior probability for Bayesian analysis
-    'window':             160,   # maximum detectable length of repetitive sequences when wrong plasmid maps are provided: if region of 80 nt is repeated adjascently two times, put the value of 160
+    'score_threshold':    0.3,  # main parameter to be changed 
+    'gap_open_penalty':     3,  # alignment parameter
+    'gap_extend_penalty':   1,  # alignment parameter
+    'match_score':          1,  # alignment parameter
+    'mismatch_score':      -2,  # alignment parameter
+    'error_rate':     0.00001,  # prior probability for Bayesian analysis
+    'ins_rate':       0.00001,  # prior probability for Bayesian analysis
+    'window':             160,  # maximum detectable length of repetitive sequences when wrong plasmid maps are provided: if region of 80 nt is repeated adjascently two times, put the value of 160
+    'topology_of_dna':      0,  # 0: circular, 1: linear
+    'n_cpu':                2,  # number of cpu cores to be used
+    'export_image_results': 1,  # 0; skip export of svg figure files, 1: export svg figure files
 }
 ```
 
@@ -133,6 +138,9 @@ options:
   -mms MMS              mismatch_score, optional, default_value = -2
   -dt DT                distance_threshold, optional, default_value = 5
   -nog NOG              number_of_groups, optional, default_value = 1
+  -tod TOD              topology_of_dna, optional, default_value = 0 (0: circular, 1: linear)
+  -nc NC                n_cpu, optional, default_value = 2
+  -eir EIR              export_image_results, optional, default_value = 1
 
 # post-analysis
 python -m savemoney.post_analysis -h
@@ -147,10 +155,12 @@ options:
   -ms MS              match_score, optional, default_value = 1
   -mms MMS            mismatch_score, optional, default_value = -2
   -st ST              score_threshold, optional, default_value = 0.3
-  -er ER              error_rate, optional, default_value = 0.0001
-  -dmr DMR            del_mut_rate, optional, default_value = 2.5e-05
-  -ir IR              ins_rate, optional, default_value = 0.0001
+  -er ER              error_rate, optional, default_value = 1e-07
+  -ir IR              ins_rate, optional, default_value = 1e-07
   -w W                window, optional, default_value = 160
+  -tod TOD            topology_of_dna, optional, default_value = 0 (0: circular, 1: linear)
+  -nc NC              n_cpu, optional, default_value = 2
+  -eir EIR            export_image_results, optional, default_value = 1
 ```
 
 ### Output

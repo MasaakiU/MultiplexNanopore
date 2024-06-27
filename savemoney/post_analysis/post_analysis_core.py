@@ -71,14 +71,14 @@ def execute_alignment_core_loop(query_seq, my_optimized_aligner_list: List[rqa.M
     query_seq_rc = query_seq.reverse_complement()
     result_list = []
     for my_optimized_aligner in my_optimized_aligner_list:
-        conserved_regions = my_optimized_aligner.calc_circular_conserved_region(query_seq, omit_too_long=True)
-        conserved_regions_rc = my_optimized_aligner.calc_circular_conserved_region(query_seq_rc, omit_too_long=True)
+        conserved_regions = my_optimized_aligner.calc_conserved_region(query_seq, omit_too_long=True)
+        conserved_regions_rc = my_optimized_aligner.calc_conserved_region(query_seq_rc, omit_too_long=True)
         if conserved_regions is not None:
-            my_result = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq, conserved_regions)
+            my_result = my_optimized_aligner.execute_alignment_using_conserved_regions(query_seq, conserved_regions)
         else:
             my_result = rqa.MyResult()
         if conserved_regions_rc is not None:
-            my_result_rc = my_optimized_aligner.execute_circular_alignment_using_conserved_regions(query_seq_rc, conserved_regions_rc)
+            my_result_rc = my_optimized_aligner.execute_alignment_using_conserved_regions(query_seq_rc, conserved_regions_rc)
         else:
             my_result_rc = rqa.MyResult()
         # レジスター
@@ -187,12 +187,15 @@ def normalize_scores_and_apply_threshold(ref_seq_list, my_fastq, result_dict, pa
     query_assignment.set_assignment(param_dict["score_threshold"])
     return query_assignment
 
-def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_dir, display_plot=False):
+def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_dir, display_plot=False, export_image_results=True):
     print("drawing and saving figures...")
     query_assignment.save_scores(save_dir)
-    query_assignment.draw_distributions(save_dir, display_plot=False)
-    query_assignment.draw_alignment_score_scatters(save_dir, display_plot=False)
-    query_assignment.draw_alignment_score_scatters_rotated(save_dir, display_plot=False)
+    if export_image_results:
+        query_assignment.draw_distributions(save_dir, display_plot=display_plot)
+        query_assignment.draw_alignment_score_scatters(save_dir, display_plot=display_plot)
+        query_assignment.draw_alignment_score_scatters_rotated(save_dir, display_plot=display_plot)
+    else:
+        print("export of svg files were skipped")
     print("drawing and saving:DONE\n")
 
 #################
