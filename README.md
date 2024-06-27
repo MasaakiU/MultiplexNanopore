@@ -17,9 +17,8 @@ The algorithm permits mixing of six (or potentially even more) plasmids for sequ
 
 # SAVEMONEY via Google Colab!
 
-- [SAVEMONEY](https://colab.research.google.com/github/MasaakiU/MultiplexNanopore/blob/master/colab/MultiplexNanopore.ipynb)
-- SAVEMONEY_batch (coming soon!)
-- SAVEMONEY_linear (coming soon!)
+- [SAVEMONEY](https://colab.research.google.com/github/MasaakiU/MultiplexNanopore/blob/master/colab/MultiplexNanopore.ipynb) (supports both circular and linear alignment)
+- [SAVEMONEY BATCH](https://colab.research.google.com/github/MasaakiU/MultiplexNanopore/blob/master/colab/MultiplexNanoporeBatch.ipynb)
 
 # SAVEMONEY for local environment
 
