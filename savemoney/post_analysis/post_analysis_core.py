@@ -201,33 +201,40 @@ def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_di
 #################
 # MSA/CONSENSUS #
 #################
-def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict):
+def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict:dict, save_dir:Path):
     print("executing MSA...")
     my_msa_list = []
     msa.MyMSA.set_sbq_pdf(query_assignment.my_fastq)
     for ref_seq, my_fastq_subset, result_list in query_assignment.iter_assignment_info(result_dict):
         print(f"processing {ref_seq.path.name}...")
         my_msa_aligner = msa.MyMSAligner(ref_seq, my_fastq_subset, result_list)
-        my_msa_list.append(my_msa_aligner.execute(param_dict))
+        my_msa = my_msa_aligner.execute(param_dict)
+        print("exporting results... ", end="")
+        export_results_core(my_msa, save_dir)
+        print("DONE")
+        my_msa_list.append(my_msa)
     print("MSA: DONE\n")
     return my_msa_list
 
 #############
 # CONSENSUS #
 #############
-def export_results(my_msa_list: List[msa.MyMSA], save_dir):
-    print("exporting results...")
+def export_results(my_msa_list: List[msa.MyMSA], save_dir): # delete in the future?
+    print("exporting results...", end="")
     for my_msa in my_msa_list:
-        my_msa.export_consensus_fastq(save_dir)
-        my_msa.export_gif(save_dir)
-        my_msa.export_consensus_alignment(save_dir)
-    print("export: DONE")
+        export_results_core(my_msa, save_dir)
+    print("DONE")
+
+def export_results_core(my_msa: msa.MyMSA, save_dir: Path):
+    my_msa.export_consensus_fastq(save_dir)
+    my_msa.export_gif(save_dir)
+    my_msa.export_consensus_alignment(save_dir)
 
 def export_log(ref_seq_list:list, my_fastq:mc.MyFastQ, param_dict, query_assignment: msa.QueryAssignment, save_dir:Path):
-    print("exporting log...")
+    print("exporting log... ", end="")
     my_log = MyLog(ref_seq_list, my_fastq, param_dict, query_assignment)
     my_log.save(save_path = save_dir / f"{my_fastq.combined_name_stem}.log")
-    print("export: DONE")
+    print("DONE")
 
 class MyLog(mc.MyTextFormat, mc.MyHeader):
     def __init__(self, ref_seq_list: list=None, my_fastq: mc.MyFastQ=None, param_dict: dict=None, query_assignment=None) -> None:

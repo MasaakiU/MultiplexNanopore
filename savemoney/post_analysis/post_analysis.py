@@ -50,9 +50,8 @@ def post_analysis_separate_paths_input(plasmid_map_paths:List[Path], fastq_paths
     # 3. normalize alignment score and set threshold for assignment
     query_assignment = pac.normalize_scores_and_apply_threshold(ref_seq_list, my_fastq, result_dict, param_dict)
     pac.draw_and_save_query_assignment(query_assignment, save_dir, display_plot=False, export_image_results=param_dict["export_image_results"])
-    # 4. MSA/consensus
-    my_msa_list = pac.execute_msa(result_dict, query_assignment, param_dict)
+    # 4. MSA/consensus/Export
+    pac.execute_msa(result_dict, query_assignment, param_dict, save_dir)
     # 5. EXPORT
-    pac.export_results(my_msa_list, save_dir)
     pac.export_log(ref_seq_list, my_fastq, param_dict, query_assignment, save_dir)
     return save_dir

@@ -1122,8 +1122,87 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         ref_seq_aligned = "".join(mini_my_msa.ref_seq_aligned for mini_my_msa in mini_my_msa_list)
         query_seq_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.query_seq_list_aligned for mini_my_msa in mini_my_msa_list])]
         my_cigar_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.my_cigar_list_aligned for mini_my_msa in mini_my_msa_list])]
+        # 結合部分の修正 # 各chunk内部では HHHNNN のようなことは起こってないが、稀に結合部分でそうなる可能性がある。
+        for idx, (query_seq_aligned, my_cigar_aligned) in enumerate(zip(query_seq_list_aligned, my_cigar_list_aligned)):
+            if " -" in query_seq_aligned:
+                """
+                Original
+                    "ATCG      -------ATCG"
+                    "====HHHHHHNNNNNNN===="
+                Final
+                    "ATCG             ATCG"
+                    "====HHHHHHOOOOOOO===="
+                """
+                # 場所探索
+                m_list = list(re.finditer(r" +-+", query_seq_aligned))
+                assert len(m_list) == 1
+                m = m_list[0]
+                # クエリ修正
+                query_seq_aligned = query_seq_aligned[:m.start()] + " " * (m.end() - m.start()) + query_seq_aligned[m.end():]
+                # シガー修正
+                N_start_idx = m.start() + m.group(0).find("-")
+                assert my_cigar_aligned[N_start_idx:m.end()] == "N" * (m.end() - N_start_idx)
+                my_cigar_aligned = my_cigar_aligned[:N_start_idx] + "O" * (m.end() - N_start_idx) + my_cigar_aligned[m.end():]
+                # 格納
+                query_seq_list_aligned[idx] = query_seq_aligned
+                my_cigar_list_aligned[idx] = my_cigar_aligned
+            if "- " in query_seq_aligned:
+                """
+                Original
+                    "ATCG-------      ATCG"
+                    "====NNNNNNNHHHHHH===="
+                Final
+                    "ATCG             ATCG"
+                    "====OOOOOOOHHHHHH===="
+                """
+                m_list = list(re.finditer(r"-+ +", query_seq_aligned))
+                assert len(m_list) == 1
+                m = m_list[0]
+                # クエリ修正
+                query_seq_aligned = query_seq_aligned[:m.start()] + " " * (m.end() - m.start()) + query_seq_aligned[m.end():]
+                # シガー修正
+                N_end_idx = m.start() + m.group(0).find(" ")
+                assert my_cigar_aligned[m.start():N_end_idx] == "N" * (N_end_idx - m.start())
+                my_cigar_aligned = my_cigar_aligned[:m.start()] + "O" * (N_end_idx - m.start()) + my_cigar_aligned[N_end_idx:]
+                # 格納
+                query_seq_list_aligned[idx] = query_seq_aligned
+                my_cigar_list_aligned[idx] = my_cigar_aligned
         # 後処理
         if topology_of_dna == 0:
+            # circular な場合は、さらに最初と最後のつなぎ目部分で変な結合になってる場合を注意する
+            for idx, (query_seq_aligned, my_cigar_aligned) in enumerate(zip(query_seq_list_aligned, my_cigar_list_aligned)):
+                if (query_seq_aligned[0] == " ") and (query_seq_aligned[-1] == "-"):
+                    """
+                    Original
+                        "   ATCG-------ATCG----"
+                        "HHH====DDDDDDD====NNNN"
+                    Final
+                        "   ATCG-------ATCG    "
+                        "HHH====DDDDDDD====OOOO"
+                    """
+                    m = re.search(r"-+$", query_seq_aligned)
+                    hyphen_count = len(m.group(0))
+                    query_seq_aligned = query_seq_aligned[:-hyphen_count] + " " * hyphen_count
+                    my_cigar_aligned = my_cigar_aligned[:-hyphen_count] + "O" * hyphen_count
+                    # 格納
+                    query_seq_list_aligned[idx] = query_seq_aligned
+                    my_cigar_list_aligned[idx] = my_cigar_aligned
+                elif (query_seq_aligned[0] == "-") and (query_seq_aligned[-1] == " "):
+                    """
+                    Original
+                        "---ATCG-------ATCG    "
+                        "NNN====DDDDDDD====HHHH"
+                    Final
+                        "   ATCG-------ATCG    "
+                        "OOO====DDDDDDD====HHHH"
+                    """
+                    m = re.search(r"^-+", query_seq_aligned)
+                    hyphen_count = len(m.group(0))
+                    query_seq_aligned = " " * hyphen_count + query_seq_aligned[hyphen_count:]
+                    my_cigar_aligned = "O" * hyphen_count + my_cigar_aligned[hyphen_count:]
+                    # 格納
+                    query_seq_list_aligned[idx] = query_seq_aligned
+                    my_cigar_list_aligned[idx] = my_cigar_aligned
             # 最後に入ってる ref_seq も始点と終点のあるリニアなリードとして扱われてるので、コンセンサスに insertion の部分が存在し、かつその位置が mapの切れ目の部分と一致してしまうと、リードが " " となってしまうが、実際は環状プラスミドなので、"-" としなくてはダメ
             query_seq_list_aligned[-1] = query_seq_list_aligned[-1].replace(" ", "-")
             cur_len = 0
@@ -2397,13 +2476,6 @@ class MyGIF():
             [0,0,0,0]
         ])
         # words
-        M = np.array([
-            [1,0,0,0,1], 
-            [1,1,0,1,1], 
-            [1,0,1,0,1], 
-            [1,0,0,0,1], 
-            [1,0,0,0,1]
-        ])
         A = np.array([
             [0,1,1,0], 
             [1,0,0,1], 
@@ -2411,17 +2483,45 @@ class MyGIF():
             [1,0,0,1], 
             [1,0,0,1]
         ], dtype=dtype)
-        T = np.array([
-            [1,1,1,1,1], 
-            [0,0,1,0,0], 
-            [0,0,1,0,0], 
-            [0,0,1,0,0], 
-            [0,0,1,0,0]
+        B = np.array([
+            [1,1,1,0], 
+            [1,0,0,1], 
+            [1,1,1,0], 
+            [1,0,0,1], 
+            [1,1,1,0]
         ], dtype=dtype)
         C = np.array([
             [0,1,1,0], 
             [1,0,0,1], 
             [1,0,0,0], 
+            [1,0,0,1], 
+            [0,1,1,0]
+        ], dtype=dtype)
+        D = np.array([
+            [1,1,1,0], 
+            [1,0,0,1], 
+            [1,0,0,1], 
+            [1,0,0,1], 
+            [1,1,1,0]
+        ], dtype=dtype)
+        E = np.array([
+            [1,1,1,1], 
+            [1,0,0,0], 
+            [1,1,1,0], 
+            [1,0,0,0], 
+            [1,1,1,1]
+        ], dtype=dtype)
+        F = np.array([
+            [1,1,1,1], 
+            [1,0,0,0], 
+            [1,1,1,0], 
+            [1,0,0,0], 
+            [1,0,0,0]
+        ], dtype=dtype)
+        G = np.array([
+            [0,1,1,1], 
+            [1,0,0,0], 
+            [1,0,1,1], 
             [1,0,0,1], 
             [0,1,1,0]
         ], dtype=dtype)
@@ -2432,40 +2532,40 @@ class MyGIF():
             [1,0,0,1], 
             [1,0,0,1]
         ], dtype=dtype)
-        D = np.array([
-            [1,1,1,0], 
-            [1,0,0,1], 
-            [1,0,0,1], 
-            [1,0,0,1], 
-            [1,1,1,0]
-        ])
-        E = np.array([
-            [1,1,1,1], 
-            [1,0,0,0], 
-            [1,1,1,0], 
-            [1,0,0,0], 
-            [1,1,1,1]
-        ])
-        L = np.array([
-            [1,0,0,0], 
-            [1,0,0,0], 
-            [1,0,0,0], 
-            [1,0,0,0], 
-            [1,1,1,1]
-        ])
         I = np.array([
             [1,1,1], 
             [0,1,0], 
             [0,1,0], 
             [0,1,0], 
             [1,1,1]
-        ])
-        O = np.array([
-            [0,1,1,1,0], 
+        ], dtype=dtype)
+        J = np.array([
+            [0,1,1,1], 
+            [0,0,1,0], 
+            [0,0,1,0], 
+            [1,0,1,0], 
+            [0,1,0,0]
+        ], dtype=dtype)
+        K = np.array([
+            [1,0,0,1], 
+            [1,0,1,0], 
+            [1,1,0,0], 
+            [1,0,1,0], 
+            [1,0,0,1]
+        ], dtype=dtype)
+        L = np.array([
+            [1,0,0,0], 
+            [1,0,0,0], 
+            [1,0,0,0], 
+            [1,0,0,0], 
+            [1,1,1,1]
+        ], dtype=dtype)
+        M = np.array([
             [1,0,0,0,1], 
+            [1,1,0,1,1], 
+            [1,0,1,0,1], 
             [1,0,0,0,1], 
-            [1,0,0,0,1], 
-            [0,1,1,1,0]
+            [1,0,0,0,1]
         ])
         N = np.array([
             [1,0,0,0,1], 
@@ -2473,42 +2573,91 @@ class MyGIF():
             [1,0,1,0,1], 
             [1,0,0,1,1], 
             [1,0,0,0,1]
-        ])
-        S = np.array([
-            [0,1,1,1], 
-            [1,0,0,0], 
-            [0,1,1,0], 
-            [0,0,0,1], 
-            [1,1,1,0]
-        ])
-        R = np.array([
-            [1,1,1,0], 
-            [1,0,0,1], 
-            [1,1,1,0], 
-            [1,0,1,0], 
-            [1,0,0,1]
-        ])
-        V = np.array([
+        ], dtype=dtype)
+        O = np.array([
+            [0,1,1,1,0], 
             [1,0,0,0,1], 
             [1,0,0,0,1], 
             [1,0,0,0,1], 
-            [0,1,0,1,0], 
-            [0,0,1,0,0]
-        ])
-        K = np.array([
-            [1,0,0,1], 
-            [1,0,1,0], 
-            [1,1,0,0], 
-            [1,0,1,0], 
-            [1,0,0,1]
-        ])
+            [0,1,1,1,0]
+        ], dtype=dtype)
         P = np.array([
             [1,1,1,0], 
             [1,0,0,1], 
             [1,1,1,0], 
             [1,0,0,0], 
             [1,0,0,0]
-        ])
+        ], dtype=dtype)
+        Q = np.array([
+            [0,1,1,1,0], 
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,0,1,1], 
+            [0,1,1,1,1]
+        ], dtype=dtype)
+        R = np.array([
+            [1,1,1,0], 
+            [1,0,0,1], 
+            [1,1,1,0], 
+            [1,0,1,0], 
+            [1,0,0,1]
+        ], dtype=dtype)
+        S = np.array([
+            [0,1,1,1], 
+            [1,0,0,0], 
+            [0,1,1,0], 
+            [0,0,0,1], 
+            [1,1,1,0]
+        ], dtype=dtype)
+        T = np.array([
+            [1,1,1,1,1], 
+            [0,0,1,0,0], 
+            [0,0,1,0,0], 
+            [0,0,1,0,0], 
+            [0,0,1,0,0]
+        ], dtype=dtype)
+        U = np.array([
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [0,1,1,1,0]
+        ], dtype=dtype)
+        V = np.array([
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [0,1,0,1,0], 
+            [0,0,1,0,0]
+        ], dtype=dtype)
+        W = np.array([
+            [1,0,0,0,1], 
+            [1,0,0,0,1], 
+            [1,0,1,0,1], 
+            [1,0,1,0,1], 
+            [0,1,0,1,0]
+        ], dtype=dtype)
+        X = np.array([
+            [1,0,0,0,1], 
+            [0,1,0,1,0], 
+            [0,0,1,0,0], 
+            [0,1,0,1,0], 
+            [1,0,0,0,1]
+        ], dtype=dtype)
+        Y = np.array([
+            [1,0,0,0,1], 
+            [0,1,0,1,0], 
+            [0,0,1,0,0], 
+            [0,0,1,0,0], 
+            [0,0,1,0,0]
+        ], dtype=dtype)
+        Z = np.array([
+            [1,1,1,1,1], 
+            [0,0,0,1,0], 
+            [0,0,1,0,0], 
+            [0,1,0,0,0], 
+            [1,1,1,1,1]
+        ], dtype=dtype)
         vs = np.array([ # vertical space
             [0], 
             [0], 
@@ -2566,7 +2715,7 @@ class MyGIF():
     t_margin = 100      # pixel
     b_margin = 40       # pixel
     minimum_margin = 20 # pixel
-    def __init__(self, N_array, tick_pos_list, tick_label_list) -> None:
+    def __init__(self, N_array, tick_pos_list: list, tick_label_list: list) -> None:
         self.N_array = N_array  # shape=(6, len(ref_seq_aligned))
         self.N_reads = self.N_array[:, 0].sum()
         assert (self.N_array.sum(axis=0) == self.N_reads).all()
@@ -2628,11 +2777,14 @@ class MyGIF():
             for c_cycle, bar_height in enumerate(array):
                 self.draw_bar(bar_pos_x, bar_pos_y, bar_pos_y + bar_height, ax_origin, self.color_cycle_rgb[c_cycle])
                 bar_pos_y += bar_height # （画像左上の座標が [0, 0]、ただし ax の内部では左下が原点）
-            if (idx + 1) in self.tick_pos_list: # 塩基は1スタート
-                tick_idx = list(self.tick_pos_list).index(idx + 1)
+            if idx in self.tick_pos_list: # 塩基は1スタートだが、tick_pos_list に登録されているものは 0 スタート
+                tick_idx = self.tick_pos_list.index(idx)
                 self.draw_tick(bar_pos_x=bar_pos_x, tick_label=self.tick_label_list[tick_idx], ax_origin=ax_origin) # 下から積み上げていく
-            # 後の idx 処理
             bar_pos_x += 1
+            # N_array_compositional.T.shape[0] が、行の最後とぴったり一致して終了した場合は、改行しない（改行しても次の行に入力するものがないし、index out of range error になる）
+            if idx == N_array_compositional.shape[1] - 1:
+                break
+            # 後の idx 処理
             if bar_pos_x == self.wrap:
                 bar_pos_x = 0
                 ax_loc[1] += 1
