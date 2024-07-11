@@ -201,7 +201,7 @@ def draw_and_save_query_assignment(query_assignment:msa.QueryAssignment, save_di
 #################
 # MSA/CONSENSUS #
 #################
-def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict:dict, save_dir:Path):
+def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict:dict, save_dir:Path = None):
     print("executing MSA...")
     my_msa_list = []
     msa.MyMSA.set_sbq_pdf(query_assignment.my_fastq)
@@ -209,9 +209,10 @@ def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict:di
         print(f"processing {ref_seq.path.name}...")
         my_msa_aligner = msa.MyMSAligner(ref_seq, my_fastq_subset, result_list)
         my_msa = my_msa_aligner.execute(param_dict)
-        print("exporting results... ", end="")
-        export_results_core(my_msa, save_dir)
-        print("DONE")
+        if save_dir is not None:
+            print("exporting results... ", end="")
+            export_results_core(my_msa, save_dir)
+            print("DONE")
         my_msa_list.append(my_msa)
     print("MSA: DONE\n")
     return my_msa_list
@@ -219,7 +220,7 @@ def execute_msa(result_dict, query_assignment:msa.QueryAssignment, param_dict:di
 #############
 # CONSENSUS #
 #############
-def export_results(my_msa_list: List[msa.MyMSA], save_dir): # delete in the future?
+def export_results(my_msa_list: List[msa.MyMSA], save_dir): # delete in the future? -> No. Used in google colab
     print("exporting results...", end="")
     for my_msa in my_msa_list:
         export_results_core(my_msa, save_dir)
