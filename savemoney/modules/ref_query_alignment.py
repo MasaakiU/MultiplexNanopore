@@ -409,7 +409,12 @@ class MyOptimizedAligner(MyAlignerBase, mc.AlignmentBase):
         conserved_regions_ref = np.vstack((conserved_region_start_idx_list_ref, conserved_region_end_idx_list_ref)).T
         conserved_regions_query = np.vstack((conserved_region_start_idx_list_query, conserved_region_end_idx_list_query)).T
         if self.param_dict["topology_of_dna"] == 0:    # circular
-            conserved_regions_ref %= self.N_ref # リピートが 3 以上の場合は、複数回引く必要がある：でないと index エラーになる
+            # 一周以上マッチしている場合があると、エラーになってしまう -> ref_seq の限界までマッチさせる
+            more_than_one_round = np.diff(conserved_regions_ref, axis=1)[:, 0] > self.N_ref - 1
+            conserved_regions_ref[more_than_one_round, 1] = conserved_regions_ref[more_than_one_round, 0] - 1
+            conserved_regions_query[more_than_one_round, 1] = conserved_regions_query[more_than_one_round, 0] + self.N_ref - 1
+            # リピートが 3 以上の場合は、複数回引く必要がある：でないと index エラーになる
+            conserved_regions_ref %= self.N_ref
         elif self.param_dict["topology_of_dna"] == 1:
             conserved_regions_ref -= N_query - 1
             assert not (conserved_regions_ref < 0).any()
@@ -745,6 +750,16 @@ class ConservedRegions():
         self.query_seq_offset = query_start
         self.conserved_regions[:, :2] -= self.ref_seq_offset
         self.conserved_regions[:, 2:] -= self.query_seq_offset
+    def rm_regions_spanning_beg_and_last(self):
+        removed_idx_list = np.diff(self.conserved_regions[:, :2])[:, 0] < 0
+        self.conserved_regions = self.conserved_regions[~removed_idx_list, :]
+        return np.where(removed_idx_list)[0]
+    @staticmethod
+    def recover_removed_region(some_list: list, removed_idx_list):
+        some_list = np.array(some_list)
+        for removed_idx in removed_idx_list:
+            some_list[some_list >= removed_idx] += 1
+        return list(some_list)
     def iter_regions(self):
         """
         regions.shape = (N, 5)  # length_of_previous_conserved_region, non_conserved_ref_start, non_conserved_ref_end, non_conserved_query_start, non_conserved_query_end
@@ -802,7 +817,11 @@ class SearchLongestPath():
             # 各 conserved_region を始点とするように offset を調整して、簡易DPを実行
             conserved_regions_copied = conserved_regions.copy()
             conserved_regions_copied.set_offset(ref_start, query_start, N_ref, N_query)
+            # circular な場合は、conserved_regions が ref_seq の最初と最後にまたがって しまう場合があるが、それはバグるので除く
+            removed_idx_list = conserved_regions_copied.rm_regions_spanning_beg_and_last()
             longest_path_trace, longest_path_score = cls.search_longest_path(conserved_regions_copied)
+            if len(removed_idx_list):
+                longest_path_trace = ConservedRegions.recover_removed_region(longest_path_trace, removed_idx_list)
             longest_path_trace_list.append(longest_path_trace)
             longest_path_score_list.append(longest_path_score)
 
@@ -941,6 +960,7 @@ class SearchLongestPath():
             plt.plot(conserved_regions[([i, j], [1, 0])], conserved_regions[([i, j], [3, 2])])
         plt.xlabel("ref")
         plt.ylabel("query")
+        plt.gca().set_aspect('equal')
         plt.show()
 
 class WindowAnalysis():
