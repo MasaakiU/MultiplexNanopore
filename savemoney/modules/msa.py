@@ -1094,7 +1094,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
 
         # POA 実行
         with Pool(processes=self.param_dict["n_cpu"]) as p:
-            mini_my_msa_list = []
+            mini_my_msa_list: List[MyMSA]= []
             for s, e, mini_my_msa in p.imap(self.polish_core, zip(chunk_idx_start_aligned_list[:-1], chunk_idx_start_aligned_list[1:])):
                 if my_pbar is not None:
                     my_pbar.set_value(s)
@@ -1122,7 +1122,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
         ref_seq_aligned = "".join(mini_my_msa.ref_seq_aligned for mini_my_msa in mini_my_msa_list)
         query_seq_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.query_seq_list_aligned for mini_my_msa in mini_my_msa_list])]
         my_cigar_list_aligned = ["".join(chunks) for chunks in zip(*[mini_my_msa.my_cigar_list_aligned for mini_my_msa in mini_my_msa_list])]
-        # 結合部分の修正 # 各chunk内部では HHHNNN のようなことは起こってないが、稀に結合部分でそうなる可能性がある。
+        # 結合部分の修正 # 各chunk内部では HHHNNN のようなことは起こってないが、稀に query の両端を結合する場合にそれが起こる可能性がある。
         for idx, (query_seq_aligned, my_cigar_aligned) in enumerate(zip(query_seq_list_aligned, my_cigar_list_aligned)):
             if " -" in query_seq_aligned:
                 """
@@ -1205,6 +1205,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                     my_cigar_list_aligned[idx] = my_cigar_aligned
             # 最後に入ってる ref_seq も始点と終点のあるリニアなリードとして扱われてるので、コンセンサスに insertion の部分が存在し、かつその位置が mapの切れ目の部分と一致してしまうと、リードが " " となってしまうが、実際は環状プラスミドなので、"-" としなくてはダメ
             query_seq_list_aligned[-1] = query_seq_list_aligned[-1].replace(" ", "-")
+            my_cigar_list_aligned[-1] = my_cigar_list_aligned[-1].replace("S", "I").replace("H", "D").replace("O", "N")
             cur_len = 0
             for i, s in enumerate(query_seq_list_aligned[-1][::-1]):  # pseudo_ref_seq_aligned
                 if cur_len == offset:
@@ -1309,24 +1310,38 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
                     my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
                 elif (not starts_with_OH) and ends_with_OH: # =========SSSHHH
                     my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
-                # HEREAFTER: (not starts_with_OH) and (not ends_with_OH)
+                # HEREAFTER: (not starts_with_OH) and (not ends_with_OH) -> query の切れ目の位置が明確でなくなる
                 elif starts_with_S and ends_with_S:         # SSSSSSSSS
                     raise Exception("error")
-                elif starts_with_S and (not ends_with_S):   # SSSSSS=========
-                    my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
-                elif (not starts_with_S) and ends_with_S:   # =========SSSSSS
-                    my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
-                else:                                       # ===SSSHHHSSS===
-                    query_seq_chunk_aligned = query_seq_chunk_list_aligned[idx]
+                else:
+                    # query の切れ目の位置が明確でないので、query_seq_offset_list_aligned を用いての切れ目の位置をチェック
+                    """ イメージ (idx とかあるけど、全て塩基の数で考える)
+                    <------------------------ len(self.ref_seq_aligned) ------------------------>
+                    <-- s_idx --><-- S_beg_idx --><-- self.query_seq_offset_list_aligned[idx] -->
+                    上記のようになっていれば、今着目している chunk の中に切れ目があることになる。
+                    """
                     S_beg_idx = len(self.ref_seq_aligned) - self.query_seq_offset_list_aligned[idx] - s_idx
                     if S_beg_idx < 0:
                         S_beg_idx += len(self.ref_seq_aligned)
-                    assert 0 <= S_beg_idx < len(query_seq_chunk_aligned)
-                    my_cigar = self.my_special_DP(
-                        query_seq_1=query_seq_chunk_aligned[:S_beg_idx].replace(" ", "").replace("-", ""), 
-                        query_seq_2=query_seq_chunk_aligned[S_beg_idx:].replace(" ", "").replace("-", ""), 
-                        ref_seq=consensus_wo_appendix, 
-                    ).my_cigar
+                    query_seq_chunk_aligned = query_seq_chunk_list_aligned[idx]
+                    # ===SSSHHHSSS===
+                    # SSSHHH=========
+                    # =========HHHSSS
+                    if 0 <= S_beg_idx < len(query_seq_chunk_aligned):
+                        my_cigar = self.my_special_DP(
+                            query_seq_1=query_seq_chunk_aligned[:S_beg_idx].replace(" ", "").replace("-", ""), 
+                            query_seq_2=query_seq_chunk_aligned[S_beg_idx:].replace(" ", "").replace("-", ""), 
+                            ref_seq=consensus_wo_appendix, 
+                        ).my_cigar
+                    # SSSSSS========= (切れ目はこれより前の chunk にある)
+                    # =========SSSSSS (切れ目はこれより後の chunk にある)
+                    else:
+                        if starts_with_S and (not ends_with_S):   # SSSSSS=========
+                            my_cigar = self.my_special_sg_qb_db(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                        elif (not starts_with_S) and ends_with_S:   # =========SSSSSS
+                            my_cigar = self.my_special_sg_qe_de(ref_seq=consensus_wo_appendix, query_seq=query_seq_chunk).my_cigar
+                        else:
+                            raise Exception("error")
             # 追加
             my_cigar_list.append(my_cigar)
         # 整頓する
@@ -1337,7 +1352,7 @@ class MyMSA(rqa.MyAlignerBase, mc.MyCigarBase):
             my_cigar_list=my_cigar_list, 
             param_dict=self.param_dict
         )
-        mini_my_msa.correct_end_SNOH()  # generate_msa の都合、右端に O が来てしまいうる (circular な前提として msa してるため) また、=+S+の右隣はNではなくOであるべき
+        mini_my_msa.correct_end_SNOH()  # generate_msa の都合、右端に O が来てしまいうる (circular な前提として msa してるため) 。また、=+S+の右隣はNではなくOであるべき
         return mini_my_msa
     beg_HO_re = re.compile(r"^O+[^HO]") # H ではない文字の前に O が来て、の形で始まるのはダメ
     end_HO_re = re.compile(r"[^HO]O+$") # H ではない文字の後に O が来て、そのまま終わるのはダメ

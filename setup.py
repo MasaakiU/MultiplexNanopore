@@ -19,7 +19,7 @@ $ python setup.py sdist
 -> `dist`, `savemoney.egg-info` directories will be created.
 $ python setup.py bdist_wheel
 -> `build` directory will be created.
-$ twine upload --repository testpypi dist/*
+$ twine upload --repository testpypi dist/*         (replace "testpypi" with "pypi" for the final release)
 
 To install parasail, 
 $ brew install libtool
