@@ -17,7 +17,6 @@ from pathlib import Path
 from itertools import product
 from collections import defaultdict, Counter
 from multiprocessing import Pool
-from numpy.core.memmap import uint8
 from matplotlib.patches import Patch
 
 from . import my_classes as mc
@@ -2403,7 +2402,7 @@ class MyGIF():
     tick_color = (200, 200, 200)
     # numbers
     class MyCharacters(object):
-        dtype = uint8
+        dtype = np.uint8
         number_w = 4    # pixel
         letter_h = 5    # pixel
         zero = np.array([
