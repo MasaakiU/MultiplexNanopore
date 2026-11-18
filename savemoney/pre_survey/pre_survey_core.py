@@ -10,7 +10,9 @@ from pathlib import Path
 from itertools import combinations
 from multiprocessing import Pool
 from scipy.cluster.hierarchy import linkage, leaves_list
-from pulp import LpProblem, LpVariable, PULP_CBC_CMD, LpStatus, LpBinary, LpMinimize, lpSum
+import pulp
+from pulp import LpProblem, LpBinary, LpMinimize, lpSum
+from cbcbox import cbc_bin_path
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib.backends.backend_pdf import PdfPages
@@ -21,6 +23,14 @@ from ..modules import ref_query_alignment as rqa
 rc('font', **{'family':'sans-serif','sans-serif':[mc.sans_serif_font_master]})
 
 __all__ = ["execute_grouping"]
+
+def _solve_with_cbc(problem, msg=True):
+    """Find a feasible assignment with PuLP 3.3.2 or PuLP 4."""
+    result = problem.solve(solver=pulp.COIN_CMD(path=cbc_bin_path(), msg=msg))
+    # Feasibility models need any valid solution, including CBC gap-limit exits.
+    if hasattr(result, "has_solution"):
+        return result.has_solution
+    return pulp.LpStatus[result] == "Optimal"
 
 def execute_grouping(ref_seq_list: List[mc.MyRefSeq], param_dict: dict, save_dir: Path, ref_seq_aliases: list=None):
     assert (ref_seq_aliases is None) or (len(ref_seq_list) == len(ref_seq_aliases))
@@ -563,7 +573,7 @@ class RecommendedGrouping(mc.MyTextFormat, mc.MyHeader):
 class PlasmidAssignmentSolver():
     assignment_solver_version = "as_0.1.0"
     def __init__(self, adopted_number_of_groups, cluster_list, idx_pairs_in_order_of_distance) -> None:
-        self.N_groups = adopted_number_of_groups
+        self.N_groups = int(adopted_number_of_groups)
         self.cluster_list = cluster_list
         self.idx_pairs_in_order_of_distance = idx_pairs_in_order_of_distance    #　近い順
         self.idx_pairs_removed = []
@@ -610,7 +620,7 @@ class PlasmidAssignmentSolver():
         variable_box = [
             [
                 [
-                    LpVariable(f"c{cluster_idx}g{group_idx}p{plasmid_idx}", cat=LpBinary) for plasmid_idx in range(self.N_plasmids)
+                    problem.add_variable(f"c{cluster_idx}g{group_idx}p{plasmid_idx}", cat=LpBinary) for plasmid_idx in range(self.N_plasmids)
                 ] for group_idx in range(self.N_groups)
             ] for cluster_idx in range(self.N_clusters)
         ]
@@ -640,10 +650,7 @@ class PlasmidAssignmentSolver():
         ########
         # 求解 #
         ########
-        solver = PULP_CBC_CMD(msg = False)
-        result = problem.solve(solver=solver)
-        status = LpStatus[result]
-        if status == "Optimal":
+        if _solve_with_cbc(problem, msg=False):
             assignment_example = np.empty((self.N_clusters, self.N_groups), dtype=int)
             for cluster_idx in range(self.N_clusters):
                 for group_idx in range(self.N_groups):
@@ -805,19 +812,16 @@ class PlasmidAssignment():
         problem = LpProblem("SimplePicross")
         # 変数（どこを 1 にするか）
         plasmid_loc_in_cluster_group = [
-            [LpVariable(f"r{r}c{c}", cat=LpBinary) for c in range(N_col)]
+            [problem.add_variable(f"r{r}c{c}", cat=LpBinary) for c in range(N_col)]
             for r in range(N_row)
         ]
         # 制約条件の追加（目的関数はない：すべて数え上げる）
         for r in range(N_row):
-            problem += lpSum(plasmid_loc_in_cluster_group[r][c] for c in range(N_col)) == row_constraint[r]
+            problem += lpSum(plasmid_loc_in_cluster_group[r][c] for c in range(N_col)) == int(row_constraint[r])
         for c in range(N_col):
-            problem += lpSum(plasmid_loc_in_cluster_group[r][c] for r in range(N_row)) == col_constraint[c]
+            problem += lpSum(plasmid_loc_in_cluster_group[r][c] for r in range(N_row)) == int(col_constraint[c])
         # 求解
-        solver = PULP_CBC_CMD()
-        result = problem.solve(solver=solver)
-        status = LpStatus[result]
-        if status == "Optimal":
+        if _solve_with_cbc(problem):
             result_array = np.empty((N_row, N_col), dtype=int)
             for i in range(N_row):
                 for j in range(N_col):
@@ -853,7 +857,7 @@ class PlasmidAssignment():
             for group_idx in range(adopted_number_of_groups):
                 in_cluster = []
                 for idx_in_cluster in range(max_clusster_size):  # テンソルにするために、敢えて余計に入れる
-                    var = LpVariable(f"c{cluster_idx}g{group_idx}i{idx_in_cluster}", cat=LpBinary)
+                    var = problem.add_variable(f"c{cluster_idx}g{group_idx}i{idx_in_cluster}", cat=LpBinary)
                     in_cluster.append(var)
                     if idx_in_cluster > cluster_size - 1:
                         problem += var == 0
@@ -894,10 +898,7 @@ class PlasmidAssignment():
 
 
         # 求解
-        solver = PULP_CBC_CMD()
-        result = problem.solve(solver=solver)
-        status = LpStatus[result]
-        if status == "Optimal":
+        if _solve_with_cbc(problem):
             result_array = np.empty((N_cluster, adopted_number_of_groups), dtype=int)
             for cluster_idx, cluster_size in enumerate(cluster_size_list):
                 for group_idx in range(adopted_number_of_groups):

@@ -35,15 +35,19 @@ Verified on macOS, Linux, and Windows10
 - pandas>=1.5.3
 - parasail>=1.3.4
 - Pillow>=9.4.0
-- PuLP>=2.7.0
+- PuLP>=3.3.2,<5 (CBC is installed automatically via the `cbc` extra)
 - scipy>=1.11.4
 - snapgene_reader>=0.1.20
 - tqdm>=4.66.1
-- Cython>=3.0.7
 - matplotlib>=3.7.1
 - numpy>=1.23.5
 - pyspoa>=0.2.1
-- pysam>=0.22.0 (optional)
+- pysam>=0.22.0 (optional; install with `pip install "savemoney[bam]"`)
+
+Cython is a build dependency and is installed automatically in an isolated build
+environment when building from source. It is not required at runtime.
+
+Package dependency ranges and build requirements are defined in `pyproject.toml`.
 
 ## Installation
 
@@ -62,6 +66,24 @@ xcode-select --install
 ```
 
 or download [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (for Windows).
+
+### Building from source
+
+From the repository root, install a local checkout with:
+
+```shell
+python -m pip install .
+```
+
+To build a source distribution and a wheel for release:
+
+```shell
+python -m pip install build
+python -m build
+```
+
+Build requirements are declared in `pyproject.toml`. The build backend remains
+setuptools, with the Cython extension configured in `setup.py`.
 
 ## Quick usage
 

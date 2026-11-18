@@ -362,7 +362,7 @@ class QueryAssignment():
         range_max = max(diagonal_hist_data) * 1.05
         for ax in diagonal_axes:
             ax.set_ylim(0, range_max)
-        aspect_diagonal = np.diff(ax.get_xlim()) / np.diff(ax.get_ylim())
+        aspect_diagonal = (ax.get_xlim()[1] - ax.get_xlim()[0]) / (ax.get_ylim()[1] - ax.get_ylim()[0])
         for ax in diagonal_axes:
             ax.set_aspect(aspect_diagonal, adjustable='box')
         for ax in other_axes:
